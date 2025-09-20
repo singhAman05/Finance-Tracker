@@ -3,12 +3,13 @@
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import { useState, forwardRef } from "react";
-import { loginService } from "@/service/service_auth";
+import { loginService, loginWithGoogle } from "@/service/service_auth";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Loader2 } from "lucide-react";
 import type { AppDispatch } from "@/app/store";
 import PhoneInput, { type Value } from "react-phone-number-input";
+// import Microsoft from "/logos/microsoft-5.svg";
 import "react-phone-number-input/style.css";
 
 // Custom input component to avoid prop warnings
@@ -51,6 +52,28 @@ export default function AuthForm() {
     }
   };
 
+  const handleSocialLogin = async (provider: string) => {
+    setLoading(true);
+    setError("");
+
+    try {
+      if (provider === "google") {
+        console.log(await loginWithGoogle()); // your service wrapper
+        // NextAuth redirects automatically, so no need to push router
+      } else if (provider === "microsoft") {
+        // handle Microsoft login if implemented
+        console.log("Microsoft login not implemented yet");
+      }
+    } catch (err: unknown) {
+      const message =
+        err instanceof Error ? err.message : `Login with ${provider} failed`;
+      setError(message);
+      console.error(`Login with ${provider} error:`, err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="w-full max-w-md space-y-8">
       <div className="text-center">
@@ -67,7 +90,8 @@ export default function AuthForm() {
         </p>
       </div>
 
-      <div className="bg-white dark:bg-gray-800 p-8 shadow rounded-lg">
+      <div className="bg-white dark:bg-gray-800 p-8 shadow rounded-lg space-y-6">
+        {/* Phone Login */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
             <Label
@@ -77,21 +101,19 @@ export default function AuthForm() {
               Phone Number
             </Label>
 
-            <div className="relative">
-              <PhoneInput
-                international
-                defaultCountry="IN"
-                value={phone}
-                onChange={setPhone}
-                placeholder="Enter phone number"
-                className="flex items-center h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-gray-700 dark:border-gray-600"
-                countrySelectProps={{
-                  className:
-                    "bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 pr-8",
-                }}
-                inputComponent={CustomInput}
-              />
-            </div>
+            <PhoneInput
+              international
+              defaultCountry="IN"
+              value={phone}
+              onChange={setPhone}
+              placeholder="Enter phone number"
+              className="flex items-center h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-gray-700 dark:border-gray-600"
+              countrySelectProps={{
+                className:
+                  "bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 pr-8",
+              }}
+              inputComponent={CustomInput}
+            />
           </div>
 
           {error && (
@@ -115,6 +137,56 @@ export default function AuthForm() {
             )}
           </Button>
         </form>
+
+        {/* Divider */}
+        <div className="relative">
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-gray-300 dark:border-gray-700" />
+          </div>
+          <div className="relative flex justify-center text-sm">
+            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
+              Or continue with
+            </span>
+          </div>
+        </div>
+
+        {/* Social Buttons */}
+        <div className="grid grid-cols-2 gap-4">
+          <Button
+            variant="outline"
+            onClick={() => handleSocialLogin("google")}
+            className="flex items-center gap-2 w-full cursor-pointer"
+            disabled={loading}
+          >
+            {loading ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Signing in...
+              </span>
+            ) : (
+              <>
+                <img
+                  src="/logos/google-g-2015.svg"
+                  alt="Google"
+                  className="h-4 w-4"
+                />
+                Google
+              </>
+            )}
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => handleSocialLogin("microsoft")}
+            className="flex items-center gap-2 w-full cursor-pointer"
+          >
+            <img
+              src="/logos/microsoft-5.svg"
+              alt="Microsoft"
+              className="h-4 w-4"
+            />
+            Microsoft
+          </Button>
+        </div>
       </div>
     </div>
   );
