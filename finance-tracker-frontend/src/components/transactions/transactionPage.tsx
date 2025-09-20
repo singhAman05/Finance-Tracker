@@ -7,11 +7,12 @@ import { setAccounts } from "../redux/slices/slice_accounts";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
 import { RootState } from "@/app/store";
+import { useRouter } from "next/navigation";
 import AddTransaction from "./addTransaction";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Trash2 } from "lucide-react";
+import { Search, Trash2, ChartNoAxesCombined } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -28,7 +29,6 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { MoreHorizontal } from "lucide-react";
 import { fetchTransactions } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts } from "@/service/service_accounts";
@@ -48,17 +48,9 @@ interface Category {
   color?: string;
 }
 
-interface Transaction {
-  id: string;
-  date: Date;
-  description: string | null;
-  account_id: string;
-  category_id: string;
-  amount: number;
-}
-
 export default function TransactionPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const transactions = useSelector(
     (state: RootState) => state.transactions.transactions
@@ -172,7 +164,16 @@ export default function TransactionPage() {
               Track your income and expenses
             </p>
           </div>
-          <AddTransaction />
+          <div className="flex gap-2">
+            <AddTransaction />
+            <Button
+              onClick={() => router.push("/dashboard/reports")}
+              className="bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-all duration-300 cursor-pointer"
+            >
+              <ChartNoAxesCombined className="mr-2 h-4 w-4" />
+              Analyze
+            </Button>
+          </div>
         </div>
 
         {pendingLoads > 0 ? (

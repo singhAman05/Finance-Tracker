@@ -30,7 +30,7 @@ const navItems = [
 ];
 
 const analyticsItems = [
-  { label: "Reports", icon: LineChart, href: "/reports" },
+  { label: "Reports", icon: LineChart, href: "/dashboard/reports" },
   { label: "Cash Flow", icon: BarChart2, href: "/cash-flow" },
 ];
 
