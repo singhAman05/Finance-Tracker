@@ -3,4 +3,5 @@ finance-tracker.code-workspace
 finance-tracker-frontend/.next
 finance-tracker-frontend/node_modules
 finance-tracker-frontend/public
+finance-tracker-frontend/.env.local
 finance-tracker-backend/node_modules
