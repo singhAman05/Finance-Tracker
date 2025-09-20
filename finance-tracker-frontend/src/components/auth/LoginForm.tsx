@@ -58,7 +58,7 @@ export default function AuthForm() {
 
     try {
       if (provider === "google") {
-        await loginWithGoogle(); // your service wrapper
+        console.log(await loginWithGoogle()); // your service wrapper
         // NextAuth redirects automatically, so no need to push router
       } else if (provider === "microsoft") {
         // handle Microsoft login if implemented
