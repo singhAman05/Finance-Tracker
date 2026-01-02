@@ -1,192 +1,191 @@
 "use client";
 
+import { useState, forwardRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
-import { useState, forwardRef } from "react";
-import { loginService, loginWithGoogle } from "@/service/service_auth";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
 import type { AppDispatch } from "@/app/store";
-import PhoneInput, { type Value } from "react-phone-number-input";
-// import Microsoft from "/logos/microsoft-5.svg";
+
+import { loginService, loginWithGoogle } from "@/service/service_auth";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from "lucide-react";
+
+import PhoneInput, {
+  type Value,
+  isValidPhoneNumber,
+} from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 
-// Custom input component to avoid prop warnings
-const CustomInput = forwardRef<
+/* Custom input for phone component with refined styling */
+const Input = forwardRef<
   HTMLInputElement,
   React.InputHTMLAttributes<HTMLInputElement>
 >((props, ref) => (
   <input
     ref={ref}
     {...props}
-    className="bg-transparent border-none focus:ring-0 outline-none w-full dark:text-white"
+    className="w-full bg-transparent outline-none text-[15px] placeholder:text-muted-foreground/60 text-slate-900 dark:text-slate-100"
   />
 ));
-CustomInput.displayName = "CustomInput";
+Input.displayName = "Input";
 
 export default function AuthForm() {
   const dispatch = useDispatch<AppDispatch>();
+  const router = useRouter();
+  const [loadingType, setLoadingType] = useState<"phone" | "google" | null>(
+    null
+  );
   const [phone, setPhone] = useState<Value>();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-    setError("");
-
+    if (!phone) return;
     try {
-      const phoneString = phone?.toString() || "";
-      const profileComplete = await loginService(phoneString, dispatch);
-      setLoading(false);
+      setLoadingType("phone");
+      setError("");
+      const profileComplete = await loginService(phone.toString(), dispatch);
       router.push(profileComplete ? "/dashboard" : "/profile");
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : "Login failed. Please try again.";
-      setError(message);
-      console.error("Login error:", err);
+    } catch (err) {
+      setError("Unable to sign in. Please try again.");
     } finally {
-      setLoading(false);
+      setLoadingType(null);
     }
   };
 
-  const handleSocialLogin = async (provider: string) => {
-    setLoading(true);
-    setError("");
-
+  const handleGoogleLogin = async () => {
     try {
-      if (provider === "google") {
-        console.log(await loginWithGoogle()); // your service wrapper
-        // NextAuth redirects automatically, so no need to push router
-      } else if (provider === "microsoft") {
-        // handle Microsoft login if implemented
-        console.log("Microsoft login not implemented yet");
-      }
-    } catch (err: unknown) {
-      const message =
-        err instanceof Error ? err.message : `Login with ${provider} failed`;
-      setError(message);
-      console.error(`Login with ${provider} error:`, err);
-    } finally {
-      setLoading(false);
+      setLoadingType("google");
+      await loginWithGoogle();
+    } catch {
+      setError("Google sign-in failed.");
+      setLoadingType(null);
     }
   };
 
   return (
-    <div className="w-full max-w-md space-y-8">
-      <div className="text-center">
-        <div className="mx-auto h-16 w-16 rounded-full bg-gray-200 dark:bg-gray-700 mb-4 flex items-center justify-center">
-          <span className="text-gray-600 dark:text-gray-300 text-xl font-bold">
-            LOGO
-          </span>
+    <div className="w-full max-w-[420px] mx-auto">
+      {/* Container with soft shadow and subtle border */}
+      <div className="bg-white dark:bg-slate-950 rounded-3xl p-10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-slate-100 dark:border-slate-800/60">
+        {/* Header Section */}
+        <div className="flex flex-col items-center mb-10">
+          <div className="h-12 w-12 bg-slate-900 dark:bg-white rounded-xl mb-6 flex items-center justify-center">
+            {/* Replace with your Logo SVG */}
+            <div className="h-5 w-5 bg-white dark:bg-black rounded-full" />
+          </div>
+          <h1 className="text-[26px] font-bold tracking-tight text-slate-900 dark:text-white mb-2">
+            Welcome back
+          </h1>
+          <p className="text-slate-500 dark:text-slate-400 text-[15px]">
+            Please enter your details to sign in
+          </p>
         </div>
-        <h2 className="mt-6 text-3xl font-bold text-gray-900 dark:text-white">
-          Sign in to your account
-        </h2>
-        <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-          Enter your phone number to continue
-        </p>
-      </div>
 
-      <div className="bg-white dark:bg-gray-800 p-8 shadow rounded-lg space-y-6">
-        {/* Phone Login */}
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label
-              htmlFor="phone"
-              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2"
-            >
-              Phone Number
+        {/* Phone Login Form */}
+        <form onSubmit={handlePhoneLogin} className="space-y-6">
+          <div className="space-y-2">
+            <Label className="text-[13px] font-medium text-slate-700 dark:text-slate-300 ml-1">
+              Phone number
             </Label>
-
-            <PhoneInput
-              international
-              defaultCountry="IN"
-              value={phone}
-              onChange={setPhone}
-              placeholder="Enter phone number"
-              className="flex items-center h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 dark:bg-gray-700 dark:border-gray-600"
-              countrySelectProps={{
-                className:
-                  "bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-md border border-gray-300 dark:border-gray-600 py-2 px-3 pr-8",
-              }}
-              inputComponent={CustomInput}
-            />
+            <div className="group flex h-12 items-center rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 px-4 transition-all duration-200 focus-within:ring-2 focus-within:ring-slate-950/10 dark:focus-within:ring-white/10 focus-within:border-slate-400 dark:focus-within:border-slate-600">
+              <PhoneInput
+                international
+                defaultCountry="IN"
+                value={phone}
+                onChange={setPhone}
+                inputComponent={Input}
+                className="flex-1"
+              />
+            </div>
           </div>
 
           {error && (
-            <div className="text-red-600 text-sm py-2 px-3 bg-red-50 dark:bg-red-900/20 rounded-md">
-              {error}
+            <div className="bg-red-50 dark:bg-red-900/10 p-3 rounded-lg border border-red-100 dark:border-red-900/20">
+              <p className="text-xs text-red-600 dark:text-red-400 font-medium text-center">
+                {error}
+              </p>
             </div>
           )}
 
           <Button
             type="submit"
-            className="w-full flex justify-center py-3 bg-gray-900 hover:bg-black text-white dark:bg-gray-800 dark:hover:bg-gray-900 transition-colors"
-            disabled={loading || !phone}
+            disabled={!phone || !isValidPhoneNumber(phone) || loading}
+            className="w-full h-12 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 rounded-xl font-medium transition-all active:scale-[0.98]"
           >
-            {loading ? (
-              <span className="flex items-center">
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Signing in...
-              </span>
+            {loadingType === "phone" ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              "Sign In"
+              "Continue"
             )}
           </Button>
         </form>
 
-        {/* Divider */}
-        <div className="relative">
+        {/* Divider with improved visual weight */}
+        <div className="relative my-8">
           <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t border-gray-300 dark:border-gray-700" />
+            <span className="w-full border-t border-slate-200 dark:border-slate-800" />
           </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-2 bg-white dark:bg-gray-800 text-gray-500">
-              Or continue with
+          <div className="relative flex justify-center text-xs">
+            <span className="bg-white dark:bg-slate-950 px-4 text-slate-400 font-medium">
+              OR
             </span>
           </div>
         </div>
 
-        {/* Social Buttons */}
+        {/* Social Logins */}
         <div className="grid grid-cols-2 gap-4">
           <Button
             variant="outline"
-            onClick={() => handleSocialLogin("google")}
-            className="flex items-center gap-2 w-full cursor-pointer"
+            onClick={handleGoogleLogin}
             disabled={loading}
+            className="h-12 flex gap-2 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
           >
-            {loading ? (
-              <span className="flex items-center gap-2">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Signing in...
-              </span>
-            ) : (
-              <>
-                <img
-                  src="/logos/google-g-2015.svg"
-                  alt="Google"
-                  className="h-4 w-4"
-                />
-                Google
-              </>
-            )}
+            <img
+              src="/logos/google-g-2015.svg"
+              className="h-4 w-4"
+              alt="Google"
+            />
+            <span className="text-sm font-medium">
+              {loadingType === "google" ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : (
+                "Google"
+              )}
+            </span>
           </Button>
+
           <Button
             variant="outline"
-            onClick={() => handleSocialLogin("microsoft")}
-            className="flex items-center gap-2 w-full cursor-pointer"
+            disabled
+            className="h-12 flex gap-2 rounded-xl border-slate-200 dark:border-slate-800 opacity-50 cursor-not-allowed"
           >
             <img
               src="/logos/microsoft-5.svg"
-              alt="Microsoft"
               className="h-4 w-4"
+              alt="Microsoft"
             />
-            Microsoft
+            <span className="text-sm font-medium">Office</span>
           </Button>
         </div>
+
+        <p className="mt-8 text-center text-xs text-slate-400 leading-relaxed">
+          By clicking continue, you agree to our <br />
+          <a
+            href="#"
+            className="underline underline-offset-4 hover:text-slate-900 transition-colors"
+          >
+            Terms of Service
+          </a>{" "}
+          and{" "}
+          <a
+            href="#"
+            className="underline underline-offset-4 hover:text-slate-900 transition-colors"
+          >
+            Privacy Policy
+          </a>
+          .
+        </p>
       </div>
     </div>
   );
