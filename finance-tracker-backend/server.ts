@@ -16,7 +16,7 @@ app.get('/',(req,res)=>{
     res.send("Hi!! from server side")
 })
 
-app.use('/api/auth', loginRoute); 
+app.use('/api/auth', loginRoute);
 app.use(`/api/profile`, profileRoute);
 app.use(`/api/accounts`, accountsRoute);
 app.use(`/api/category`, categoryRoute);
