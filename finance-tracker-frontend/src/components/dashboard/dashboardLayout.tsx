@@ -1,4 +1,3 @@
-// components/layout/dashboard-layout.tsx
 "use client";
 
 import { useState } from "react";
@@ -10,42 +9,50 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="min-h-screen flex bg-muted/40">
-      {/* Desktop Sidebar */}
-      <aside className="hidden md:block">
+    <div className="relative flex h-screen w-full overflow-hidden bg-[#FAFAFA] dark:bg-black">
+      {/* Sidebar: Fixed and rigid */}
+      <aside className="hidden md:flex flex-col h-full shrink-0 z-40">
         <Sidebar />
       </aside>
 
-      {/* Mobile Menu Button */}
-      <button
-        className="md:hidden fixed top-4 left-4 z-50 inline-flex items-center justify-center rounded-lg bg-background border shadow-sm p-2"
-        onClick={() => setMobileOpen(true)}
-        aria-label="Open menu"
-      >
-        <Menu className="h-5 w-5" />
-      </button>
+      <div className="flex flex-col flex-1 min-w-0 h-full relative">
+        {/* Mobile Header: Minimalist */}
+        <header className="md:hidden flex items-center justify-between h-14 px-4 border-b bg-white/80 backdrop-blur-md dark:bg-black/80 sticky top-0 z-30">
+          <button
+            onClick={() => setMobileOpen(true)}
+            className="p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-full transition-colors"
+          >
+            <Menu className="h-5 w-5 text-slate-600" />
+          </button>
+          <span className="text-sm font-semibold tracking-tight">Finance</span>
+          <div className="w-9" /> {/* Spacer for balance */}
+        </header>
 
-      {/* Mobile Sidebar Overlay */}
-      {isMobileOpen && (
-        <div className="fixed inset-0 z-40 md:hidden">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setMobileOpen(false)}
-          />
-          <MobileSidebar onClose={() => setMobileOpen(false)} />
-        </div>
-      )}
-
-      {/* Main Content */}
-      <main className="flex-1 flex flex-col">
-        <div className="flex-1 p-4 md:p-6">
-          <div className="mx-auto max-w-7xl">
-            <div className="rounded-xl bg-background border shadow-sm p-4 md:p-6 min-h-[calc(100vh-3rem)]">
-              {children}
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto scroll-smooth">
+          <div className="p-4 md:p-10 lg:p-12">
+            <div className="mx-auto max-w-[1400px]">
+              {/* Content Card: Clean borders, no heavy shadows */}
+              <div className="min-h-[calc(100vh-10rem)] transition-all duration-500 ease-in-out">
+                {children}
+              </div>
             </div>
           </div>
+        </main>
+      </div>
+
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div
+            className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-300"
+            onClick={() => setMobileOpen(false)}
+          />
+          <div className="absolute left-0 top-0 h-full w-[280px] bg-white dark:bg-slate-950 shadow-2xl animate-in slide-in-from-left duration-300">
+            <MobileSidebar onClose={() => setMobileOpen(false)} />
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }

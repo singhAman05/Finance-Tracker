@@ -20,6 +20,7 @@ import {
   PiggyBank,
   ArrowLeftFromLine,
   Wallet,
+  LogOut, // Added Logout Icon
 } from "lucide-react";
 
 const navItems = [
@@ -53,15 +54,20 @@ export function Sidebar() {
 
   const expanded = !isCollapsed || isHoverExpand;
 
+  const handleLogout = () => {
+    // Add your logout logic here
+    console.log("Logging out...");
+  };
+
   const renderSection = (
     title: string,
     items: typeof navItems,
-    className = "mt-6"
+    className = "mt-8"
   ) => (
     <div className={className}>
       <h3
         className={cn(
-          "px-4 mb-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground transition-all duration-300",
+          "px-4 mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 transition-all duration-300",
           expanded
             ? "opacity-100 translate-x-0"
             : "opacity-0 -translate-x-2 pointer-events-none"
@@ -86,18 +92,23 @@ export function Sidebar() {
               });
             }}
             className={cn(
-              "group flex items-center h-12 rounded-lg transition-colors duration-200",
+              "group flex items-center h-10 mx-2 rounded-xl transition-all duration-200 mb-1 px-3",
               isActive
-                ? "bg-primary/10 text-primary font-medium"
-                : "hover:bg-muted"
+                ? "bg-slate-900 text-white shadow-md shadow-slate-200/50 dark:bg-white dark:text-slate-950 dark:shadow-none"
+                : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50"
             )}
           >
-            <div className="flex items-center w-full px-4 gap-3">
-              <Icon className="w-5 h-5 flex-shrink-0" />
+            <div className="flex items-center w-full gap-3">
+              <Icon
+                className={cn(
+                  "w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200",
+                  !isActive && "group-hover:scale-110"
+                )}
+              />
 
               <span
                 className={cn(
-                  "whitespace-nowrap transition-all duration-300",
+                  "text-sm font-medium whitespace-nowrap transition-all duration-300",
                   expanded
                     ? "opacity-100 translate-x-0"
                     : "opacity-0 -translate-x-2 w-0 overflow-hidden"
@@ -115,51 +126,52 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col bg-background border-r min-h-screen overflow-hidden",
-        "transition-[width] duration-300 ease-in-out",
-        expanded ? "w-64" : "w-16"
+        "hidden md:flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 min-h-screen overflow-hidden relative",
+        "transition-[width] duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
+        expanded ? "w-64" : "w-20"
       )}
       onMouseEnter={() => isCollapsed && setIsHoverExpand(true)}
       onMouseLeave={() => setIsHoverExpand(false)}
     >
       {/* Header */}
-      <div className="p-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 overflow-hidden">
-          <Wallet className="w-6 h-6 text-primary flex-shrink-0" />
+      <div className="h-20 flex items-center px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-gradient-to-br from-slate-800 to-slate-950 dark:from-white dark:to-slate-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-slate-200 dark:shadow-white/10 transition-transform hover:scale-105 active:scale-95">
+            <Wallet className="w-5 h-5 text-white dark:text-slate-900" />
+          </div>
           <span
             className={cn(
-              "text-xl font-bold transition-all duration-300",
+              "text-lg font-bold tracking-tight text-slate-900 dark:text-white transition-all duration-300",
               expanded
                 ? "opacity-100 translate-x-0"
-                : "opacity-0 -translate-x-2"
+                : "opacity-0 -translate-x-4"
             )}
           >
             Finance
           </span>
         </div>
 
-        <button
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="p-1.5 rounded-md hover:bg-muted transition-colors"
-          aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-        >
-          <ArrowLeftFromLine
-            className={cn(
-              "w-4 h-4 transition-transform duration-300",
-              expanded ? "rotate-0" : "rotate-180"
-            )}
-          />
-        </button>
+        {expanded && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCollapsed(!isCollapsed);
+            }}
+            className="ml-auto p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100 transition-all active:scale-90"
+          >
+            <ArrowLeftFromLine className="w-4 h-4" />
+          </button>
+        )}
       </div>
 
-      <ScrollArea className="flex-1 px-2">
+      <ScrollArea className="flex-1 px-1">
         {renderSection("Navigation", navItems, "mt-2")}
         {renderSection("Analytics", analyticsItems)}
         {renderSection("Planning", planningItems)}
       </ScrollArea>
 
       {/* Footer */}
-      <div className="border-t border-border px-2 py-3">
+      <div className="border-t border-slate-100 dark:border-slate-800 px-1 pt-4 pb-6 bg-slate-50/50 dark:bg-slate-900/20">
         {utilityItems.map(({ label, icon: Icon, href }) => {
           const isActive = pathname.startsWith(href);
 
@@ -173,18 +185,18 @@ export function Sidebar() {
                 });
               }}
               className={cn(
-                "flex items-center h-12 rounded-lg transition-colors duration-200",
+                "group flex items-center h-10 mx-2 rounded-xl transition-all duration-200 mb-1 px-3",
                 isActive
-                  ? "bg-primary/10 text-primary font-medium"
-                  : "hover:bg-muted"
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950"
+                  : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50"
               )}
             >
-              <div className="flex items-center w-full px-4 gap-3">
-                <Icon className="w-5 h-5 flex-shrink-0" />
+              <div className="flex items-center w-full gap-3">
+                <Icon className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:scale-110" />
 
                 <span
                   className={cn(
-                    "whitespace-nowrap transition-all duration-300",
+                    "text-sm font-medium whitespace-nowrap transition-all duration-300",
                     expanded
                       ? "opacity-100 translate-x-0"
                       : "opacity-0 -translate-x-2 w-0 overflow-hidden"
@@ -196,6 +208,27 @@ export function Sidebar() {
             </div>
           );
         })}
+
+        {/* --- Enhanced Logout Button --- */}
+        <div
+          role="button"
+          onClick={handleLogout}
+          className="group flex items-center h-10 mx-2 rounded-xl transition-all duration-200 mt-4 px-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+        >
+          <div className="flex items-center w-full gap-3">
+            <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:-translate-x-1" />
+            <span
+              className={cn(
+                "text-sm font-semibold whitespace-nowrap transition-all duration-300",
+                expanded
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-2 w-0 overflow-hidden"
+              )}
+            >
+              Sign Out
+            </span>
+          </div>
+        </div>
       </div>
     </aside>
   );
