@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useRouter } from "next/navigation";
+import { startTransition } from "react";
 import {
   BarChart2,
   CreditCard,
@@ -48,6 +49,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
   const [isHoverExpand, setIsHoverExpand] = useState(false);
+  const router = useRouter();
 
   const expanded = !isCollapsed || isHoverExpand;
 
@@ -69,12 +71,20 @@ export function Sidebar() {
       </h3>
 
       {items.map(({ label, icon: Icon, href }) => {
-        const isActive = pathname.startsWith(href);
+        const isActive =
+          href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname.startsWith(href);
 
         return (
-          <Link
+          <div
             key={label}
-            href={href}
+            role="button"
+            onClick={() => {
+              startTransition(() => {
+                router.push(href);
+              });
+            }}
             className={cn(
               "group flex items-center h-12 rounded-lg transition-colors duration-200",
               isActive
@@ -82,17 +92,12 @@ export function Sidebar() {
                 : "hover:bg-muted"
             )}
           >
-            <div
-              className={cn(
-                "flex items-center w-full transition-all duration-300",
-                expanded ? "px-4 justify-start" : "justify-center"
-              )}
-            >
+            <div className="flex items-center w-full px-4 gap-3">
               <Icon className="w-5 h-5 flex-shrink-0" />
 
               <span
                 className={cn(
-                  "ml-3 whitespace-nowrap transition-all duration-300",
+                  "whitespace-nowrap transition-all duration-300",
                   expanded
                     ? "opacity-100 translate-x-0"
                     : "opacity-0 -translate-x-2 w-0 overflow-hidden"
@@ -101,7 +106,7 @@ export function Sidebar() {
                 {label}
               </span>
             </div>
-          </Link>
+          </div>
         );
       })}
     </div>
@@ -159,9 +164,14 @@ export function Sidebar() {
           const isActive = pathname.startsWith(href);
 
           return (
-            <Link
+            <div
               key={label}
-              href={href}
+              role="button"
+              onClick={() => {
+                startTransition(() => {
+                  router.push(href);
+                });
+              }}
               className={cn(
                 "flex items-center h-12 rounded-lg transition-colors duration-200",
                 isActive
@@ -169,16 +179,12 @@ export function Sidebar() {
                   : "hover:bg-muted"
               )}
             >
-              <div
-                className={cn(
-                  "flex items-center w-full transition-all duration-300",
-                  expanded ? "px-4 justify-start" : "justify-center"
-                )}
-              >
+              <div className="flex items-center w-full px-4 gap-3">
                 <Icon className="w-5 h-5 flex-shrink-0" />
+
                 <span
                   className={cn(
-                    "ml-3 transition-all duration-300",
+                    "whitespace-nowrap transition-all duration-300",
                     expanded
                       ? "opacity-100 translate-x-0"
                       : "opacity-0 -translate-x-2 w-0 overflow-hidden"
@@ -187,7 +193,7 @@ export function Sidebar() {
                   {label}
                 </span>
               </div>
-            </Link>
+            </div>
           );
         })}
       </div>

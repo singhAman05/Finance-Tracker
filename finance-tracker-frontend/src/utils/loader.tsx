@@ -1,4 +1,5 @@
 import React from "react";
+import { cn } from "@/lib/utils";
 
 interface LoaderProps {
   size?: "xs" | "sm" | "md" | "lg" | "xl";
@@ -7,38 +8,47 @@ interface LoaderProps {
   className?: string;
 }
 
+const sizeMap = {
+  xs: "h-4 w-4 border-2",
+  sm: "h-6 w-6 border-2",
+  md: "h-8 w-8 border-[3px]",
+  lg: "h-12 w-12 border-4",
+  xl: "h-16 w-16 border-4",
+};
+
+const textSizeMap = {
+  xs: "text-xs",
+  sm: "text-sm",
+  md: "text-sm",
+  lg: "text-base",
+  xl: "text-lg",
+};
+
 const Loader: React.FC<LoaderProps> = ({
   size = "md",
   text,
   fullScreen = false,
-  className = "",
+  className,
 }) => {
-  // Size configuration
-  const sizeClasses = {
-    xs: "h-4 w-4",
-    sm: "h-6 w-6",
-    md: "h-8 w-8",
-    lg: "h-12 w-12",
-    xl: "h-16 w-16",
-  };
-
-  // Text size based on loader size
-  const textSizeClasses = {
-    xs: "text-xs",
-    sm: "text-sm",
-    md: "text-base",
-    lg: "text-lg",
-    xl: "text-xl",
-  };
-
-  const loader = (
-    <div className="flex flex-col items-center justify-center space-y-3">
+  const spinner = (
+    <div
+      className={cn(
+        "flex flex-col items-center justify-center gap-3",
+        className
+      )}
+      aria-busy="true"
+      aria-live="polite"
+    >
       <div
-        className={`rounded-full bg-gradient-to-r from-blue-500 to-indigo-600 animate-pulse ${sizeClasses[size]} ${className}`}
-      ></div>
+        className={cn(
+          "rounded-full border-muted border-t-primary animate-spin",
+          sizeMap[size]
+        )}
+      />
+
       {text && (
         <p
-          className={`font-medium text-gray-600 animate-pulse ${textSizeClasses[size]} mt-2`}
+          className={cn("text-muted-foreground font-medium", textSizeMap[size])}
         >
           {text}
         </p>
@@ -48,19 +58,23 @@ const Loader: React.FC<LoaderProps> = ({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 bg-white bg-opacity-80 z-50 flex flex-col items-center justify-center">
-        <div className="flex flex-col items-center justify-center space-y-4">
-          {loader}
-          <div className="mt-4 text-center">
-            <p className="text-gray-500 font-medium">Loading your content...</p>
-            <p className="text-sm text-gray-400 mt-1">This won't take long</p>
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
+        <div className="flex flex-col items-center gap-4">
+          {spinner}
+          <div className="text-center">
+            <p className="text-sm font-medium text-muted-foreground">
+              Loading data
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Please wait a moment
+            </p>
           </div>
         </div>
       </div>
     );
   }
 
-  return loader;
+  return spinner;
 };
 
 export default Loader;
