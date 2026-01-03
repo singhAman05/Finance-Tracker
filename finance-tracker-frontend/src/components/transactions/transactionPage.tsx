@@ -58,7 +58,7 @@ export default function TransactionPage() {
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
-  const [pendingLoads, setPendingLoads] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
 
@@ -72,54 +72,40 @@ export default function TransactionPage() {
     return map;
   }, {} as Record<string, Category>);
 
-  const loadAccounts = useCallback(async () => {
-    if (accounts.length > 0) return;
-    try {
-      setPendingLoads((prev) => prev + 1);
-      const data = await fetchAccounts();
-      dispatch(setAccounts(data));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingLoads((prev) => prev - 1);
-    }
-  }, [accounts, dispatch]);
-
-  const loadTransactions = useCallback(async () => {
-    if (transactions.length > 0) return;
-    try {
-      setPendingLoads((prev) => prev + 1);
-      const data = await fetchTransactions();
-      const transformedData = data.map((tx: any) => ({
-        ...tx,
-        date: new Date(tx.date),
-      }));
-      dispatch(setTransactions(transformedData));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingLoads((prev) => prev - 1);
-    }
-  }, [transactions, dispatch]);
-
-  const loadCategories = useCallback(async () => {
-    if (categories.length > 0) return;
-    try {
-      setPendingLoads((prev) => prev + 1);
-      const data = await fetchCategories();
-      dispatch(setCategories(data));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingLoads((prev) => prev - 1);
-    }
-  }, [categories, dispatch]);
-
   useEffect(() => {
-    loadAccounts();
-    loadTransactions();
-    loadCategories();
-  }, [loadAccounts, loadTransactions, loadCategories]);
+    let isMounted = true;
+
+    const loadAll = async () => {
+      try {
+        setIsLoading(true);
+
+        await Promise.all([
+          accounts.length === 0 &&
+            fetchAccounts().then((d) => dispatch(setAccounts(d))),
+          transactions.length === 0 &&
+            fetchTransactions().then((d) =>
+              dispatch(
+                setTransactions(
+                  d.map((tx: any) => ({ ...tx, date: new Date(tx.date) }))
+                )
+              )
+            ),
+          categories.length === 0 &&
+            fetchCategories().then((d) => dispatch(setCategories(d))),
+        ]);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        if (isMounted) setIsLoading(false);
+      }
+    };
+
+    loadAll();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const filteredTransactions = transactions.filter((tx) => {
     const account = accountMap[tx.account_id];
@@ -176,7 +162,7 @@ export default function TransactionPage() {
           </div>
         </div>
 
-        {pendingLoads > 0 ? (
+        {isLoading ? (
           <div className="w-full flex items-center justify-center min-h-[400px]">
             <Loader size="md" text="Fetching Your transactions..." />
           </div>

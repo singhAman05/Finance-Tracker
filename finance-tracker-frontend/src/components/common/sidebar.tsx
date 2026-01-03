@@ -1,10 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useRouter } from "next/navigation";
+import { startTransition } from "react";
 import {
   BarChart2,
   CreditCard,
@@ -13,13 +14,13 @@ import {
   LineChart,
   Target,
   Calendar,
-  HandCoins,
   Tag,
   Settings,
   Home,
   PiggyBank,
   ArrowLeftFromLine,
   Wallet,
+  LogOut, // Added Logout Icon
 } from "lucide-react";
 
 const navItems = [
@@ -48,63 +49,75 @@ const utilityItems = [
 export function Sidebar() {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isHovering, setIsHovering] = useState(false);
+  const [isHoverExpand, setIsHoverExpand] = useState(false);
+  const router = useRouter();
 
-  const toggleCollapse = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  const expanded = !isCollapsed || isHoverExpand;
 
-  const handleMouseEnter = () => {
-    setIsHovering(true);
-    setIsCollapsed(false);
-  };
-
-  const handleMouseLeave = () => {
-    setIsHovering(false);
-    setIsCollapsed(true);
+  const handleLogout = () => {
+    // Add your logout logic here
+    console.log("Logging out...");
   };
 
   const renderSection = (
     title: string,
     items: typeof navItems,
-    sectionClass: string = "mt-6"
+    className = "mt-8"
   ) => (
-    <div className={sectionClass}>
-      {!isCollapsed && (
-        <h3 className="px-4 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {title}
-        </h3>
-      )}
+    <div className={className}>
+      <h3
+        className={cn(
+          "px-4 mb-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 transition-all duration-300",
+          expanded
+            ? "opacity-100 translate-x-0"
+            : "opacity-0 -translate-x-2 pointer-events-none"
+        )}
+      >
+        {title}
+      </h3>
+
       {items.map(({ label, icon: Icon, href }) => {
-        const isActive = pathname.startsWith(href);
+        const isActive =
+          href === "/dashboard"
+            ? pathname === "/dashboard"
+            : pathname.startsWith(href);
+
         return (
-          <Link
+          <div
             key={label}
-            href={href}
+            role="button"
+            onClick={() => {
+              startTransition(() => {
+                router.push(href);
+              });
+            }}
             className={cn(
-              "flex items-center h-12 hover:bg-muted rounded-lg transition-colors duration-200",
-              isActive && "bg-primary/10 text-primary font-medium"
+              "group flex items-center h-10 mx-2 rounded-xl transition-all duration-200 mb-1 px-3",
+              isActive
+                ? "bg-slate-900 text-white shadow-md shadow-slate-200/50 dark:bg-white dark:text-slate-950 dark:shadow-none"
+                : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50"
             )}
           >
-            <div
-              className={cn(
-                "flex items-center w-full",
-                isCollapsed ? "justify-center" : "justify-start px-4"
-              )}
-            >
-              <Icon className="w-5 h-5 flex-shrink-0" />
+            <div className="flex items-center w-full gap-3">
+              <Icon
+                className={cn(
+                  "w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200",
+                  !isActive && "group-hover:scale-110"
+                )}
+              />
+
               <span
                 className={cn(
-                  "ml-3 overflow-hidden transition-all duration-300",
-                  isCollapsed
-                    ? "max-w-0 opacity-0"
-                    : "max-w-[200px] opacity-100"
+                  "text-sm font-medium whitespace-nowrap transition-all duration-300",
+                  expanded
+                    ? "opacity-100 translate-x-0"
+                    : "opacity-0 -translate-x-2 w-0 overflow-hidden"
                 )}
               >
                 {label}
               </span>
             </div>
-          </Link>
+          </div>
         );
       })}
     </div>
@@ -113,72 +126,108 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col bg-background border-r min-h-screen transition-all duration-300 ease-in-out overflow-hidden",
-        isCollapsed ? "w-16" : "w-64"
+        "hidden md:flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200 dark:border-slate-800 min-h-screen overflow-hidden relative",
+        "transition-[width] duration-300 ease-in-out shadow-[4px_0_24px_rgba(0,0,0,0.02)]",
+        expanded ? "w-64" : "w-20"
       )}
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={handleMouseLeave}
+      onMouseEnter={() => isCollapsed && setIsHoverExpand(true)}
+      onMouseLeave={() => setIsHoverExpand(false)}
     >
-      <div className="p-4 flex items-center justify-between">
-        {isCollapsed ? (
-          <div className="p-2">
-            <Wallet className="w-6 h-6 text-primary" />
+      {/* Header */}
+      <div className="h-20 flex items-center px-4 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="h-10 w-10 bg-gradient-to-br from-slate-800 to-slate-950 dark:from-white dark:to-slate-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-slate-200 dark:shadow-white/10 transition-transform hover:scale-105 active:scale-95">
+            <Wallet className="w-5 h-5 text-white dark:text-slate-900" />
           </div>
-        ) : (
-          <div className="text-xl font-bold">Finance</div>
+          <span
+            className={cn(
+              "text-lg font-bold tracking-tight text-slate-900 dark:text-white transition-all duration-300",
+              expanded
+                ? "opacity-100 translate-x-0"
+                : "opacity-0 -translate-x-4"
+            )}
+          >
+            Finance
+          </span>
+        </div>
+
+        {expanded && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsCollapsed(!isCollapsed);
+            }}
+            className="ml-auto p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100 transition-all active:scale-90"
+          >
+            <ArrowLeftFromLine className="w-4 h-4" />
+          </button>
         )}
-        <button
-          onClick={toggleCollapse}
-          className={cn(
-            "p-1.5 rounded-md hover:bg-muted transition-colors",
-            isCollapsed ? "ml-0" : "ml-2"
-          )}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-        >
-          <ArrowLeftFromLine className="w-4 h-4" />
-        </button>
       </div>
 
-      <ScrollArea className="flex-1 px-2">
+      <ScrollArea className="flex-1 px-1">
         {renderSection("Navigation", navItems, "mt-2")}
         {renderSection("Analytics", analyticsItems)}
         {renderSection("Planning", planningItems)}
       </ScrollArea>
 
-      <div className="mt-auto border-t border-border">
-        <div className="px-2 py-3">
-          {utilityItems.map(({ label, icon: Icon, href }) => {
-            const isActive = pathname.startsWith(href);
-            return (
-              <Link
-                key={label}
-                href={href}
-                className={cn(
-                  "flex items-center h-12 hover:bg-muted rounded-lg transition-colors duration-200",
-                  isActive && "bg-primary/10 text-primary font-medium"
-                )}
-              >
-                <div
+      {/* Footer */}
+      <div className="border-t border-slate-100 dark:border-slate-800 px-1 pt-4 pb-6 bg-slate-50/50 dark:bg-slate-900/20">
+        {utilityItems.map(({ label, icon: Icon, href }) => {
+          const isActive = pathname.startsWith(href);
+
+          return (
+            <div
+              key={label}
+              role="button"
+              onClick={() => {
+                startTransition(() => {
+                  router.push(href);
+                });
+              }}
+              className={cn(
+                "group flex items-center h-10 mx-2 rounded-xl transition-all duration-200 mb-1 px-3",
+                isActive
+                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950"
+                  : "text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800/50"
+              )}
+            >
+              <div className="flex items-center w-full gap-3">
+                <Icon className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:scale-110" />
+
+                <span
                   className={cn(
-                    "flex items-center w-full",
-                    isCollapsed ? "justify-center" : "justify-start px-4"
+                    "text-sm font-medium whitespace-nowrap transition-all duration-300",
+                    expanded
+                      ? "opacity-100 translate-x-0"
+                      : "opacity-0 -translate-x-2 w-0 overflow-hidden"
                   )}
                 >
-                  <Icon className="w-5 h-5 flex-shrink-0" />
-                  <span
-                    className={cn(
-                      "ml-3 overflow-hidden transition-all duration-300",
-                      isCollapsed
-                        ? "max-w-0 opacity-0"
-                        : "max-w-[200px] opacity-100"
-                    )}
-                  >
-                    {label}
-                  </span>
-                </div>
-              </Link>
-            );
-          })}
+                  {label}
+                </span>
+              </div>
+            </div>
+          );
+        })}
+
+        {/* --- Enhanced Logout Button --- */}
+        <div
+          role="button"
+          onClick={handleLogout}
+          className="group flex items-center h-10 mx-2 rounded-xl transition-all duration-200 mt-4 px-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30"
+        >
+          <div className="flex items-center w-full gap-3">
+            <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:-translate-x-1" />
+            <span
+              className={cn(
+                "text-sm font-semibold whitespace-nowrap transition-all duration-300",
+                expanded
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-2 w-0 overflow-hidden"
+              )}
+            >
+              Sign Out
+            </span>
+          </div>
         </div>
       </div>
     </aside>
