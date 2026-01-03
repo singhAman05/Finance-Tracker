@@ -28,12 +28,10 @@ export const handleProfile = async (req: Request, res: Response) => {
             profession,
             profile_complete
         })
-
         if(result.error){
             res.status(500).json({message : `Internal Sever Error`})
             return;
         }
-        
         res.status(201).json({message: `Profile Updated Successfully`, user : result.data});
 
     }catch(err){
