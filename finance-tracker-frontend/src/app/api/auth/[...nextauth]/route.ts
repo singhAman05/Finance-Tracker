@@ -19,21 +19,16 @@ const handler = NextAuth({
     strategy: "jwt",
   },
   callbacks: {
-    async signIn({ user, account, profile }) {
-      console.log("SignIn callback - User:", user);
-      console.log("SignIn callback - Account:", account);
-      console.log("SignIn callback - Profile:", profile);
+    async signIn() {
       return true;
     },
     async redirect({ url, baseUrl }) {
-      console.log("Redirect callback - URL:", url, "Base URL:", baseUrl);
-      return url.startsWith(baseUrl) ? url : baseUrl;
+      if (url.startsWith(baseUrl)) {
+        return `${baseUrl}/login/callback`;
+      }
+      return baseUrl;
     },
     async jwt({ token, account, profile }) {
-      console.log("JWT callback - Token:", token);
-      console.log("JWT callback - Account:", account);
-      console.log("JWT callback - Profile:", profile);
-      
       if (account && profile) {
         token.id = profile.sub;
         token.email = profile.email;
@@ -44,17 +39,11 @@ const handler = NextAuth({
       return token;
     },
     async session({ session, token }) {
-      console.log("Session callback - Session:", session);
-      console.log("Session callback - Token:", token);
-      
       session.user = {
         name: token.name as string,
         email: token.email as string,
         image: token.picture as string,
       };
-    //   session.accessToken = token.accessToken as string;
-    //   session.provider = token.provider as string;
-      
       return session;
     },
   },

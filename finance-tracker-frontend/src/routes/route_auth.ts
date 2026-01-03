@@ -1,6 +1,6 @@
-export const loginRoute = async (phone: string) => {
+export const phoneLoginRoute = async (phone: string) => {
   try {
-    const response = await fetch("http://localhost:8000/api/auth/login", {
+    const response = await fetch("http://localhost:8000/api/auth/phone", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -14,7 +14,7 @@ export const loginRoute = async (phone: string) => {
       throw new Error(data?.message || "Login failed. Please try again.");
     }
 
-    return data 
+    return data
   } catch (error) {
     console.error("Login API Error:", error);
     throw new Error(
@@ -22,3 +22,27 @@ export const loginRoute = async (phone: string) => {
     );
   }
 };
+
+export const loginGoogleRoute = async(email : string, name : string) => {
+  try {
+    const response = await fetch("http://localhost:8000/api/auth/google-login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email, name }),
+    });
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data?.message || "Login failed. Please try again.");
+    }
+
+    return data
+  } catch (error) {
+    console.error("Google Login API Error:", error);
+    throw new Error(
+      error instanceof Error ? error.message : "Unexpected Google login error."
+    );
+  }
+}
