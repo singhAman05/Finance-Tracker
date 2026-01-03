@@ -4,7 +4,7 @@ import { useState, useEffect, forwardRef } from "react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/app/store";
-import { Phone, Mail, ChevronRight, BadgeQuestionMark } from "lucide-react";
+import { ChevronRight, BadgeQuestionMark } from "lucide-react";
 
 import { loginService, loginWithGoogle } from "@/service/service_auth";
 import { Button } from "@/components/ui/button";
