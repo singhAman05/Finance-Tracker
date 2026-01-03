@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, forwardRef } from "react";
+import { useState, useEffect, forwardRef } from "react";
+import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/app/store";
@@ -36,7 +37,6 @@ export default function AuthForm() {
     null
   );
   const [phone, setPhone] = useState<Value>();
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
@@ -110,7 +110,9 @@ export default function AuthForm() {
 
           <Button
             type="submit"
-            disabled={!phone || !isValidPhoneNumber(phone) || loading}
+            disabled={
+              !phone || !isValidPhoneNumber(phone) || loadingType === "phone"
+            }
             className="w-full h-12 bg-slate-900 hover:bg-slate-800 dark:bg-white dark:text-black dark:hover:bg-slate-200 rounded-xl font-medium transition-all active:scale-[0.98]"
           >
             {loadingType === "phone" ? (
@@ -138,7 +140,7 @@ export default function AuthForm() {
           <Button
             variant="outline"
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={loadingType === "google"}
             className="h-12 flex gap-2 rounded-xl border-slate-200 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900 transition-colors"
           >
             <img

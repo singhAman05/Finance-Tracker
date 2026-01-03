@@ -1,8 +1,8 @@
 import {Router} from 'express'
-import { handleAuth } from '../controllers/controller_auth';
+import { handleAuth, handleGoogleAuth } from '../controllers/controller_auth';
 
 const router = Router();
 
-router.post('/', handleAuth)
-
+router.post('/phone', handleAuth)
+router.post('/google-login', handleGoogleAuth)
 export default router
