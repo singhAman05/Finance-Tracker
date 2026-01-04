@@ -1,9 +1,12 @@
-// src/components/accounts/AddAccount.tsx
 "use client";
 
 import { useState } from "react";
 import { useDispatch } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 import { addAccount } from "../redux/slices/slice_accounts";
+import { createAccount, getBankLogoUrl } from "@/service/service_accounts";
+import Image from "next/image";
+
 import {
   Card,
   CardHeader,
@@ -22,10 +25,17 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { X, Eye, EyeOff } from "lucide-react";
-import { createAccount } from "@/service/service_accounts";
-import Image from "next/image";
-import { getBankLogoUrl } from "@/service/service_accounts";
+import {
+  X,
+  Eye,
+  EyeOff,
+  Loader2,
+  ShieldCheck,
+  Wallet,
+  AlertCircle,
+  ChevronRight,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface AddAccountProps {
   onClose: () => void;
@@ -41,23 +51,12 @@ const bankOptions = [
   "Bank of Baroda",
   "Other",
 ];
-
 const accountTypes = [
   { value: "savings", label: "Savings Account" },
   { value: "current", label: "Current Account" },
-  { value: "digital_wallet", label: "Digital Wallet" },
-  { value: "loan", label: "Loan Account" },
   { value: "credit_card", label: "Credit Card" },
-  { value: "cash", label: "Cash" },
-  { value: "investment", label: "Investment Account" },
-];
-
-const currencyOptions = [
-  { value: "INR", label: "Indian Rupee (₹)" },
-  { value: "USD", label: "US Dollar ($)" },
-  { value: "EUR", label: "Euro (€)" },
-  { value: "GBP", label: "British Pound (£)" },
-  { value: "JPY", label: "Japanese Yen (¥)" },
+  { value: "investment", label: "Investment" },
+  { value: "digital_wallet", label: "Digital Wallet" },
 ];
 
 export function AddAccount({ onClose }: AddAccountProps) {
@@ -66,10 +65,10 @@ export function AddAccount({ onClose }: AddAccountProps) {
     account_holder_name: "",
     bank_name: "",
     custom_bank_name: "",
-    account_type: "" as string,
+    account_type: "",
     full_account_number: "",
     balance: "",
-    currency: "INR" as string,
+    currency: "INR",
   });
 
   const [showAccountNumber, setShowAccountNumber] = useState(false);
@@ -78,26 +77,28 @@ export function AddAccount({ onClose }: AddAccountProps) {
 
   const update = (field: keyof typeof form, value: string) => {
     setForm((f) => ({ ...f, [field]: value }));
-    if (errors[field]) {
+    if (errors[field])
       setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors[field];
-        return newErrors;
+        const { [field]: _, ...rest } = prev;
+        return rest;
       });
-    }
   };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};
-    if (!form.account_holder_name) newErrors.account_holder_name = "Required";
-    if (!form.bank_name && !form.custom_bank_name)
-      newErrors.bank_name = "Required";
-    if (!form.account_type) newErrors.account_type = "Required";
-    if (!form.full_account_number) newErrors.full_account_number = "Required";
-    else if (form.full_account_number.length < 4)
-      newErrors.full_account_number = "Min 4 digits";
-    if (!form.balance) newErrors.balance = "Required";
-    else if (isNaN(parseFloat(form.balance))) newErrors.balance = "Invalid";
+    if (!form.account_holder_name.trim())
+      newErrors.account_holder_name = "Name is required";
+    if (
+      !form.bank_name ||
+      (form.bank_name === "Other" && !form.custom_bank_name)
+    )
+      newErrors.bank_name = "Bank selection required";
+    if (!form.account_type) newErrors.account_type = "Select an account type";
+    if (form.full_account_number.length < 4)
+      newErrors.full_account_number = "Minimum 4 digits required";
+    if (!form.balance || isNaN(parseFloat(form.balance)))
+      newErrors.balance = "Valid balance required";
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -106,26 +107,20 @@ export function AddAccount({ onClose }: AddAccountProps) {
     e.preventDefault();
     if (!validateForm()) return;
     setLoading(true);
+
     try {
       const bankName =
         form.bank_name === "Other" ? form.custom_bank_name : form.bank_name;
-      const account_number_last4 = form.full_account_number.slice(-4);
       const res = await createAccount({
+        ...form,
         bank_name: bankName,
-        account_type: form.account_type,
         balance: parseFloat(form.balance),
-        currency: form.currency,
-        account_holder_name: form.account_holder_name,
-        account_number_last4,
+        account_number_last4: form.full_account_number.slice(-4),
       });
-      if (res?.data) {
-        dispatch(addAccount(res.data));
-      }
-
-      onClose(); // triggers parent effect to reload
+      if (res?.data) dispatch(addAccount(res.data));
+      onClose();
     } catch (err) {
-      console.error(err);
-      setErrors({ submit: "Error creating account" });
+      setErrors({ submit: "Failed to create account. Please try again." });
     } finally {
       setLoading(false);
     }
@@ -134,305 +129,297 @@ export function AddAccount({ onClose }: AddAccountProps) {
   const finalBank =
     form.bank_name === "Other" ? form.custom_bank_name : form.bank_name;
   const logoUrl = finalBank ? getBankLogoUrl(finalBank) : null;
-  const accountTypeLabel = accountTypes.find(
-    (t) => t.value === form.account_type
-  )?.label;
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50 overflow-y-auto">
-      <Card className="w-full max-w-2xl bg-white dark:bg-gray-900 rounded-xl shadow-xl mx-2">
-        <div className="relative p-6">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-            onClick={onClose}
-          >
-            <X className="h-5 w-5" />
-          </Button>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-slate-950/40 backdrop-blur-md flex items-center justify-center p-4 z-50"
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        className="w-full max-w-2xl"
+      >
+        <Card className="border-none shadow-2xl bg-white dark:bg-slate-900 overflow-hidden">
+          {/* Top Progress/Status Bar */}
+          <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800">
+            <motion.div
+              className="h-full bg-slate-800"
+              initial={{ width: "0%" }}
+              animate={{ width: "100%" }}
+              transition={{ duration: 0.8 }}
+            />
+          </div>
 
-          <CardHeader className="mb-4 p-0">
-            <CardTitle className="text-2xl font-bold text-gray-900 dark:text-white">
-              Add New Account
-            </CardTitle>
-            <CardDescription className="text-gray-500 dark:text-gray-400 mt-1">
-              Securely connect your financial accounts
-            </CardDescription>
-          </CardHeader>
+          <div className="relative p-6 sm:p-8">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute top-6 right-6 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800"
+              onClick={onClose}
+            >
+              <X className="h-5 w-5 text-slate-500" />
+            </Button>
 
-          <form onSubmit={handleSubmit} className="space-y-6 mt-4">
-            <CardContent className="p-0 space-y-6">
-              {errors.submit && (
-                <div className="text-red-600 text-sm p-3 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                  {errors.submit}
+            <CardHeader className="p-0 mb-8">
+              <div className="flex items-center gap-4 mb-2">
+                <div className="p-3 bg-slate-900 rounded-2xl shadow-lg shadow-blue-500/20">
+                  <Wallet className="h-6 w-6 text-white" />
                 </div>
-              )}
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                {/* Account Holder */}
-                <div className="space-y-2">
-                  <Label htmlFor="account_holder_name" className="font-medium">
-                    Account Holder Name
-                  </Label>
-                  <Input
-                    id="account_holder_name"
-                    placeholder="John Doe"
-                    value={form.account_holder_name}
-                    onChange={(e) =>
-                      update("account_holder_name", e.target.value)
-                    }
-                    className="mt-1"
-                  />
-                  {errors.account_holder_name && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.account_holder_name}
-                    </p>
-                  )}
+                <div>
+                  <CardTitle className="text-2xl font-bold tracking-tight">
+                    Add New Account
+                  </CardTitle>
+                  <CardDescription>
+                    Setup your financial profile to track expenses
+                  </CardDescription>
                 </div>
+              </div>
+            </CardHeader>
 
-                {/* Bank Name */}
-                <div className="space-y-2">
-                  <Label className="font-medium">Bank Name</Label>
-                  <Select
-                    value={form.bank_name}
-                    onValueChange={(v) => update("bank_name", v)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select your bank" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {bankOptions.map((b) => (
-                        <SelectItem key={b} value={b}>
-                          {b}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.bank_name === "Other" && (
-                    <Input
-                      className="mt-2"
-                      placeholder="Enter bank name"
-                      value={form.custom_bank_name}
-                      onChange={(e) =>
-                        update("custom_bank_name", e.target.value)
-                      }
-                    />
-                  )}
-                  {errors.bank_name && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.bank_name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Account Number */}
-                <div className="space-y-2">
-                  <Label htmlFor="full_account_number" className="font-medium">
-                    Account Number
-                  </Label>
-                  <div className="relative mt-1">
-                    <Input
-                      id="full_account_number"
-                      type={showAccountNumber ? "text" : "password"}
-                      placeholder="Enter full account number"
-                      value={form.full_account_number}
-                      onChange={(e) =>
-                        update("full_account_number", e.target.value)
-                      }
-                      className="pr-10"
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
-                      onClick={() => setShowAccountNumber(!showAccountNumber)}
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <CardContent className="p-0">
+                <AnimatePresence mode="wait">
+                  {errors.submit && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      className="flex items-center gap-2 p-3 mb-6 text-sm text-red-600 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-800"
                     >
-                      {showAccountNumber ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
+                      <AlertCircle className="h-4 w-4" /> {errors.submit}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Account Holder */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Holder Name
+                    </Label>
+                    <Input
+                      placeholder="e.g. John Doe"
+                      value={form.account_holder_name}
+                      onChange={(e) =>
+                        update("account_holder_name", e.target.value)
+                      }
+                      className={cn(
+                        "bg-slate-50 border-slate-200 dark:bg-slate-800/50 dark:border-slate-700 h-11 focus:ring-2 focus:ring-blue-500/20 transition-all",
+                        errors.account_holder_name &&
+                          "border-red-500 ring-red-500/20"
                       )}
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    We only store the last 4 digits for security
-                  </p>
-                  {errors.full_account_number && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.full_account_number}
-                    </p>
-                  )}
-                </div>
-
-                {/* Account Type */}
-                <div className="space-y-2">
-                  <Label className="font-medium">Account Type</Label>
-                  <Select
-                    value={form.account_type}
-                    onValueChange={(v) => update("account_type", v)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select account type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {accountTypes.map((t) => (
-                        <SelectItem key={t.value} value={t.value}>
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {errors.account_type && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.account_type}
-                    </p>
-                  )}
-                </div>
-
-                {/* Initial Balance */}
-                <div className="space-y-2">
-                  <Label htmlFor="balance" className="font-medium">
-                    Initial Balance
-                  </Label>
-                  <Input
-                    id="balance"
-                    type="number"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={form.balance}
-                    onChange={(e) => update("balance", e.target.value)}
-                  />
-                  {errors.balance && (
-                    <p className="text-red-500 text-xs mt-1">
-                      {errors.balance}
-                    </p>
-                  )}
-                </div>
-
-                {/* Currency */}
-                <div className="space-y-2">
-                  <Label className="font-medium">Currency</Label>
-                  <Select
-                    value={form.currency}
-                    onValueChange={(v) => update("currency", v)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select currency" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {currencyOptions.map((c) => (
-                        <SelectItem key={c.value} value={c.value}>
-                          {c.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Security Notice */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800/50">
-                <div className="flex items-start">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="h-5 w-5 text-blue-500 dark:text-blue-400 mt-0.5 mr-2 flex-shrink-0"
-                    viewBox="0 0 20 20"
-                    fill="currentColor"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                      clipRule="evenodd"
                     />
-                  </svg>
-                  <div>
-                    <h4 className="font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                      Security Notice
-                    </h4>
-                    <p className="text-blue-700 dark:text-blue-300 text-xs">
-                      Your full account number is never stored. We only keep the
-                      last 4 digits for identification purposes.
-                    </p>
                   </div>
-                </div>
-              </div>
 
-              {/* Account Preview */}
-              <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700">
-                <h4 className="font-semibold text-gray-900 dark:text-white mb-3">
-                  Account Preview
-                </h4>
-                <div className="flex items-start gap-4">
-                  {logoUrl ? (
-                    <div className="bg-white p-2 rounded-lg border border-gray-200">
-                      <Image
-                        src={logoUrl}
-                        alt={finalBank}
-                        width={40}
-                        height={40}
-                        className="object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="bg-gray-200 dark:bg-gray-700 w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <div className="bg-gray-300 dark:bg-gray-600 rounded-full w-8 h-8" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-gray-900 dark:text-white font-medium text-lg truncate">
-                      {form.account_holder_name || "Account Holder"}
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <span className="text-gray-600 dark:text-gray-400 text-sm truncate">
-                        {finalBank || "Your bank"} ••••{" "}
-                        {form.full_account_number.slice(-4) || "XXXX"}
-                      </span>
-                      <span className="bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 text-xs px-2 py-1 rounded-full whitespace-nowrap">
-                        {accountTypeLabel}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-
-            <CardFooter className="p-0">
-              <Button
-                type="submit"
-                className="w-full bg-gray-900 hover:bg-gray-800 text-white font-medium py-3 px-4 rounded-lg transition-all"
-                disabled={loading}
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+                  {/* Bank Name */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Bank Institution
+                    </Label>
+                    <Select
+                      value={form.bank_name}
+                      onValueChange={(v) => update("bank_name", v)}
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Creating Account...
-                  </span>
-                ) : (
-                  "Add Account"
-                )}
-              </Button>
-            </CardFooter>
-          </form>
-        </div>
-      </Card>
-    </div>
+                      <SelectTrigger
+                        className={cn(
+                          "bg-slate-50 dark:bg-slate-800/50 h-11",
+                          errors.bank_name && "border-red-500"
+                        )}
+                      >
+                        <SelectValue placeholder="Select institution" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {bankOptions.map((b) => (
+                          <SelectItem key={b} value={b}>
+                            {b}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {form.bank_name === "Other" && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                      >
+                        <Input
+                          className="mt-2 h-11"
+                          placeholder="Enter custom bank name"
+                          value={form.custom_bank_name}
+                          onChange={(e) =>
+                            update("custom_bank_name", e.target.value)
+                          }
+                        />
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* Account Number */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Account Number
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type={showAccountNumber ? "text" : "password"}
+                        placeholder="Full account number"
+                        value={form.full_account_number}
+                        onChange={(e) =>
+                          update("full_account_number", e.target.value)
+                        }
+                        className={cn(
+                          "bg-slate-50 dark:bg-slate-800/50 h-11 pr-12",
+                          errors.full_account_number && "border-red-500"
+                        )}
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-blue-600 transition-colors"
+                        onClick={() => setShowAccountNumber(!showAccountNumber)}
+                      >
+                        {showAccountNumber ? (
+                          <EyeOff size={18} />
+                        ) : (
+                          <Eye size={18} />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Account Type */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Account Category
+                    </Label>
+                    <Select
+                      value={form.account_type}
+                      onValueChange={(v) => update("account_type", v)}
+                    >
+                      <SelectTrigger
+                        className={cn(
+                          "bg-slate-50 dark:bg-slate-800/50 h-11",
+                          errors.account_type && "border-red-500"
+                        )}
+                      >
+                        <SelectValue placeholder="Type of account" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {accountTypes.map((t) => (
+                          <SelectItem key={t.value} value={t.value}>
+                            {t.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Balance */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Starting Balance
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={form.balance}
+                        onChange={(e) => update("balance", e.target.value)}
+                        className={cn(
+                          "bg-slate-50 dark:bg-slate-800/50 h-11 pl-12",
+                          errors.balance && "border-red-500"
+                        )}
+                      />
+                      <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 font-medium text-sm border-r pr-2 border-slate-200 dark:border-slate-700">
+                        {form.currency}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Currency */}
+                  <div className="space-y-2">
+                    <Label className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                      Currency
+                    </Label>
+                    <Select
+                      value={form.currency}
+                      onValueChange={(v) => update("currency", v)}
+                    >
+                      <SelectTrigger className="bg-slate-50 dark:bg-slate-800/50 h-11">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="INR">INR (₹)</SelectItem>
+                        <SelectItem value="USD">USD ($)</SelectItem>
+                        <SelectItem value="EUR">EUR (€)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                {/* Live Preview Card */}
+                <div className="mt-8 p-5 bg-gradient-to-br from-slate-50 to-blue-50/30 dark:from-slate-800/50 dark:to-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">
+                      Account Preview
+                    </span>
+                    <ShieldCheck className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-xl bg-white dark:bg-slate-800 flex items-center justify-center border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+                      {logoUrl ? (
+                        <Image
+                          src={logoUrl}
+                          alt="bank"
+                          width={32}
+                          height={32}
+                          className="object-contain"
+                        />
+                      ) : (
+                        <div className="h-6 w-6 bg-slate-200 dark:bg-slate-700 animate-pulse rounded-full" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-bold text-slate-900 dark:text-white truncate">
+                        {form.account_holder_name || "New Account Holder"}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {finalBank || "Financial Institution"} ••••{" "}
+                        {form.full_account_number.slice(-4) || "0000"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-mono font-bold text-slate-900 dark:text-blue-400">
+                        {form.currency}{" "}
+                        {Number(form.balance || 0).toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+
+              <CardFooter className="p-0 pt-4">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-12 bg-slate-900 hover:bg-slate-800 dark:bg-blue-600 dark:hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-lg active:scale-[0.98]"
+                >
+                  {loading ? (
+                    <span className="flex items-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      Securing Data...
+                    </span>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                      Create Account <ChevronRight className="h-4 w-4" />
+                    </span>
+                  )}
+                </Button>
+              </CardFooter>
+            </form>
+          </div>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

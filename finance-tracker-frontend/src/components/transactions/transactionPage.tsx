@@ -33,7 +33,7 @@ import { fetchTransactions } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts } from "@/service/service_accounts";
 import { getBankLogoUrl } from "@/service/service_accounts";
-import Loader from "@/utils/loader";
+import { Loader2 } from "lucide-react";
 
 interface Account {
   id: string;
@@ -163,8 +163,14 @@ export default function TransactionPage() {
         </div>
 
         {isLoading ? (
-          <div className="w-full flex items-center justify-center min-h-[400px]">
-            <Loader size="md" text="Fetching Your transactions..." />
+          <div className="w-full min-h-[400px] flex flex-col items-center justify-center gap-3">
+            <div className="flex items-center justify-center h-12 w-12 rounded-full dark:bg-slate-800">
+              <Loader2 className="h-5 w-5 animate-spin text-slate-600 dark:text-slate-300" />
+            </div>
+
+            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 animate-pulse">
+              Fetching your transactions…
+            </p>
           </div>
         ) : (
           <>

@@ -1,4 +1,4 @@
-import { apiClient, } from "@/utils/Error_handler";
+import { apiClient } from "@/utils/Error_handler";
 
 export function callAddTransactionAPI(
     payload: {
@@ -28,5 +28,5 @@ export const fetchTransactionAPI = async()=>{
             method: "GET",
         }
     )
-    return data.data
+    return data.result
 }

@@ -28,12 +28,22 @@ export const creatingAccount = async (account_payload: any) => {
    return { data, error };
 };
 
-
 export const fetchAllaccounts = async(client_id : string)=>{
    const {data, error} = await supabase
-   .from('accounts')
-   .select()
-   .eq('client_id', client_id)
+      .from('accounts')
+      .select()
+      .eq('client_id', client_id)
 
    return {data,error};
-}
+};
+
+export const deleteAccount = async (account_id: string, client_id: string) => {
+   const { data, error } = await supabase
+      .from("accounts")
+      .delete()
+      .eq("id", account_id)
+      .eq("client_id", client_id)
+      .select()
+      .single();
+   return { data, error };
+};

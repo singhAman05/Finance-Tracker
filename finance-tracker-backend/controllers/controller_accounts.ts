@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { creatingAccount, fetchAllaccounts } from "../services/service_accounts";
+import { creatingAccount, fetchAllaccounts, deleteAccount } from "../services/service_accounts";
 import { validateAccount } from "../utils/validationUtils";
 import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
 
@@ -68,7 +68,7 @@ export const handleAccountFetch = async (req: Request, res: Response) => {
         const result = await fetchAllaccounts(client_id);
 
         if (result.data && result.data.length === 0) {
-            res.status(404).json({ message: `No linked accounts` });
+            res.status(200).json({ message: `No linked accounts`, data: result.data });
             return;
         }
 
@@ -85,5 +85,33 @@ export const handleAccountFetch = async (req: Request, res: Response) => {
     } catch (err) {
         console.log(err);
         res.status(500).json({ message: `Internal Server Error` });
+    }
+};
+
+export const handleAccountDeletion = async (req: Request, res: Response) => {
+    const { account_id } = req.params;
+    const user = (req as any).user.payload;
+    const client_id = user.id;
+
+
+    try {
+        const result = await deleteAccount(account_id, client_id);
+
+        if (result.error) {
+            console.log("Account deletion error:", result.error);
+            res.status(404).json({ message: "Account not found or unauthorized" });
+            return;
+        }
+
+        const cacheKey = `accounts:${client_id}`;
+        await deleteCache(cacheKey);
+
+        res.status(200).json({
+        message: "Account deleted successfully",
+        data: { account_id },
+        });
+    } catch (err) {
+        console.error("Account deletion failed:", err);
+        res.status(500).json({ message: "Internal Server Error" });
     }
 };
