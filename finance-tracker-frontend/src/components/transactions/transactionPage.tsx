@@ -61,12 +61,12 @@ export default function TransactionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
-
+  console.log("Accounts in TransactionPage:", accounts);
   const accountMap = accounts.reduce((map, acc) => {
     map[acc.id] = acc;
     return map;
   }, {} as Record<string, Account>);
-
+  console.log("categoryMap:", categories);
   const categoryMap = categories.reduce((map, cat) => {
     map[cat.id] = cat;
     return map;
@@ -79,22 +79,31 @@ export default function TransactionPage() {
       try {
         setIsLoading(true);
 
-        await Promise.all([
-          accounts.length === 0 &&
-            fetchAccounts().then((d) => dispatch(setAccounts(d))),
-          transactions.length === 0 &&
-            fetchTransactions().then((d) =>
-              dispatch(
-                setTransactions(
-                  d.map((tx: any) => ({ ...tx, date: new Date(tx.date) }))
-                )
-              )
-            ),
-          categories.length === 0 &&
-            fetchCategories().then((d) => dispatch(setCategories(d))),
-        ]);
+        // ACCOUNTS
+        if (accounts.length === 0) {
+          const result = await fetchAccounts();
+          if (isMounted) {
+            dispatch(setAccounts(result.data));
+          }
+        }
+
+        // TRANSACTIONS
+        if (transactions.length === 0) {
+          const result = await fetchTransactions();
+          if (isMounted) {
+            dispatch(setTransactions(result.data));
+          }
+        }
+
+        // CATEGORIES
+        if (categories.length === 0) {
+          const result = await fetchCategories();
+          if (isMounted) {
+            dispatch(setCategories(result.data));
+          }
+        }
       } catch (err) {
-        console.error(err);
+        console.error("Failed to load data:", err);
       } finally {
         if (isMounted) setIsLoading(false);
       }

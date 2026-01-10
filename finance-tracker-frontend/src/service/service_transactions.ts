@@ -1,4 +1,4 @@
-import { callAddTransactionAPI, fetchTransactionAPI } from "@/routes/route_transactions";
+import { addTransactionRoute, fetchTransactionsRoute } from "@/routes/route_transactions";
 
 export const addTransactionService = async (payload: {
     account_id: string;
@@ -9,9 +9,16 @@ export const addTransactionService = async (payload: {
     is_recurring?: boolean;
     recurrence_rule?: string;
     }) => {
-    return await callAddTransactionAPI(payload);
+    const result = await addTransactionRoute(payload);
+    return result;
 };
 
 export const fetchTransactions = async()=>{
-    return await fetchTransactionAPI();
+    const result = await fetchTransactionsRoute();
+    console.log("Fetched transactions in service:", result);
+    return result;
+}
+
+export const deleteTransaction = async(transaction_id : string)=>{
+    return {data: null, error: null};
 }

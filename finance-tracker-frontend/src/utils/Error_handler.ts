@@ -9,10 +9,10 @@ export interface ApiResult<T> {
 }
 
 function redirectToLogin() {
-  if (typeof window !== "undefined") {
-    localStorage.removeItem("jwt");
-    window.location.replace("/login"); // hard redirect (prevents back nav)
-  }
+    if (typeof window !== "undefined") {
+        localStorage.removeItem("jwt");
+        window.location.replace("/login"); // hard redirect (prevents back nav)
+    }
 }
 
 
@@ -28,8 +28,8 @@ export async function apiClient<T = any>(
     if (!token) {
         redirectToLogin();
         return {
-        result: null,
-        error: { message: "Session missing", type: "AUTH", status: 401 }
+            result: null,
+            error: { message: "Session missing", type: "AUTH", status: 401 }
         };
     }
 
