@@ -1,9 +1,10 @@
-import { addTransactionRoute, fetchTransactionsRoute } from "@/routes/route_transactions";
+import { addTransactionRoute, fetchTransactionsRoute, deleteTransactionRoute } from "@/routes/route_transactions";
 
-export const addTransactionService = async (payload: {
+export const createTransaction = async (payload: {
     account_id: string;
     category_id: string;
     amount: number;
+    type: string;
     date: string;
     description?: string;
     is_recurring?: boolean;
@@ -20,5 +21,12 @@ export const fetchTransactions = async()=>{
 }
 
 export const deleteTransaction = async(transaction_id : string)=>{
-    return {data: null, error: null};
+    try{
+        const result = await deleteTransactionRoute(transaction_id);
+        return result;
+      }
+      catch(error){
+        console.error("Failed to delete transaction:", error);
+        throw error;
+      }
 };

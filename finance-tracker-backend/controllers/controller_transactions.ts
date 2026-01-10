@@ -19,6 +19,7 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         account_id,
         category_id,
         amount,
+        type,
         date,
         description,
         is_recurring,
@@ -30,6 +31,7 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         account_id,
         category_id,
         amount,
+        type,
         date: date || new Date().toISOString().split("T")[0],
         description: description || null,
         is_recurring: is_recurring ?? false,
@@ -95,20 +97,27 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
 };
 
 export const handleTransactionDelete = async (req: Request, res: Response) => {
-    const transaction_id = req.params.transaction_id;
-    console.log("Deleting transaction with ID:", transaction_id);
-    try{
-        const result = await deleteTransaction(transaction_id);
-        if(result.error){
-            console.log(`Cannot Delete Transaction`);
-            res.status(405).json({ message: `${result.error}` });
+    const { transaction_id } = req.params;
+    const user = (req as any).user.payload;
+    const client_id = user.id;
+    try {
+        const result = await deleteTransaction(transaction_id, client_id);
+
+        if (result.error) {
+            console.log("Transaction deletion error:", result.error);
+            res.status(404).json({ message: "Transaction not found or unauthorized" });
             return;
         }
-        console.log("Deleted transaction:", result.data);
-        res.status(200).json({ message: `Transaction deleted`, data: result.data });
-    }catch(err){
-        console.log(err);
-        res.status(500).json({ message: `Internal Server Error` });
-        return;
-    }
+
+        const cacheKey = `transactions:${client_id}`;
+        await deleteCache(cacheKey);
+
+        res.status(200).json({
+            message: "Transaction deleted successfully",
+            data: { transaction_id },
+        });
+    } catch (err) {
+        console.error("Transaction deletion failed:", err);
+            res.status(500).json({ message: "Internal Server Error" });
+        }
 }

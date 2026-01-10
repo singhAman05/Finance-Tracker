@@ -1,21 +1,36 @@
-// src/components/transactionPage.tsx
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
+import { RootState } from "@/app/store";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner"; // Assuming sonner based on previous file
+
+// Redux Actions
 import { setAccounts } from "../redux/slices/slice_accounts";
 import {
   setTransactions,
   removeTransaction,
 } from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
-import { RootState } from "@/app/store";
-import { useRouter } from "next/navigation";
+
+// Service Calls
+import {
+  fetchTransactions,
+  deleteTransaction,
+} from "@/service/service_transactions";
+import { fetchCategories } from "@/service/service_categories";
+import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
+
+// UI Components
 import AddTransaction from "./addTransaction";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Trash2, ChartNoAxesCombined } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableHeader,
@@ -31,19 +46,47 @@ import {
   SelectContent,
   SelectItem,
 } from "@/components/ui/select";
-import { format } from "date-fns";
 import {
-  fetchTransactions,
-  deleteTransaction,
-} from "@/service/service_transactions";
-import { fetchCategories } from "@/service/service_categories";
-import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
-import Loader2 from "@/utils/loader";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
+// Icons
+import {
+  Search,
+  Trash2,
+  ChartPie,
+  ArrowUpRight,
+  ArrowDownLeft,
+  Filter,
+  Wallet,
+  Calendar,
+  RefreshCw,
+} from "lucide-react";
+import { useRouter } from "next/navigation";
+
+// --- Animation Variants (Matching AccountsPage) ---
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+};
+
+const itemVariants = {
+  hidden: { y: 10, opacity: 0, filter: "blur(4px)" },
+  visible: { y: 0, opacity: 1, filter: "blur(0px)" },
+};
+
+// --- Interfaces ---
 interface Account {
   id: string;
   name: string;
-  bankName: string;
+  bank: string;
   balance?: number;
 }
 
@@ -56,6 +99,8 @@ interface Category {
 export default function TransactionPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+
+  // Redux State
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const transactions = useSelector(
     (state: RootState) => state.transactions.transactions
@@ -63,387 +108,487 @@ export default function TransactionPage() {
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
+
+  // Local State
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [categoryFilter, setCategoryFilter] = useState<"all" | string>("all");
 
-  const accountMap = accounts.reduce((map, acc) => {
-    map[acc.id] = acc;
-    return map;
-  }, {} as Record<string, Account>);
-  console.log("categoryMap:", categories);
-  const categoryMap = categories.reduce((map, cat) => {
-    map[cat.id] = cat;
-    return map;
-  }, {} as Record<string, Category>);
+  // For Delete Dialog
+  const [deleteData, setDeleteData] = useState<{
+    id: string;
+    description: string;
+  } | null>(null);
 
-  useEffect(() => {
-    let isMounted = true;
+  // --- Mappers ---
+  const accountMap = useMemo(
+    () =>
+      accounts.reduce((map, acc) => {
+        map[acc.id] = acc;
+        return map;
+      }, {} as Record<string, Account>),
+    [accounts]
+  );
 
-    const loadAll = async () => {
+  const categoryMap = useMemo(
+    () =>
+      categories.reduce((map, cat) => {
+        map[cat.id] = cat;
+        return map;
+      }, {} as Record<string, Category>),
+    [categories]
+  );
+
+  // --- Data Loading ---
+  const loadData = useCallback(
+    async (isRefresh = false) => {
       try {
-        setIsLoading(true);
+        if (isRefresh) setIsRefreshing(true);
+        else setIsLoading(true);
 
-        // ACCOUNTS
-        if (accounts.length === 0) {
-          const result = await fetchAccounts();
-          if (isMounted) {
-            dispatch(setAccounts(result.data));
-          }
-        }
+        const [accRes, txRes, catRes] = await Promise.all([
+          accounts.length === 0 || isRefresh
+            ? fetchAccounts()
+            : Promise.resolve({ data: accounts }),
+          transactions.length === 0 || isRefresh
+            ? fetchTransactions()
+            : Promise.resolve({ data: transactions }),
+          categories.length === 0 || isRefresh
+            ? fetchCategories()
+            : Promise.resolve({ data: categories }),
+        ]);
 
-        // TRANSACTIONS
-        if (transactions.length === 0) {
-          const result = await fetchTransactions();
-          if (isMounted) {
-            dispatch(setTransactions(result.data));
-          }
-        }
+        if (accounts.length === 0 || isRefresh)
+          dispatch(setAccounts(accRes.data));
+        if (transactions.length === 0 || isRefresh)
+          dispatch(setTransactions(txRes.data));
+        if (categories.length === 0 || isRefresh)
+          dispatch(setCategories(catRes.data));
 
-        // CATEGORIES
-        if (categories.length === 0) {
-          const result = await fetchCategories();
-          if (isMounted) {
-            dispatch(setCategories(result.data));
-          }
-        }
+        if (isRefresh) toast.success("Data synced successfully");
       } catch (err) {
         console.error("Failed to load data:", err);
+        toast.error("Failed to sync data.");
       } finally {
-        if (isMounted) setIsLoading(false);
+        setIsLoading(false);
+        setIsRefreshing(false);
       }
+    },
+    [
+      dispatch,
+      accounts.length,
+      transactions.length,
+      categories.length,
+      accounts,
+      transactions,
+      categories,
+    ]
+  );
+
+  useEffect(() => {
+    loadData();
+  }, []); // Run once on mount
+
+  // --- Filtering & Stats ---
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((tx) => {
+      const account = accountMap[tx.account_id];
+      const category = categoryMap[tx.category_id];
+
+      const searchLower = search.toLowerCase();
+      const matchText =
+        (tx.description || "").toLowerCase().includes(searchLower) ||
+        (category?.name || "").toLowerCase().includes(searchLower) ||
+        (account?.name || "").toLowerCase().includes(searchLower);
+
+      const matchAccount =
+        accountFilter === "all" || tx.account_id === accountFilter;
+      const matchCategory =
+        categoryFilter === "all" || tx.category_id === categoryFilter;
+
+      return matchText && matchAccount && matchCategory;
+    });
+  }, [
+    transactions,
+    accountMap,
+    categoryMap,
+    search,
+    accountFilter,
+    categoryFilter,
+  ]);
+
+  const stats = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+
+    filteredTransactions.forEach((tx) => {
+      // Logic: Positive = Expense, Negative = Income (based on your previous code)
+      if (tx.amount > 0) {
+        expense += tx.amount;
+      } else {
+        income += Math.abs(tx.amount);
+      }
+    });
+
+    return {
+      income,
+      expense,
+      net: income - expense,
+      count: filteredTransactions.length,
     };
+  }, [filteredTransactions]);
 
-    loadAll();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const filteredTransactions = transactions.filter((tx) => {
-    const account = accountMap[tx.account_id];
-    const category = categoryMap[tx.category_id];
-
-    const searchLower = search.toLowerCase();
-    const matchText =
-      tx.description?.toLowerCase().includes(searchLower) ||
-      category?.name?.toLowerCase().includes(searchLower) ||
-      account?.name?.toLowerCase().includes(searchLower);
-
-    const matchAccount =
-      accountFilter === "all" || tx.account_id === accountFilter;
-
-    return matchText && matchAccount;
-  });
-
-  // Calculate summary values
-  const calculateSummary = () => {
-    const totalBalance = accounts.reduce(
-      (sum, acc) => sum + (acc.balance || 0),
-      0
-    );
-    const netWorthChange = transactions.reduce(
-      (sum, tx) => sum + (tx.amount > 0 ? -tx.amount : Math.abs(tx.amount)),
-      0
-    );
-
-    return { totalBalance, netWorthChange };
-  };
-
-  const { totalBalance, netWorthChange } = calculateSummary();
-
-  const handleDeleteTransaction = async (transaction_id: string) => {
-    if (!confirm("Are you sure you want to delete this transaction?")) return;
-
-    console.log("Deleting transaction:", transaction_id);
+  // --- Handlers ---
+  const confirmDelete = async () => {
+    if (!deleteData) return;
     try {
-      // Start the animation
-      setDeletingId(transaction_id);
-
-      // Wait for the animation to complete
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      await deleteTransaction(transaction_id);
-      dispatch(removeTransaction(transaction_id));
-      console.log("Transaction deleted:", transaction_id);
-    } catch (error) {
-      console.error("Failed to delete transaction:", error);
-      // If there's an error, cancel the deletion animation
-      setDeletingId(null);
+      dispatch(removeTransaction(deleteData.id)); // Optimistic update
+      const res = await deleteTransaction(deleteData.id);
+      if (res.error) throw new Error(res.error);
+      toast.success("Transaction deleted");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to delete. restoring...");
+      loadData(true); // Revert
+    } finally {
+      setDeleteData(null);
     }
   };
 
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      maximumFractionDigits: 0,
+    }).format(val);
+
+  // --- Skeleton Component ---
+  const LoadingSkeleton = () => (
+    <div className="space-y-4">
+      <div className="flex gap-4">
+        {[1, 2, 3].map((i) => (
+          <Skeleton key={i} className="h-28 w-full rounded-xl" />
+        ))}
+      </div>
+      <Skeleton className="h-[500px] w-full rounded-xl" />
+    </div>
+  );
+
+  // --- Render ---
+  if (isLoading && transactions.length === 0) {
+    return (
+      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+        <LoadingSkeleton />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full">
-      <div className="flex flex-col gap-6 relative">
-        {/* Header Section */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-bold">Transactions</h1>
-            <p className="text-muted-foreground mt-1">
-              Track your income and expenses
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <AddTransaction />
-            <Button
-              onClick={() => router.push("/dashboard/reports")}
-              className="bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-all duration-300 cursor-pointer"
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      className="w-full space-y-6 p-2 md:p-6 mx-auto"
+    >
+      {/* Delete Dialog */}
+      <AlertDialog
+        open={!!deleteData}
+        onOpenChange={(open: boolean) => !open && setDeleteData(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently remove{" "}
+              <span className="font-semibold text-foreground">
+                {deleteData?.description}
+              </span>{" "}
+              from your history. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDelete}
+              className="bg-destructive hover:bg-destructive/90 text-white"
             >
-              <ChartNoAxesCombined className="mr-2 h-4 w-4" />
-              Analyze
-            </Button>
-          </div>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Header */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Transactions
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Track your cash flow and spending habits.
+          </p>
         </div>
-
-        {isLoading ? (
-          <div className="w-full min-h-[400px] flex flex-col items-center justify-center gap-3">
-            <div className="flex items-center justify-center h-12 w-12 rounded-full dark:bg-slate-800">
-              <Loader2 className="h-5 w-5 animate-spin text-slate-600 dark:text-slate-300" />
-            </div>
-
-            <p className="text-sm font-medium text-slate-600 dark:text-slate-400 animate-pulse">
-              Fetching your transactions…
-            </p>
-          </div>
-        ) : (
-          <>
-            {/* Summary Cards */}
-            <div className="flex flex-col md:flex-row gap-6">
-              {/* Left Card */}
-              <Card className="flex-1">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Total Balance</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-3xl font-bold">
-                    ${totalBalance.toFixed(2)}
-                  </p>
-                  <p className="text-muted-foreground text-sm mt-2">
-                    Across all accounts
-                  </p>
-                </CardContent>
-              </Card>
-
-              {/* Right Card */}
-              <Card className="flex-1">
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Net Worth Impact</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p
-                    className={`text-3xl font-bold ${
-                      netWorthChange >= 0 ? "text-green-500" : "text-red-500"
-                    }`}
-                  >
-                    {netWorthChange >= 0 ? "+" : "-"}$
-                    {Math.abs(netWorthChange).toFixed(2)}
-                  </p>
-                  <p className="text-muted-foreground text-sm mt-2">
-                    {netWorthChange >= 0 ? "Positive" : "Negative"} trend in
-                    financial health
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Transaction Table */}
-            <div className="mt-2">
-              <Card className="overflow-hidden">
-                <CardHeader className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 px-6 py-4">
-                  <CardTitle className="text-lg">History</CardTitle>
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full md:w-auto">
-                    <div className="relative w-full sm:w-56">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search transactions..."
-                        className="pl-10 w-full"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                      />
-                    </div>
-                    <Select
-                      value={accountFilter}
-                      onValueChange={(v) =>
-                        setAccountFilter(v as "all" | string)
-                      }
-                    >
-                      <SelectTrigger className="w-full sm:w-40">
-                        <SelectValue placeholder="All Accounts" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Accounts</SelectItem>
-                        {accounts.map((acc) => (
-                          <SelectItem key={acc.id} value={acc.id}>
-                            {acc.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </CardHeader>
-
-                <CardContent className="p-0">
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader className="bg-gray-50">
-                        <TableRow>
-                          <TableHead className="min-w-[120px] py-3">
-                            Date
-                          </TableHead>
-                          <TableHead className="min-w-[180px] py-3">
-                            Description
-                          </TableHead>
-                          <TableHead className="min-w-[150px] py-3">
-                            Account
-                          </TableHead>
-                          <TableHead className="min-w-[140px] py-3">
-                            Category
-                          </TableHead>
-                          <TableHead className="min-w-[120px] text-right py-3">
-                            Amount
-                          </TableHead>
-                          <TableHead className="min-w-[100px] text-right py-3 w-[100px]">
-                            Actions
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredTransactions.length > 0 ? (
-                          filteredTransactions.map((tx) => {
-                            const account = accountMap[tx.account_id];
-                            const category = categoryMap[tx.category_id];
-                            const isExpense = tx.amount > 0;
-
-                            // Handle null/empty descriptions
-                            const description =
-                              tx.description ||
-                              (category
-                                ? `ON ${category.name}`
-                                : "Transaction");
-
-                            return (
-                              <TableRow
-                                key={tx.id}
-                                className={`hover:bg-gray-50 transition-all duration-300 ${
-                                  deletingId === tx.id
-                                    ? "opacity-0 transform -translate-x-full"
-                                    : "opacity-100 transform translate-x-0"
-                                }`}
-                                style={{
-                                  transition: "all 0.3s ease-in-out",
-                                }}
-                              >
-                                <TableCell className="py-3">
-                                  {format(tx.date, "MMM dd, yyyy")}
-                                </TableCell>
-                                <TableCell className="py-3">
-                                  <div className="font-medium">
-                                    {description}
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-3">
-                                  <div className="flex items-center">
-                                    <img
-                                      src={getBankLogoUrl(account?.bank)}
-                                      alt="Bank Logo"
-                                      className="w-6 h-6 mr-2 rounded-full"
-                                    />
-                                    <span className="truncate max-w-[120px]">
-                                      {account?.name || "Unknown Account"}
-                                    </span>
-                                  </div>
-                                </TableCell>
-                                <TableCell className="py-3">
-                                  <span
-                                    className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                      isExpense
-                                        ? "bg-red-100 text-red-800"
-                                        : "bg-green-100 text-green-800"
-                                    }`}
-                                  >
-                                    {category?.name || "Uncategorized"}
-                                  </span>
-                                </TableCell>
-                                <TableCell
-                                  className={`text-right font-medium py-3 ${
-                                    isExpense
-                                      ? "text-red-500"
-                                      : "text-green-500"
-                                  }`}
-                                >
-                                  {isExpense ? "-" : "+"}$
-                                  {Math.abs(tx.amount).toFixed(2)}
-                                </TableCell>
-                                <TableCell className="py-3">
-                                  <div className="flex justify-end min-w-[112px]">
-                                    <div className="relative group">
-                                      {/* Static Trash Icon (visible only when not hovering) */}
-                                      <Trash2 className="h-4 w-4 text-red-600 absolute right-2 top-1/2 -translate-y-1/2 group-hover:opacity-0 transition-opacity duration-300 pointer-events-none" />
-
-                                      {/* Expanding Button on Hover */}
-                                      <Button
-                                        variant="ghost"
-                                        className="w-8 px-0 hover:px-3 hover:w-28 hover:bg-red-600 hover:text-white cursor-pointer transition-all duration-300 overflow-hidden"
-                                        onClick={() =>
-                                          handleDeleteTransaction(tx.id)
-                                        }
-                                        disabled={deletingId === tx.id}
-                                      >
-                                        {deletingId === tx.id ? (
-                                          <div className="flex items-center">
-                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
-                                            <span>Deleting</span>
-                                          </div>
-                                        ) : (
-                                          <>
-                                            <Trash2 className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                            <span className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                              Delete
-                                            </span>
-                                          </>
-                                        )}
-                                      </Button>
-                                    </div>
-                                  </div>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })
-                        ) : (
-                          <TableRow>
-                            <TableCell colSpan={6} className="text-center py-8">
-                              <div className="flex flex-col items-center justify-center">
-                                <div className="text-gray-400 mb-2">
-                                  No transactions found
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  Try changing your search or filter criteria
-                                </div>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          </>
-        )}
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => loadData(true)}
+            className={cn("rounded-full", isRefreshing && "animate-spin")}
+            disabled={isRefreshing}
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-full shadow-sm"
+            onClick={() => router.push("/dashboard/reports")}
+          >
+            <ChartPie className="mr-2 h-4 w-4" /> Analytics
+          </Button>
+          <AddTransaction />
+        </div>
       </div>
 
-      {/* Add custom styles for smooth transitions */}
-      <style jsx>{`
-        .slide-out {
-          transform: translateX(-100%);
-          opacity: 0;
-          transition: all 0.3s ease-in-out;
-        }
-      `}</style>
-    </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {[
+          {
+            label: "Total Income",
+            value: stats.income,
+            icon: ArrowDownLeft,
+            color: "text-emerald-500",
+            bg: "bg-emerald-500/10",
+          },
+          {
+            label: "Total Expenses",
+            value: stats.expense,
+            icon: ArrowUpRight,
+            color: "text-rose-500",
+            bg: "bg-rose-500/10",
+          },
+          {
+            label: "Net Flow",
+            value: stats.net,
+            icon: Wallet,
+            color: stats.net >= 0 ? "text-blue-500" : "text-amber-500",
+            bg: stats.net >= 0 ? "bg-blue-500/10" : "bg-amber-500/10",
+          },
+        ].map((stat, idx) => (
+          <motion.div key={idx} variants={itemVariants} whileHover={{ y: -4 }}>
+            <Card className="border-none shadow-sm bg-card hover:bg-accent/5 transition-colors">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between pb-2">
+                  <p className="text-sm font-medium text-muted-foreground">
+                    {stat.label}
+                  </p>
+                  <div className={cn("p-2 rounded-full", stat.bg)}>
+                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                  </div>
+                </div>
+                <div className="text-2xl font-bold tracking-tight">
+                  {formatCurrency(stat.value)}
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Main Content */}
+      <motion.div variants={itemVariants}>
+        <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
+          <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b bg-slate-50/40 dark:bg-slate-900/40 px-6 py-4">
+            <div className="flex items-center gap-2">
+              <CardTitle className="text-lg font-semibold">History</CardTitle>
+              <Badge variant="outline" className="ml-2 font-normal">
+                {filteredTransactions.length} items
+              </Badge>
+            </div>
+
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+              <div className="relative flex-1 sm:min-w-[200px]">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search description..."
+                  className="pl-10 bg-background rounded-full"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                />
+              </div>
+
+              <Select
+                value={accountFilter}
+                onValueChange={(v) => setAccountFilter(v)}
+              >
+                <SelectTrigger className="w-full sm:w-[160px] rounded-full bg-background">
+                  <SelectValue placeholder="Account" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Accounts</SelectItem>
+                  {accounts.map((acc) => (
+                    <SelectItem key={acc.id} value={acc.id}>
+                      {acc.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+
+              <Select
+                value={categoryFilter}
+                onValueChange={(v) => setCategoryFilter(v)}
+              >
+                <SelectTrigger className="w-full sm:w-[160px] rounded-full bg-background">
+                  <div className="flex items-center gap-2">
+                    <Filter className="h-3.5 w-3.5 opacity-70" />
+                    <SelectValue placeholder="Category" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </CardHeader>
+
+          <CardContent className="p-0">
+            {filteredTransactions.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
+                  <Search className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <h3 className="text-lg font-medium">No transactions found</h3>
+                <p className="text-muted-foreground text-sm max-w-xs mt-2">
+                  Try adjusting your filters or search query to find what you're
+                  looking for.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-slate-50/50 dark:bg-slate-900/50 hover:bg-transparent">
+                      <TableHead className="w-[150px] pl-6">Date</TableHead>
+                      <TableHead className="w-[30%]">Description</TableHead>
+                      <TableHead>Category</TableHead>
+                      <TableHead>Account</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                      <TableHead className="w-[50px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <AnimatePresence mode="popLayout">
+                      {filteredTransactions.map((tx) => {
+                        const account = accountMap[tx.account_id];
+                        const category = categoryMap[tx.category_id];
+                        // Logic: Amount > 0 is Expense (Red), < 0 is Income (Green)
+                        const isExpense = tx.type === "expense" ? true : false;
+                        console.log(
+                          "Transaction Type:",
+                          tx.type,
+                          "isExpense:",
+                          isExpense
+                        );
+                        const displayAmount = Math.abs(tx.amount);
+
+                        return (
+                          <motion.tr
+                            key={tx.id}
+                            layout
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors border-b last:border-0"
+                          >
+                            <TableCell className="pl-6 py-4">
+                              <div className="flex items-center text-sm text-muted-foreground">
+                                <Calendar className="mr-2 h-3.5 w-3.5 opacity-70" />
+                                {format(new Date(tx.date), "MMM dd, yyyy")}
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <span className="font-medium text-sm">
+                                {tx.description ||
+                                  `${category?.name} side income/expense`}
+                              </span>
+                            </TableCell>
+
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className="font-normal text-xs bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-200"
+                              >
+                                {category?.name || "Uncategorized"}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <div className="h-6 w-6 rounded-md bg-white border p-0.5 flex items-center justify-center shadow-sm">
+                                  <img
+                                    src={getBankLogoUrl(account?.bank)}
+                                    alt="Bank"
+                                    className="h-full w-full object-contain"
+                                    // onError={(e) =>
+                                    //   (e.currentTarget.src =
+                                    //     "/placeholder-bank.png")
+                                    // }
+                                  />
+                                </div>
+                                <span className="text-sm text-muted-foreground truncate max-w-[120px]">
+                                  {account?.name}
+                                </span>
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="text-right">
+                              <span
+                                className={cn(
+                                  "font-mono font-medium tracking-tight",
+                                  isExpense
+                                    ? "text-rose-600 dark:text-rose-400"
+                                    : "text-emerald-600 dark:text-emerald-400"
+                                )}
+                              >
+                                {isExpense ? "-" : "+"}
+                                {formatCurrency(displayAmount)}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className="pr-6">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                onClick={() =>
+                                  setDeleteData({
+                                    id: tx.id,
+                                    description: tx.description,
+                                  })
+                                }
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </Button>
+                            </TableCell>
+                          </motion.tr>
+                        );
+                      })}
+                    </AnimatePresence>
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
+    </motion.div>
   );
 }

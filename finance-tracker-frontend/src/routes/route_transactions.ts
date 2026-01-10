@@ -5,6 +5,7 @@ export const addTransactionRoute = async (
         account_id: string;
         category_id: string;
         amount: number;
+        type: string;
         date: string;
         description?: string;
         is_recurring?: boolean;
@@ -32,7 +33,7 @@ export const fetchTransactionsRoute = async()=>{
     return data.result
 }
 
-export const deleteTransactionAPI = async(transaction_id: string)=>{
+export const deleteTransactionRoute = async(transaction_id: string)=>{
     return await apiClient<any>(
         `/api/transactions/delete-transaction/${transaction_id}`,
         {

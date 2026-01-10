@@ -31,6 +31,7 @@ export const fetchAccounts = async () => {
         balance: acc.balance,
         lastDigits: acc.account_number_last4,
         bank: acc.bank_name,
+        currency: acc.currency,
         status: acc.status,
       }))
     }
