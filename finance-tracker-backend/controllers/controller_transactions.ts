@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { fetchTransactions, createTransaction } from "../services/service_transactions";
+import { fetchTransactions, createTransaction, deleteTransaction } from "../services/service_transactions";
 import { validateTransactionPayload } from "../utils/validationUtils";
 import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { captureRejectionSymbol } from "events";
 
 export const handleTransactionsAdd = async (req: Request, res: Response) => {
     const user = (req as any).user.payload;
@@ -92,3 +93,22 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
         res.status(500).json({ message: `Internal Server Error` });
     }
 };
+
+export const handleTransactionDelete = async (req: Request, res: Response) => {
+    const transaction_id = req.params.transaction_id;
+    console.log("Deleting transaction with ID:", transaction_id);
+    try{
+        const result = await deleteTransaction(transaction_id);
+        if(result.error){
+            console.log(`Cannot Delete Transaction`);
+            res.status(405).json({ message: `${result.error}` });
+            return;
+        }
+        console.log("Deleted transaction:", result.data);
+        res.status(200).json({ message: `Transaction deleted`, data: result.data });
+    }catch(err){
+        console.log(err);
+        res.status(500).json({ message: `Internal Server Error` });
+        return;
+    }
+}

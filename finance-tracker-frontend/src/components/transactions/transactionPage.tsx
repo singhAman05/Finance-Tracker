@@ -4,7 +4,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { setAccounts } from "../redux/slices/slice_accounts";
-import { setTransactions } from "../redux/slices/slice_transactions";
+import {
+  setTransactions,
+  removeTransaction,
+} from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
 import { RootState } from "@/app/store";
 import { useRouter } from "next/navigation";
@@ -29,11 +32,13 @@ import {
   SelectItem,
 } from "@/components/ui/select";
 import { format } from "date-fns";
-import { fetchTransactions } from "@/service/service_transactions";
+import {
+  fetchTransactions,
+  deleteTransaction,
+} from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
-import { fetchAccounts } from "@/service/service_accounts";
-import { getBankLogoUrl } from "@/service/service_accounts";
-import { Loader2 } from "lucide-react";
+import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
+import Loader2 from "@/utils/loader";
 
 interface Account {
   id: string;
@@ -61,7 +66,8 @@ export default function TransactionPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
-  console.log("Accounts in TransactionPage:", accounts);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const accountMap = accounts.reduce((map, acc) => {
     map[acc.id] = acc;
     return map;
@@ -147,6 +153,27 @@ export default function TransactionPage() {
   };
 
   const { totalBalance, netWorthChange } = calculateSummary();
+
+  const handleDeleteTransaction = async (transaction_id: string) => {
+    if (!confirm("Are you sure you want to delete this transaction?")) return;
+
+    console.log("Deleting transaction:", transaction_id);
+    try {
+      // Start the animation
+      setDeletingId(transaction_id);
+
+      // Wait for the animation to complete
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      await deleteTransaction(transaction_id);
+      dispatch(removeTransaction(transaction_id));
+      console.log("Transaction deleted:", transaction_id);
+    } catch (error) {
+      console.error("Failed to delete transaction:", error);
+      // If there's an error, cancel the deletion animation
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="w-full">
@@ -300,7 +327,14 @@ export default function TransactionPage() {
                             return (
                               <TableRow
                                 key={tx.id}
-                                className="hover:bg-gray-50"
+                                className={`hover:bg-gray-50 transition-all duration-300 ${
+                                  deletingId === tx.id
+                                    ? "opacity-0 transform -translate-x-full"
+                                    : "opacity-100 transform translate-x-0"
+                                }`}
+                                style={{
+                                  transition: "all 0.3s ease-in-out",
+                                }}
                               >
                                 <TableCell className="py-3">
                                   {format(tx.date, "MMM dd, yyyy")}
@@ -353,11 +387,24 @@ export default function TransactionPage() {
                                       <Button
                                         variant="ghost"
                                         className="w-8 px-0 hover:px-3 hover:w-28 hover:bg-red-600 hover:text-white cursor-pointer transition-all duration-300 overflow-hidden"
+                                        onClick={() =>
+                                          handleDeleteTransaction(tx.id)
+                                        }
+                                        disabled={deletingId === tx.id}
                                       >
-                                        <Trash2 className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                                        <span className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                          Delete
-                                        </span>
+                                        {deletingId === tx.id ? (
+                                          <div className="flex items-center">
+                                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-white mr-1"></div>
+                                            <span>Deleting</span>
+                                          </div>
+                                        ) : (
+                                          <>
+                                            <Trash2 className="h-4 w-4 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                                            <span className="ml-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                                              Delete
+                                            </span>
+                                          </>
+                                        )}
                                       </Button>
                                     </div>
                                   </div>
@@ -388,6 +435,15 @@ export default function TransactionPage() {
           </>
         )}
       </div>
+
+      {/* Add custom styles for smooth transitions */}
+      <style jsx>{`
+        .slide-out {
+          transform: translateX(-100%);
+          opacity: 0;
+          transition: all 0.3s ease-in-out;
+        }
+      `}</style>
     </div>
   );
 }

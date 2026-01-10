@@ -31,3 +31,12 @@ export const fetchTransactionsRoute = async()=>{
     )
     return data.result
 }
+
+export const deleteTransactionAPI = async(transaction_id: string)=>{
+    return await apiClient<any>(
+        `/api/transactions/delete-transaction/${transaction_id}`,
+        {
+            method: "DELETE",
+        }
+    );
+}

@@ -40,3 +40,13 @@ export const fetchTransactions = async(client_id : string)=>{
 
     return {data, error};
 }
+
+export const deleteTransaction = async(transaction_id: string)=>{
+    const {data, error} = await supabase
+    .from('transactions')
+    .delete()
+    .eq('id', transaction_id)
+    .select()
+    console.log("Delete transaction result:", {data, error});
+    return {data, error};
+}

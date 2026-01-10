@@ -21,4 +21,4 @@ export const fetchTransactions = async()=>{
 
 export const deleteTransaction = async(transaction_id : string)=>{
     return {data: null, error: null};
-}
+};
