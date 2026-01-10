@@ -1,5 +1,5 @@
 // src/services/service_account.ts
-import { createAccountRoute, fetchAccountsRoute } from '@/routes/route_accounts';
+import { createAccountRoute, fetchAccountsRoute, deleteAccountRoute } from '@/routes/route_accounts';
 
 export const createAccount = async (data: object) => {
   const account = await createAccountRoute(data);
@@ -23,18 +23,32 @@ export function getBankLogoUrl(bankName: string) {
 export const fetchAccounts = async () => {
   try {
     const result = await fetchAccountsRoute();
-    // You can preprocess it here if needed
-    return result.map((acc: any) => ({
-      id: acc.id,
-      name: `${acc.account_holder_name} Account`,
-      type: acc.account_type,
-      balance: acc.balance,
-      lastDigits: acc.account_number_last4,
-      bank: acc.bank_name,
-      status: acc.status,
-    }));
+    if(result.data.length>0){
+      result.data = result.data.map((acc: any) => ({
+        id: acc.id,
+        name: `${acc.account_holder_name} Account`,
+        type: acc.account_type,
+        balance: acc.balance,
+        lastDigits: acc.account_number_last4,
+        bank: acc.bank_name,
+        status: acc.status,
+      }))
+    }
+    console.log("Processed accounts data in service:", result.data);
+    return result;
   } catch (error) {
     console.error("Failed to fetch accounts:", error);
     throw error;
   }
 };
+
+export const deleteAccount = async (accountId: string) => {
+  try{
+    const result = await deleteAccountRoute(accountId);
+    return result;
+  }
+  catch(error){
+    console.error("Failed to delete account:", error);
+    throw error;
+  }
+}

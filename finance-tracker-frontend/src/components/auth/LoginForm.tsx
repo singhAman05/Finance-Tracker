@@ -9,7 +9,7 @@ import { ChevronRight, BadgeQuestionMark } from "lucide-react";
 import { loginService, loginWithGoogle } from "@/service/service_auth";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Loader2 } from "lucide-react";
+import { Loader } from "lucide-react";
 
 import PhoneInput, {
   type Value,
@@ -145,7 +145,7 @@ export default function AuthForm() {
             >
               {loadingType === "phone" ? (
                 <div className="flex items-center justify-center gap-2">
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader className="h-5 w-5 animate-spin" />
                   <span>Verifying Number...</span>
                 </div>
               ) : (
@@ -176,7 +176,7 @@ export default function AuthForm() {
             >
               {loadingType === "google" ? (
                 <>
-                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <Loader className="h-5 w-5 animate-spin" />
                   <span>Continue with Google</span>
                 </>
               ) : (
