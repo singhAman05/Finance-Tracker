@@ -16,7 +16,7 @@ export const createTransaction = async (payload: {
 
 export const fetchTransactions = async()=>{
     const result = await fetchTransactionsRoute();
-    console.log("Fetched transactions in service:", result);
+    // console.log("Fetched transactions in service:", result);
     return result;
 }
 

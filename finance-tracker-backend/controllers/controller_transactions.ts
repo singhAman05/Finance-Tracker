@@ -65,9 +65,10 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
 
     try {
         // Try to get from Redis cache first
+        // console.log("Fetched Transactions from DB: Attempting to get from cache");
         const cached = await getCache(cacheKey);
         if (cached) {
-            // console.log("Serving transactions from Redis cache");
+            console.log("Serving transactions from Redis cache");
             res.status(200).json({ message: `Transactions from Cache`, data: cached });
             return;
         }
@@ -76,7 +77,8 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
         const result = await fetchTransactions(client_id);
 
         if (result.data && result.data.length === 0) {
-            res.status(404).json({ message: `No Transactions made` });
+            // console.log(`No Transactions made by user: ${client_id} : `, result.data);
+            res.status(200).json({ message: `No Transactions made`, data: result.data });
             return;
         }
 
@@ -85,7 +87,7 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
             res.status(405).json({ message: `${result.error}` });
             return;
         }
-
+        // console.log("Fetched Transactions from DB:", result.data);
         // Set cache for future
         await setCache(cacheKey, result.data, 3600); // 1 hour TTL
 

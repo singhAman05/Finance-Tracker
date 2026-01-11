@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Landmark } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
@@ -19,14 +21,17 @@ import {
 } from "lucide-react";
 
 // UI Components
-import { Dialog, DialogTrigger, DialogContent } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Card,
-  CardHeader,
   CardTitle,
   CardDescription,
   CardContent,
-  CardFooter,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,6 +64,7 @@ import { createTransaction } from "@/service/service_transactions";
 
 export default function AddTransaction() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const categories = useSelector(
     (state: RootState) => state.categories.categories
@@ -76,31 +82,53 @@ export default function AddTransaction() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!open) return;
+
+    let isMounted = true;
+
     const loadInitialData = async () => {
       try {
         setLoading(true);
-        const [accountsData, categoriesData] = await Promise.all([
-          accounts.length === 0 ? fetchAccounts() : Promise.resolve(accounts),
-          categories.length === 0
-            ? fetchCategories()
-            : Promise.resolve(categories),
+        setError(null);
+
+        const [accountsRes, categoriesRes] = await Promise.all([
+          fetchAccounts(),
+          fetchCategories(),
         ]);
 
-        if (accounts.length === 0) dispatch(setAccounts(accountsData));
-        if (categories.length === 0) dispatch(setCategories(categoriesData));
-        console.log("Loaded accounts:", accounts);
-        if (accountsData.length > 0 && !accountId)
-          setAccountId(accountsData[0].id);
-        setError(null);
-      } catch {
-        setError("Failed to sync your financial data.");
+        const accountsList = Array.isArray(accountsRes?.data)
+          ? accountsRes.data
+          : [];
+
+        const categoriesList = Array.isArray(categoriesRes?.data)
+          ? categoriesRes.data
+          : [];
+
+        if (!isMounted) return;
+
+        dispatch(setAccounts(accountsList));
+        dispatch(setCategories(categoriesList));
+
+        if (accountsList.length > 0) {
+          setAccountId((prev) => prev || accountsList[0].id);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError("Failed to sync your financial data.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (open) loadInitialData();
-  }, [open, accounts, categories, dispatch, accountId]);
+    loadInitialData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [open, dispatch]);
 
   useEffect(() => {
     if (open) {
@@ -154,6 +182,7 @@ export default function AddTransaction() {
       </DialogTrigger>
 
       <DialogContent className="max-w-2xl p-0 border-none bg-transparent overflow-visible [&>button]:hidden">
+        <DialogTitle>New Transaction</DialogTitle>
         <AnimatePresence>
           {open && (
             <motion.div
@@ -229,8 +258,32 @@ export default function AddTransaction() {
                     <div className="flex flex-col items-center justify-center py-12 gap-4">
                       <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
                       <p className="text-sm text-slate-500">
-                        Fetching accounts...
+                        Fetching financial data...
                       </p>
+                    </div>
+                  ) : accounts.length === 0 ? (
+                    /* --- NEW EMPTY STATE FOR NO ACCOUNTS --- */
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
+                        <Landmark className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-lg font-semibold">
+                        No accounts found
+                      </h3>
+                      <p className="text-muted-foreground text-sm max-w-[280px] mt-2">
+                        You need to add at least one bank account before you can
+                        record a transaction.
+                      </p>
+                      <Button
+                        onClick={() => {
+                          setOpen(false); // Close the current dialog
+                          router.push("/dashboard/accounts"); // Redirect or trigger modal
+                        }}
+                        variant="link"
+                        className="mt-4 text-primary font-semibold"
+                      >
+                        Create an account now
+                      </Button>
                     </div>
                   ) : (
                     <form onSubmit={onSubmit} className="space-y-6">

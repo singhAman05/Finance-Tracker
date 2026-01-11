@@ -163,7 +163,8 @@ export default function TransactionPage() {
         if (accounts.length === 0 || isRefresh)
           dispatch(setAccounts(accRes.data));
         if (transactions.length === 0 || isRefresh)
-          dispatch(setTransactions(txRes.data));
+          console.log("Fetched Transactions:", txRes);
+        dispatch(setTransactions(txRes.data));
         if (categories.length === 0 || isRefresh)
           dispatch(setCategories(catRes.data));
 
@@ -224,11 +225,11 @@ export default function TransactionPage() {
     let expense = 0;
 
     filteredTransactions.forEach((tx) => {
-      // Logic: Positive = Expense, Negative = Income (based on your previous code)
-      if (tx.amount > 0) {
-        expense += tx.amount;
+      // Logic: Positive = Income, Negative = Expense (based on your previous code)
+      if (tx.type === "income") {
+        income += tx.amount;
       } else {
-        income += Math.abs(tx.amount);
+        expense += Math.abs(tx.amount);
       }
     });
 
@@ -460,15 +461,51 @@ export default function TransactionPage() {
 
           <CardContent className="p-0">
             {filteredTransactions.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
-                  <Search className="h-8 w-8 text-muted-foreground" />
+                  {/* Switch icon based on whether the user is searching or if the list is just empty */}
+                  {search ||
+                  accountFilter !== "all" ||
+                  categoryFilter !== "all" ? (
+                    <Search className="h-8 w-8 text-muted-foreground" />
+                  ) : (
+                    <RefreshCw className="h-8 w-8 text-muted-foreground" />
+                  )}
                 </div>
-                <h3 className="text-lg font-medium">No transactions found</h3>
-                <p className="text-muted-foreground text-sm max-w-xs mt-2">
-                  Try adjusting your filters or search query to find what you're
-                  looking for.
+
+                <h3 className="text-lg font-semibold">
+                  {search || accountFilter !== "all" || categoryFilter !== "all"
+                    ? "No results found"
+                    : "No transactions yet"}
+                </h3>
+
+                <p className="text-muted-foreground text-sm max-w-xs mt-2 px-4">
+                  {search || accountFilter !== "all" || categoryFilter !== "all"
+                    ? `We couldn't find any transactions matching your current filters.`
+                    : "Start tracking your expenses and income by adding your first transaction."}
                 </p>
+                {/* Show "Clear Filters" or "Add Transaction" button based on state */}
+                <div className="mt-6">
+                  {search ||
+                  accountFilter !== "all" ||
+                  categoryFilter !== "all" ? (
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setSearch("");
+                        setAccountFilter("all");
+                        setCategoryFilter("all");
+                      }}
+                      className="rounded-full"
+                    >
+                      Clear all filters
+                    </Button>
+                  ) : (
+                    <div className="scale-110">
+                      <AddTransaction />
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <div className="overflow-x-auto">

@@ -5,7 +5,7 @@ import { handleTransactionsFetch, handleTransactionsAdd, handleTransactionDelete
 const router = Router();
 
 router.post('/add-transaction', verifyToken, handleTransactionsAdd);
-router.get('/fetch-transactions',verifyToken,handleTransactionsFetch)
-router.delete('/delete-transaction/:transaction_id',verifyToken,handleTransactionDelete)
+router.get('/fetch-transactions', verifyToken, handleTransactionsFetch);
+router.delete('/delete-transaction/:transaction_id', verifyToken, handleTransactionDelete);
 
 export default router;
