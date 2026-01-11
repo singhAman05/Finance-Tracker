@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
@@ -69,6 +70,7 @@ const itemVariants = {
 
 export default function AccountsPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
 
   const [showAddAccountModal, setShowAddAccountModal] = useState(false);
@@ -117,8 +119,8 @@ export default function AccountsPage() {
     const { id } = deleteAccountData;
 
     try {
-      dispatch(removeAccount(id));
       const res = await deleteAccount(id);
+      dispatch(removeAccount(id));
       if (res.error) throw new Error(res.error.message);
       toast.success("Account deleted successfully");
     } catch (err) {

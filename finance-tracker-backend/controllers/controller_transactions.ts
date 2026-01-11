@@ -1,7 +1,8 @@
 import { Request, Response } from "express";
-import { fetchTransactions, createTransaction } from "../services/service_transactions";
+import { fetchTransactions, createTransaction, deleteTransaction } from "../services/service_transactions";
 import { validateTransactionPayload } from "../utils/validationUtils";
 import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { captureRejectionSymbol } from "events";
 
 export const handleTransactionsAdd = async (req: Request, res: Response) => {
     const user = (req as any).user.payload;
@@ -18,6 +19,7 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         account_id,
         category_id,
         amount,
+        type,
         date,
         description,
         is_recurring,
@@ -29,6 +31,7 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         account_id,
         category_id,
         amount,
+        type,
         date: date || new Date().toISOString().split("T")[0],
         description: description || null,
         is_recurring: is_recurring ?? false,
@@ -62,9 +65,10 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
 
     try {
         // Try to get from Redis cache first
+        // console.log("Fetched Transactions from DB: Attempting to get from cache");
         const cached = await getCache(cacheKey);
         if (cached) {
-            // console.log("Serving transactions from Redis cache");
+            console.log("Serving transactions from Redis cache");
             res.status(200).json({ message: `Transactions from Cache`, data: cached });
             return;
         }
@@ -73,7 +77,8 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
         const result = await fetchTransactions(client_id);
 
         if (result.data && result.data.length === 0) {
-            res.status(404).json({ message: `No Transactions made` });
+            // console.log(`No Transactions made by user: ${client_id} : `, result.data);
+            res.status(200).json({ message: `No Transactions made`, data: result.data });
             return;
         }
 
@@ -82,7 +87,7 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
             res.status(405).json({ message: `${result.error}` });
             return;
         }
-
+        // console.log("Fetched Transactions from DB:", result.data);
         // Set cache for future
         await setCache(cacheKey, result.data, 3600); // 1 hour TTL
 
@@ -92,3 +97,29 @@ export const handleTransactionsFetch = async (req: Request, res: Response) => {
         res.status(500).json({ message: `Internal Server Error` });
     }
 };
+
+export const handleTransactionDelete = async (req: Request, res: Response) => {
+    const { transaction_id } = req.params;
+    const user = (req as any).user.payload;
+    const client_id = user.id;
+    try {
+        const result = await deleteTransaction(transaction_id, client_id);
+
+        if (result.error) {
+            console.log("Transaction deletion error:", result.error);
+            res.status(404).json({ message: "Transaction not found or unauthorized" });
+            return;
+        }
+
+        const cacheKey = `transactions:${client_id}`;
+        await deleteCache(cacheKey);
+
+        res.status(200).json({
+            message: "Transaction deleted successfully",
+            data: { transaction_id },
+        });
+    } catch (err) {
+        console.error("Transaction deletion failed:", err);
+            res.status(500).json({ message: "Internal Server Error" });
+        }
+}

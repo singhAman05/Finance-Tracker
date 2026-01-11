@@ -92,8 +92,6 @@ export const handleAccountDeletion = async (req: Request, res: Response) => {
     const { account_id } = req.params;
     const user = (req as any).user.payload;
     const client_id = user.id;
-
-
     try {
         const result = await deleteAccount(account_id, client_id);
 

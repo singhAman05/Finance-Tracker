@@ -1,19 +1,41 @@
-// addTransaction.tsx
+"use client";
+
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Landmark } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
-import { setAccounts } from "../redux/slices/slice_accounts";
-import { setCategories } from "../redux/slices/slice_categories"; // Import setCategories
+import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
+import { format } from "date-fns";
+import {
+  Plus,
+  Minus,
+  CalendarIcon,
+  X,
+  Wallet,
+  Loader2,
+  ChevronDown,
+  CreditCard,
+  Tag,
+  AlignLeft,
+} from "lucide-react";
+
+// UI Components
 import {
   Dialog,
   DialogTrigger,
   DialogContent,
-  DialogHeader,
   DialogTitle,
-  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Card,
+  CardTitle,
+  CardDescription,
+  CardContent,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectTrigger,
@@ -27,22 +49,22 @@ import {
   PopoverContent,
 } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { CalendarIcon, Plus, Minus } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { format } from "date-fns";
+import { cn } from "@/lib/utils"; // Shadcn utility
+
+// Redux & Services
+import { setAccounts } from "../redux/slices/slice_accounts";
+import { setCategories } from "../redux/slices/slice_categories";
+import { addTransaction } from "../redux/slices/slice_transactions";
 import {
   fetchCategories,
   filterCategoriesByType,
-  Category,
 } from "@/service/service_categories";
-import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
-import { addTransactionService } from "@/service/service_transactions";
-import { addTransaction } from "../redux/slices/slice_transactions";
+import { fetchAccounts } from "@/service/service_accounts";
+import { createTransaction } from "@/service/service_transactions";
 
 export default function AddTransaction() {
   const dispatch = useDispatch();
-
-  // Use Redux state for both accounts and categories
+  const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const categories = useSelector(
     (state: RootState) => state.categories.categories
@@ -57,308 +79,364 @@ export default function AddTransaction() {
   const [accountId, setAccountId] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Load accounts and categories if not already in Redux
   useEffect(() => {
+    if (!open) return;
+
+    let isMounted = true;
+
     const loadInitialData = async () => {
       try {
         setLoading(true);
-
-        // Fetch accounts if not in Redux
-        if (accounts.length === 0) {
-          const accountsData = await fetchAccounts();
-          dispatch(setAccounts(accountsData));
-
-          // Set default account if available
-          if (accountsData.length > 0) {
-            setAccountId(accountsData[0].id);
-          }
-        } else if (accountId === "" && accounts.length > 0) {
-          // Set default account from existing Redux state
-          setAccountId(accounts[0].id);
-        }
-
-        // Fetch categories if not in Redux
-        if (categories.length === 0) {
-          const categoriesData = await fetchCategories();
-          dispatch(setCategories(categoriesData));
-        }
-
         setError(null);
+
+        const [accountsRes, categoriesRes] = await Promise.all([
+          fetchAccounts(),
+          fetchCategories(),
+        ]);
+
+        const accountsList = Array.isArray(accountsRes?.data)
+          ? accountsRes.data
+          : [];
+
+        const categoriesList = Array.isArray(categoriesRes?.data)
+          ? categoriesRes.data
+          : [];
+
+        if (!isMounted) return;
+
+        dispatch(setAccounts(accountsList));
+        dispatch(setCategories(categoriesList));
+
+        if (accountsList.length > 0) {
+          setAccountId((prev) => prev || accountsList[0].id);
+        }
       } catch (err) {
-        console.error("Failed to fetch data:", err);
-        setError("Failed to load required data");
+        if (isMounted) {
+          setError("Failed to sync your financial data.");
+        }
       } finally {
-        setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
       }
     };
 
-    if (open) {
-      loadInitialData();
-    }
-  }, [open, accounts, categories, dispatch, accountId]);
+    loadInitialData();
 
-  // Reset form when closing dialog
+    return () => {
+      isMounted = false;
+    };
+  }, [open, dispatch]);
+
   useEffect(() => {
-    if (!open) {
+    if (open) {
       setDate(new Date());
-      setType("expense");
-      setCategory("");
       setAmount("");
+      setCategory("");
       setDescription("");
-      if (accounts.length > 0) {
-        setAccountId(accounts[0].id);
-      }
     }
-  }, [open, accounts]);
+  }, [open]);
 
   const filteredCategories = filterCategoriesByType(categories, type);
 
-  const onSubmit = async () => {
-    if (!accountId || !category || !amount) {
-      alert("Please fill all required fields.");
-      return;
+  const onSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!accountId || !category || !amount) return;
+
+    try {
+      setSubmitting(true);
+      const numericAmount = Math.abs(parseFloat(amount));
+      const payload = {
+        account_id: accountId,
+        category_id: category,
+        amount: numericAmount,
+        type,
+        date:
+          date?.toISOString().split("T")[0] ??
+          new Date().toISOString().split("T")[0],
+        description: description.trim() || undefined,
+        is_recurring: false,
+      };
+
+      const result = await createTransaction(payload);
+      if (!result?.error) {
+        dispatch(addTransaction(result.data));
+        setOpen(false);
+      }
+    } catch (err) {
+      console.error("Submission error", err);
+    } finally {
+      setSubmitting(false);
     }
-
-    const payload = {
-      account_id: accountId,
-      category_id: category,
-      amount: parseFloat(amount),
-      date:
-        date?.toISOString().split("T")[0] ||
-        new Date().toISOString().split("T")[0],
-      description: description.trim() || undefined,
-      is_recurring: false,
-      recurrence_rule: undefined,
-    };
-
-    const result = await addTransactionService(payload);
-
-    if (result.error) {
-      console.error("Transaction Error:", result.error);
-      alert("Failed to add transaction");
-    } else {
-      console.log("Transaction added successfully:", result.data);
-      // Add to Redux state
-      dispatch(addTransaction(result.data));
-    }
-
-    // Close dialog
-    setOpen(false);
   };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button className="bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-all duration-300">
-          <Plus className="mr-2 h-4 w-4" /> Add Transaction
+        <Button className="group bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95">
+          <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
+          Add Transaction
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-lg w-full max-h-[90vh] overflow-y-auto p-0 rounded-2xl border border-gray-200 shadow-xl">
-        <div className="bg-white rounded-2xl">
-          <DialogHeader className="px-6 pt-6 pb-4 border-b border-gray-100">
-            <DialogTitle className="text-xl font-semibold text-gray-900">
-              Add New Transaction
-            </DialogTitle>
-            <DialogDescription className="text-gray-500 text-sm">
-              Record a transaction
-            </DialogDescription>
-          </DialogHeader>
 
-          {loading ? (
-            <div className="flex justify-center items-center h-64">
-              <p>Loading data...</p>
-            </div>
-          ) : error ? (
-            <div className="flex flex-col items-center p-6 text-red-500">
-              <p>{error}</p>
-              <Button className="mt-4" onClick={() => setOpen(false)}>
-                Close
-              </Button>
-            </div>
-          ) : (
-            <>
-              <div className="px-6 py-4">
-                {/* Expense/Income Toggle */}
-                <div className="bg-gray-100 rounded-lg p-1 flex mb-6">
-                  <Button
-                    variant={type === "expense" ? "default" : "ghost"}
-                    className={`flex-1 py-2 rounded-md transition-all duration-300 ${
-                      type === "expense"
-                        ? "bg-gray-900 text-white shadow-sm hover:bg-gray-800"
-                        : "text-gray-500 bg-transparent hover:bg-gray-200/50"
-                    }`}
-                    onClick={() => setType("expense")}
-                  >
-                    <Minus className="mr-2 h-4 w-4" /> Expense
-                  </Button>
-                  <Button
-                    variant={type === "income" ? "default" : "ghost"}
-                    className={`flex-1 py-2 rounded-md transition-all duration-300 ${
-                      type === "income"
-                        ? "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
-                        : "text-gray-500 bg-transparent hover:bg-gray-200/50"
-                    }`}
-                    onClick={() => setType("income")}
-                  >
-                    <Plus className="mr-2 h-4 w-4" /> Income
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  {/* Account Selection */}
-                  <div className="space-y-1 md:col-span-2">
-                    <Label className="text-gray-700 font-medium">Account</Label>
-                    <Select value={accountId} onValueChange={setAccountId}>
-                      <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300 text-gray-700">
-                        <SelectValue placeholder="Select account" />
-                      </SelectTrigger>
-                      <SelectContent className="border border-gray-200 shadow-md">
-                        {accounts.map((account) => (
-                          <SelectItem
-                            key={account.id}
-                            value={account.id}
-                            className="hover:bg-gray-50 focus:bg-gray-50"
-                          >
-                            <div className="flex items-center">
-                              <img
-                                src={getBankLogoUrl(account.bank)}
-                                alt={account.bank}
-                                className="w-6 h-6 mr-2 rounded-sm"
-                              />
-                              <div>
-                                <span className="font-medium">
-                                  {account.name}
-                                </span>
-                                <span className="text-gray-500 ml-2">
-                                  •••• {account.lastDigits}
-                                </span>
-                              </div>
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Date Picker */}
-                  <div className="space-y-1">
-                    <Label className="text-gray-700 font-medium">Date</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          className="w-full justify-between bg-white border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700"
-                        >
-                          <div className="flex items-center">
-                            <CalendarIcon className="mr-2 h-4 w-4 text-gray-400" />
-                            {date ? format(date, "PPP") : "Pick a date"}
-                          </div>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            className="h-4 w-4 text-gray-400"
-                            viewBox="0 0 20 20"
-                            fill="currentColor"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="p-0 w-auto max-w-xs sm:max-w-sm overflow-auto border border-gray-200 shadow-md">
-                        <Calendar
-                          mode="single"
-                          selected={date}
-                          onSelect={setDate}
-                          initialFocus
-                        />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Category Selector */}
-                  <div className="space-y-1">
-                    <Label className="text-gray-700 font-medium">
-                      Category
-                    </Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="bg-white border-gray-200 hover:border-gray-300 text-gray-700">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent className="border border-gray-200 shadow-md">
-                        {filteredCategories.map((cat) => (
-                          <SelectItem
-                            key={cat.id}
-                            value={cat.id}
-                            className="hover:bg-gray-50 focus:bg-gray-50"
-                          >
-                            {cat.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Amount Input */}
-                  <div className="space-y-1 md:col-span-2">
-                    <Label className="text-gray-700 font-medium">Amount</Label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">
-                          {type === "expense" ? "-" : "+"}
-                        </span>
+      <DialogContent className="max-w-2xl p-0 border-none bg-transparent overflow-visible [&>button]:hidden">
+        <DialogTitle>New Transaction</DialogTitle>
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative"
+            >
+              <Card className="border shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-hidden">
+                {/* Header Section */}
+                <div className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-6 sm:p-8">
+                  <div className="flex justify-between items-start">
+                    <div className="flex gap-4">
+                      <div className="h-12 w-12 bg-slate-900 dark:bg-slate-100 rounded-2xl flex items-center justify-center shadow-inner">
+                        <Wallet className="h-6 w-6 text-white dark:text-slate-900" />
                       </div>
-                      <Input
-                        type="number"
-                        step="0.01"
-                        placeholder="0.00"
-                        className="pl-8 pr-12 py-2.5 border-gray-200 focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
-                      />
-                      <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
-                        <span className="text-gray-500">$</span>
+                      <div>
+                        <CardTitle className="text-2xl font-bold tracking-tight">
+                          New Transaction
+                        </CardTitle>
+                        <CardDescription className="text-slate-500">
+                          Record your financial activity accurately.
+                        </CardDescription>
                       </div>
                     </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setOpen(false)}
+                      className="rounded-full hover:bg-slate-200/50"
+                    >
+                      <X className="h-5 w-5" />
+                    </Button>
                   </div>
 
-                  {/* Description */}
-                  <div className="space-y-1 md:col-span-2">
-                    <Label className="text-gray-700 font-medium">
-                      Description
-                    </Label>
-                    <Input
-                      placeholder="Add a note (optional)"
-                      className="border-gray-200 focus:ring-1 focus:ring-gray-900 focus:border-gray-900"
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                  {/* Enhanced Toggle */}
+                  <div className="mt-8 flex p-1 bg-slate-200/50 dark:bg-slate-800 rounded-xl relative">
+                    <motion.div
+                      className={cn(
+                        "absolute inset-y-1 rounded-lg shadow-sm transition-all duration-300",
+                        type === "expense"
+                          ? "left-1 right-1/2 bg-white dark:bg-slate-700"
+                          : "left-1/2 right-1 bg-emerald-500"
+                      )}
                     />
+                    <button
+                      type="button"
+                      onClick={() => setType("expense")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                        type === "expense"
+                          ? "text-slate-900 dark:text-white"
+                          : "text-slate-500"
+                      )}
+                    >
+                      <Minus className="mr-2 h-4 w-4" /> Expense
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setType("income")}
+                      className={cn(
+                        "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                        type === "income" ? "text-white" : "text-slate-500"
+                      )}
+                    >
+                      <Plus className="mr-2 h-4 w-4" /> Income
+                    </button>
                   </div>
                 </div>
-              </div>
 
-              {/* Footer Buttons */}
-              <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 rounded-b-2xl flex justify-end gap-3">
-                <Button
-                  variant="outline"
-                  className="text-gray-700 border-gray-300 hover:bg-gray-100 hover:text-gray-900"
-                  onClick={() => setOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button
-                  className="bg-gray-900 hover:bg-gray-800 text-white shadow-sm transition-all duration-300"
-                  onClick={onSubmit}
-                >
-                  Add Transaction
-                </Button>
-              </div>
-            </>
+                <CardContent className="p-6 sm:p-8">
+                  {loading ? (
+                    <div className="flex flex-col items-center justify-center py-12 gap-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                      <p className="text-sm text-slate-500">
+                        Fetching financial data...
+                      </p>
+                    </div>
+                  ) : accounts.length === 0 ? (
+                    /* --- NEW EMPTY STATE FOR NO ACCOUNTS --- */
+                    <div className="flex flex-col items-center justify-center py-12 text-center">
+                      <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
+                        <Landmark className="h-8 w-8 text-muted-foreground" />
+                      </div>
+                      <h3 className="text-lg font-semibold">
+                        No accounts found
+                      </h3>
+                      <p className="text-muted-foreground text-sm max-w-[280px] mt-2">
+                        You need to add at least one bank account before you can
+                        record a transaction.
+                      </p>
+                      <Button
+                        onClick={() => {
+                          setOpen(false); // Close the current dialog
+                          router.push("/dashboard/accounts"); // Redirect or trigger modal
+                        }}
+                        variant="link"
+                        className="mt-4 text-primary font-semibold"
+                      >
+                        Create an account now
+                      </Button>
+                    </div>
+                  ) : (
+                    <form onSubmit={onSubmit} className="space-y-6">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                        {/* Account Selection */}
+                        <div className="md:col-span-2 space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <CreditCard className="h-3 w-3" /> Source Account
+                          </Label>
+                          <Select
+                            value={accountId}
+                            onValueChange={setAccountId}
+                          >
+                            <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200">
+                              <SelectValue placeholder="Which account?" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {accounts.map((a) => (
+                                <SelectItem
+                                  key={a.id}
+                                  value={a.id}
+                                  className="py-3"
+                                >
+                                  <div className="flex justify-between w-full gap-2">
+                                    <span className="font-medium">
+                                      {a.name}
+                                    </span>
+                                    <span className="text-slate-400">
+                                      •••• {a.lastDigits}
+                                    </span>
+                                  </div>
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Date Picker */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <CalendarIcon className="h-3 w-3" /> Date
+                          </Label>
+                          <Popover modal>
+                            <PopoverTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                className="h-12 w-full justify-start bg-slate-50/50 border-slate-200 font-normal"
+                              >
+                                {date ? format(date, "PPP") : "Select date"}
+                                <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                              </Button>
+                            </PopoverTrigger>
+
+                            <PopoverContent
+                              align="start"
+                              className="w-auto p-0 pointer-events-auto"
+                            >
+                              <Calendar
+                                mode="single"
+                                selected={date}
+                                onSelect={(d) => {
+                                  if (d) setDate(d);
+                                }}
+                              />
+                            </PopoverContent>
+                          </Popover>
+                        </div>
+
+                        {/* Category */}
+                        <div className="space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <Tag className="h-3 w-3" /> Category
+                          </Label>
+                          <Select value={category} onValueChange={setCategory}>
+                            <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200">
+                              <SelectValue placeholder="Choose category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {filteredCategories.map((c) => (
+                                <SelectItem key={c.id} value={c.id}>
+                                  {c.name}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Amount */}
+                        <div className="md:col-span-2 space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                            Amount
+                          </Label>
+
+                          <div className="relative">
+                            {/* Currency Prefix */}
+                            <div className="absolute left-0 inset-y-0 flex items-center px-4 pointer-events-none text-slate-400 font-semibold">
+                              {
+                                accounts.find((a) => a.id === accountId)
+                                  ?.currency
+                              }
+                            </div>
+
+                            <Input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              placeholder="0.00"
+                              value={amount}
+                              onChange={(e) => setAmount(e.target.value)}
+                              className="h-14 pl-20 text-xl font-semibold bg-slate-50/50 border-slate-200 focus:ring-2 focus:ring-slate-900 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="md:col-span-2 space-y-2">
+                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <AlignLeft className="h-3 w-3" /> Description
+                            (Optional)
+                          </Label>
+                          <Input
+                            placeholder="Lunch at the cafe..."
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="h-12 bg-slate-50/50 border-slate-200"
+                          />
+                        </div>
+                      </div>
+
+                      <Button
+                        type="submit"
+                        disabled={submitting || !amount || !category}
+                        className={cn(
+                          "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98]",
+                          type === "expense"
+                            ? "bg-slate-900 hover:bg-slate-800"
+                            : "bg-emerald-600 hover:bg-emerald-700"
+                        )}
+                      >
+                        {submitting ? (
+                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        ) : (
+                          `Confirm ${type === "expense" ? "Expense" : "Income"}`
+                        )}
+                      </Button>
+                    </form>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
-        </div>
+        </AnimatePresence>
       </DialogContent>
     </Dialog>
   );

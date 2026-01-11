@@ -5,6 +5,7 @@ export type NewTransactionPayload = {
   account_id: string;
   category_id: string;
   amount: number;
+  type : string;
   date?: string;
   description?: string;
   is_recurring?: boolean;
@@ -20,6 +21,7 @@ export const createTransaction = async (payload: NewTransactionPayload) => {
             account_id: payload.account_id,
             category_id: payload.category_id,
             amount: payload.amount,
+            type : payload.type,
             date: payload.date || new Date().toISOString().split("T")[0],
             description: payload.description || null,
             is_recurring: payload.is_recurring ?? false,
@@ -40,3 +42,14 @@ export const fetchTransactions = async(client_id : string)=>{
 
     return {data, error};
 }
+
+export const deleteTransaction = async (transaction_id: string, client_id: string) => {
+    const { data, error } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("id", transaction_id)
+        .eq("client_id", client_id)
+        .select()
+        .single();
+    return { data, error };
+};
