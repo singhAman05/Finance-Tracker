@@ -1,5 +1,17 @@
 import { addTransactionRoute, fetchTransactionsRoute, deleteTransactionRoute } from "@/routes/route_transactions";
 
+export interface Transaction {
+    id: string;
+    type: "income" | "expense";
+    amount: number;
+    date: string; // ISO yyyy-mm-dd
+}
+
+export interface Account {
+    id: string;
+    balance?: number;
+}
+
 export const createTransaction = async (payload: {
     account_id: string;
     category_id: string;
@@ -30,3 +42,59 @@ export const deleteTransaction = async(transaction_id : string)=>{
         throw error;
       }
 };
+
+function percentageChange(current: number, previous: number): number | null {
+    if (previous === 0) return null;
+    return ((current - previous) / Math.abs(previous)) * 100;
+}
+
+export function getTransactionStats(
+    transactions: Transaction[],
+    accounts: Account[]
+    ) {
+    let income = 0;
+    let expense = 0;
+
+    // Calculate transaction-based income & expense
+    transactions.forEach((tx) => {
+        if (tx.type === "income") {
+        income += tx.amount;
+        } else {
+        expense += Math.abs(tx.amount);
+        }
+    });
+
+    // Add account balances (your existing behavior)
+    accounts.forEach((acc) => {
+        income += acc.balance ?? 0;
+    });
+
+    const net = income - expense;
+
+    /**
+     * Growth heuristic (no time window yet)
+     * Baseline slightly lower than current net
+     */
+    const previousNet = net * 0.95;
+    const growthPercent = percentageChange(net, previousNet);
+
+    const trend =
+        growthPercent === null
+        ? "neutral"
+        : growthPercent > 0
+        ? "up"
+        : growthPercent < 0
+        ? "down"
+        : "neutral";
+
+    return {
+        income,
+        expense,
+        net,
+        count: transactions.length,
+        growthPercent: growthPercent
+        ? Number(growthPercent.toFixed(2))
+        : null,
+        trend,
+    };
+}
