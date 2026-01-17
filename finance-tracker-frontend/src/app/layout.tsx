@@ -1,23 +1,14 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
+import { ThemeProvider } from "next-themes";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "./ReduxProvider";
-
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
 
 const poppins = Poppins({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: "--font-poppins",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
 });
 
 export const metadata: Metadata = {
@@ -27,23 +18,31 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
   return (
-    <html lang="en">
-      <ReduxProvider>
-        <body className={`${poppins.variable}`}>
-          {children}
-          <Toaster
-            position="top-right"
-            richColors={false}
-            closeButton={false}
-            expand={false}
-            duration={3000}
-          />
-        </body>
-      </ReduxProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={poppins.variable}>
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="light"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          <ReduxProvider>
+            {children}
+
+            <Toaster
+              position="top-right"
+              richColors={false}
+              closeButton={false}
+              expand={false}
+              duration={3000}
+            />
+          </ReduxProvider>
+        </ThemeProvider>
+      </body>
     </html>
   );
 }
