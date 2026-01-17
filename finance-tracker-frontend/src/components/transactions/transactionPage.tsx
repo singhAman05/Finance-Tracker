@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
+import { getTransactionStats } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner"; // Assuming sonner based on previous file
@@ -63,7 +64,10 @@ import {
   Trash2,
   ChartPie,
   ArrowUpRight,
+  ArrowRightLeft,
   ArrowDownLeft,
+  TrendingUp,
+  TrendingDown,
   Filter,
   Wallet,
   Calendar,
@@ -220,26 +224,10 @@ export default function TransactionPage() {
     categoryFilter,
   ]);
 
-  const stats = useMemo(() => {
-    let income = 0;
-    let expense = 0;
-
-    filteredTransactions.forEach((tx) => {
-      // Logic: Positive = Income, Negative = Expense (based on your previous code)
-      if (tx.type === "income") {
-        income += tx.amount;
-      } else {
-        expense += Math.abs(tx.amount);
-      }
-    });
-
-    return {
-      income,
-      expense,
-      net: income - expense,
-      count: filteredTransactions.length,
-    };
-  }, [filteredTransactions]);
+  const stats = useMemo(
+    () => getTransactionStats(filteredTransactions, accounts),
+    [filteredTransactions, accounts]
+  );
 
   // --- Handlers ---
   const confirmDelete = async () => {
@@ -361,6 +349,7 @@ export default function TransactionPage() {
             icon: ArrowDownLeft,
             color: "text-emerald-500",
             bg: "bg-emerald-500/10",
+            showTrend: false,
           },
           {
             label: "Total Expenses",
@@ -368,6 +357,7 @@ export default function TransactionPage() {
             icon: ArrowUpRight,
             color: "text-rose-500",
             bg: "bg-rose-500/10",
+            showTrend: false,
           },
           {
             label: "Net Flow",
@@ -375,6 +365,7 @@ export default function TransactionPage() {
             icon: Wallet,
             color: stats.net >= 0 ? "text-blue-500" : "text-amber-500",
             bg: stats.net >= 0 ? "bg-blue-500/10" : "bg-amber-500/10",
+            showTrend: true,
           },
         ].map((stat, idx) => (
           <motion.div key={idx} variants={itemVariants} whileHover={{ y: -4 }}>
@@ -388,9 +379,30 @@ export default function TransactionPage() {
                     <stat.icon className={cn("h-4 w-4", stat.color)} />
                   </div>
                 </div>
+
                 <div className="text-2xl font-bold tracking-tight">
                   {formatCurrency(stat.value)}
                 </div>
+
+                {/* Growth Indicator (only for Net Flow) */}
+                {stat.showTrend && stats.growthPercent !== null && (
+                  <div
+                    className={cn(
+                      "mt-1 text-xs flex items-center gap-1",
+                      stats.trend === "up"
+                        ? "text-emerald-500"
+                        : stats.trend === "down"
+                        ? "text-rose-500"
+                        : "text-muted-foreground"
+                    )}
+                  >
+                    {stats.trend === "up" && <TrendingUp className="h-3 w-3" />}
+                    {stats.trend === "down" && (
+                      <TrendingDown className="h-3 w-3" />
+                    )}
+                    {Math.abs(stats.growthPercent)}%
+                  </div>
+                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -469,7 +481,7 @@ export default function TransactionPage() {
                   categoryFilter !== "all" ? (
                     <Search className="h-8 w-8 text-muted-foreground" />
                   ) : (
-                    <RefreshCw className="h-8 w-8 text-muted-foreground" />
+                    <ArrowRightLeft className="h-8 w-8 text-muted-foreground" />
                   )}
                 </div>
 
@@ -581,7 +593,7 @@ export default function TransactionPage() {
                                   />
                                 </div>
                                 <span className="text-sm text-muted-foreground truncate max-w-[120px]">
-                                  {account?.name}
+                                  {account?.name || "account not found"}
                                 </span>
                               </div>
                             </TableCell>
