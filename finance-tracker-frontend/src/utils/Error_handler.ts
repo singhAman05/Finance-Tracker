@@ -1,36 +1,63 @@
+import { notify } from "@/lib/notifications";
+
 export interface ApiResult<T> {
     result: T | null;
     error: {
         message: string;
         status?: number;
-        details?: any; // For validation errors
+        details?: any;
         type: "AUTH" | "NETWORK" | "SERVER" | "VALIDATION" | "UNKNOWN";
     } | null;
+}
+
+function notifyApiError(error: ApiResult<any>["error"]) {
+    if (!error) return;
+
+    switch (error.type) {
+        case "AUTH":
+            notify.error("Your session has expired. Please login again.");
+        break;
+        case "VALIDATION":
+            notify.warning(error.message || "Validation error");
+        break;
+        case "NETWORK":
+            notify.error("Network connection lost");
+        break;
+        case "SERVER":
+            notify.error("Server is currently unavailable");
+        break;
+        default:
+            notify.error(error.message || "Unexpected error occurred");
+    }
 }
 
 function redirectToLogin() {
     if (typeof window !== "undefined") {
         localStorage.removeItem("jwt");
-        window.location.replace("/login"); // hard redirect (prevents back nav)
+        window.location.replace("/login");
     }
 }
 
-
-const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
+const baseUrl =
+    process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
-    ): Promise<ApiResult<T>> {
-    const token = typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
+): Promise<ApiResult<T>> {
+    const token =
+        typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
 
     // 1. Pre-fetch Auth Check
     if (!token) {
-        redirectToLogin();
-        return {
-            result: null,
-            error: { message: "Session missing", type: "AUTH", status: 401 }
+        const error = {
+        message: "Session missing",
+        status: 401,
+        type: "AUTH" as const,
         };
+        notifyApiError(error);
+        redirectToLogin();
+        return { result: null, error };
     }
 
     try {
@@ -46,47 +73,75 @@ export async function apiClient<T = any>(
         },
         });
 
-        // 2. Handle HTTP Errors
+        // 2. HTTP Errors
         if (!response.ok) {
-        let errorData;
+        let errorData: any = {};
         try {
             errorData = await response.json();
         } catch {
-            errorData = { message: "Unable to parse server response" };
+            errorData.message = "Unable to parse server response";
         }
 
         const status = response.status;
+        let error: ApiResult<any>["error"];
 
-        // Categorize common scenarios
         if (status === 401 || status === 403) {
+            error = {
+            message: "Unauthorized",
+            status,
+            type: "AUTH",
+            };
+            notifyApiError(error);
             redirectToLogin();
+            return { result: null, error };
         }
-        if (status === 422 || status === 400) {
-            return { result: null, error: { message: errorData.message || "Validation failed", status, type: "VALIDATION", details: errorData.errors } };
+
+        if (status === 400 || status === 422) {
+            error = {
+            message: errorData.message || "Validation failed",
+            status,
+            type: "VALIDATION",
+            details: errorData.errors,
+            };
+            notifyApiError(error);
+            return { result: null, error };
         }
+
         if (status >= 500) {
-            return { result: null, error: { message: "Server is currently unavailable", status, type: "SERVER" } };
+            error = {
+            message: "Server is currently unavailable",
+            status,
+            type: "SERVER",
+            };
+            notifyApiError(error);
+            return { result: null, error };
         }
 
-        return { result: null, error: { message: errorData.message || "Request failed", status, type: "UNKNOWN" } };
-        }
-
-        // 3. Handle Success
-        const result = await response.json();
-        console.log("Error handler - API Response:", result);
-        return {
-        result: (result) as T,
-        error: null
+        error = {
+            message: errorData.message || "Request failed",
+            status,
+            type: "UNKNOWN",
         };
+        notifyApiError(error);
+        return { result: null, error };
+        }
+
+        // 3. Success
+        const result = await response.json();
+        return { result: result as T, error: null };
 
     } catch (err: unknown) {
-        const isNetwork = err instanceof TypeError && err.message === "Failed to fetch";
-        return {
-        result: null,
-        error: {
-            message: isNetwork ? "Network connection lost" : "An unexpected error occurred",
-            type: isNetwork ? "NETWORK" : "UNKNOWN",
-        },
-        };
-    }
+        const isNetwork =
+        err instanceof TypeError && err.message === "Failed to fetch";
+
+        const error = {
+        message: isNetwork
+            ? "Network connection lost"
+            : "An unexpected error occurred",
+        type: isNetwork ? "NETWORK" : "UNKNOWN",
+        } as const;
+
+        notifyApiError(error);
+        return { result: null, error };
+  }
 }

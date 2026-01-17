@@ -7,7 +7,6 @@ import { format } from "date-fns";
 import { getTransactionStats } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner"; // Assuming sonner based on previous file
 
 // Redux Actions
 import { setAccounts } from "../redux/slices/slice_accounts";
@@ -171,11 +170,8 @@ export default function TransactionPage() {
         dispatch(setTransactions(txRes.data));
         if (categories.length === 0 || isRefresh)
           dispatch(setCategories(catRes.data));
-
-        if (isRefresh) toast.success("Data synced successfully");
       } catch (err) {
         console.error("Failed to load data:", err);
-        toast.error("Failed to sync data.");
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -236,10 +232,8 @@ export default function TransactionPage() {
       dispatch(removeTransaction(deleteData.id)); // Optimistic update
       const res = await deleteTransaction(deleteData.id);
       if (res.error) throw new Error(res.error);
-      toast.success("Transaction deleted");
     } catch (err) {
       console.error(err);
-      toast.error("Failed to delete. restoring...");
       loadData(true); // Revert
     } finally {
       setDeleteData(null);

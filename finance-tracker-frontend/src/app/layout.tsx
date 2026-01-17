@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Toaster } from "sonner";
 import { Geist, Geist_Mono, Poppins } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "./ReduxProvider";
@@ -32,7 +33,16 @@ export default function RootLayout({
   return (
     <html lang="en">
       <ReduxProvider>
-        <body className={`${poppins.variable}`}>{children}</body>
+        <body className={`${poppins.variable}`}>
+          {children}
+          <Toaster
+            position="top-right"
+            richColors={false}
+            closeButton={false}
+            expand={false}
+            duration={3000}
+          />
+        </body>
       </ReduxProvider>
     </html>
   );

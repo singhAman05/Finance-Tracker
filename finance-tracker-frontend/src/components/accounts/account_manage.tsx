@@ -41,7 +41,6 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { toast } from "sonner"; // Assuming you use sonner, or replace with your toast lib
 
 // Icons
 import {
@@ -92,11 +91,8 @@ export default function AccountsPage() {
 
         const data = await fetchAccounts();
         dispatch(setAccounts(data.data));
-
-        if (isRefresh) toast.success("Accounts synced successfully");
       } catch (err) {
         console.error("Error fetching accounts:", err);
-        toast.error("Failed to load accounts. Check your connection.");
       } finally {
         setLoading(false);
         setIsRefreshing(false);
@@ -122,10 +118,8 @@ export default function AccountsPage() {
       const res = await deleteAccount(id);
       dispatch(removeAccount(id));
       if (res.error) throw new Error(res.error.message);
-      toast.success("Account deleted successfully");
     } catch (err) {
       console.error("Delete error:", err);
-      toast.error("Could not delete account. restoring...");
       loadAccounts(true); // Revert on failure
     } finally {
       setDeleteAccountData(null);
@@ -402,10 +396,10 @@ export default function AccountsPage() {
                                   src={getBankLogoUrl(account.bank)}
                                   alt={account.bank}
                                   className="h-full w-full object-contain"
-                                  onError={(e) =>
-                                    (e.currentTarget.src =
-                                      "/placeholder-bank.png")
-                                  } // Fallback
+                                  // onError={(e) =>
+                                  //   (e.currentTarget.src =
+                                  //     "/placeholder-bank.png")
+                                  // } // Fallback
                                 />
                               </div>
                               <div className="flex flex-col min-w-0">
