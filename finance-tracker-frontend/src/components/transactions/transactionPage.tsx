@@ -280,22 +280,27 @@ export default function TransactionPage() {
         open={!!deleteData}
         onOpenChange={(open: boolean) => !open && setDeleteData(null)}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800">
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Transaction?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently remove{" "}
-              <span className="font-semibold text-foreground">
-                {deleteData?.description}
-              </span>{" "}
-              from your history. This action cannot be undone.
-            </AlertDialogDescription>
+            <AlertDialogTitle className="text-neutral-900 dark:text-neutral-50 tracking-tight">
+                Are you absolutely sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-neutral-500 dark:text-neutral-400">
+                This will permanently delete the transaction
+                <span className="font-bold text-neutral-900 dark:text-neutral-50">
+                  {" "}
+                  {deleteData?.description}{" "}
+                </span>
+                and remove it from your history. This action cannot be undone.
+              </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
+                Cancel
+              </AlertDialogCancel>  
             <AlertDialogAction
               onClick={confirmDelete}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="rounded-full bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm transition-colors"
             >
               Delete
             </AlertDialogAction>
@@ -341,62 +346,33 @@ export default function TransactionPage() {
             label: "Total Income",
             value: stats.income,
             icon: ArrowDownLeft,
-            color: "text-emerald-500",
-            bg: "bg-emerald-500/10",
-            showTrend: false,
           },
           {
             label: "Total Expenses",
             value: stats.expense,
             icon: ArrowUpRight,
-            color: "text-rose-500",
-            bg: "bg-rose-500/10",
-            showTrend: false,
           },
           {
             label: "Net Flow",
             value: stats.net,
             icon: Wallet,
-            color: stats.net >= 0 ? "text-blue-500" : "text-amber-500",
-            bg: stats.net >= 0 ? "bg-blue-500/10" : "bg-amber-500/10",
-            showTrend: true,
           },
         ].map((stat, idx) => (
           <motion.div key={idx} variants={itemVariants} whileHover={{ y: -4 }}>
-            <Card className="border-none shadow-sm bg-card hover:bg-accent/5 transition-colors">
+            <Card className="border border-neutral-200 dark:border-neutral-800 shadow-none bg-white dark:bg-black transition-colors hover:bg-neutral-50 dark:hover:bg-neutral-900">
               <CardContent className="p-6">
                 <div className="flex items-center justify-between pb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
+                  <p className="text-sm font-medium text-neutral-500 dark:text-neutral-400">
                     {stat.label}
                   </p>
-                  <div className={cn("p-2 rounded-full", stat.bg)}>
-                    <stat.icon className={cn("h-4 w-4", stat.color)} />
+                  <div className="p-2 rounded-full bg-neutral-100 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800">
+                    <stat.icon className="h-4 w-4 text-neutral-900 dark:text-white" />
                   </div>
                 </div>
 
-                <div className="text-2xl font-bold tracking-tight">
+                <div className="text-2xl font-bold tracking-tight text-neutral-900 dark:text-white">
                   {formatCurrency(stat.value)}
                 </div>
-
-                {/* Growth Indicator (only for Net Flow) */}
-                {stat.showTrend && stats.growthPercent !== null && (
-                  <div
-                    className={cn(
-                      "mt-1 text-xs flex items-center gap-1",
-                      stats.trend === "up"
-                        ? "text-emerald-500"
-                        : stats.trend === "down"
-                        ? "text-rose-500"
-                        : "text-muted-foreground"
-                    )}
-                  >
-                    {stats.trend === "up" && <TrendingUp className="h-3 w-3" />}
-                    {stats.trend === "down" && (
-                      <TrendingDown className="h-3 w-3" />
-                    )}
-                    {Math.abs(stats.growthPercent)}%
-                  </div>
-                )}
               </CardContent>
             </Card>
           </motion.div>
@@ -405,8 +381,8 @@ export default function TransactionPage() {
 
       {/* Main Content */}
       <motion.div variants={itemVariants}>
-        <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
-          <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b bg-slate-50/40 dark:bg-slate-900/40 px-6 py-4">
+        <Card className="overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-none bg-white dark:bg-black">
+          <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black px-6 py-4">
             <div className="flex items-center gap-2">
               <CardTitle className="text-lg font-semibold">History</CardTitle>
               <Badge variant="outline" className="ml-2 font-normal">
@@ -517,7 +493,7 @@ export default function TransactionPage() {
               <div className="overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50/50 dark:bg-slate-900/50 hover:bg-transparent">
+                    <TableRow className="bg-neutral-50/50 dark:bg-neutral-900/50 hover:bg-transparent border-b border-neutral-200 dark:border-neutral-800">
                       <TableHead className="w-[150px] pl-6">Date</TableHead>
                       <TableHead className="w-[30%]">Description</TableHead>
                       <TableHead>Category</TableHead>
@@ -548,7 +524,7 @@ export default function TransactionPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, x: -20 }}
-                            className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors border-b last:border-0"
+                            className="group hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors border-b border-neutral-200 dark:border-neutral-800 last:border-0"
                           >
                             <TableCell className="pl-6 py-4">
                               <div className="flex items-center text-sm text-muted-foreground">
@@ -596,9 +572,7 @@ export default function TransactionPage() {
                               <span
                                 className={cn(
                                   "font-mono font-medium tracking-tight",
-                                  isExpense
-                                    ? "text-rose-600 dark:text-rose-400"
-                                    : "text-emerald-600 dark:text-emerald-400"
+                                  "text-neutral-900 dark:text-neutral-100"
                                 )}
                               >
                                 {isExpense ? "-" : "+"}
@@ -609,16 +583,16 @@ export default function TransactionPage() {
                             <TableCell className="pr-6">
                               <Button
                                 variant="ghost"
-                                size="icon"
-                                className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-neutral-800 hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                                 onClick={() =>
                                   setDeleteData({
                                     id: tx.id,
-                                    description: tx.description,
+                                    description: tx?.description || category?.name,
                                   })
                                 }
                               >
-                                <Trash2 className="h-3.5 w-3.5" />
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </TableCell>
                           </motion.tr>

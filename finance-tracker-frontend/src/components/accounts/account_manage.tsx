@@ -237,7 +237,7 @@ export default function AccountsPage() {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className="rounded-full bg-black dark:bg-white text-white dark:text-black hover:opacity-90 border-0"
+                className="rounded-full bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm transition-colors"
               >
                 Delete Account
               </AlertDialogAction>
