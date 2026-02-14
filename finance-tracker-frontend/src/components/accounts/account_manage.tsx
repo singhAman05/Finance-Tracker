@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback, useMemo } from "react";
+import { openModal } from "@/components/redux/slices/slice_modal";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
@@ -109,6 +110,24 @@ export default function AccountsPage() {
       setLoading(false);
     }
   }, [loadAccounts, accounts.length]);
+
+  const handleDeleteClick = (accountId: string) => {
+    dispatch(
+      openModal({
+        type: "CONFIRM_DELETE",
+        payload: {
+          title: "Delete Account",
+          description:
+            "This action will permanently remove this account and all associated transactions.",
+          confirmText: "Delete",
+          cancelText: "Cancel",
+          onConfirm: () => {
+            dispatch(deleteAccount(accountId));
+          },
+        },
+      })
+    );
+  };
 
   const confirmDelete = async () => {
     if (!deleteAccountData) return;

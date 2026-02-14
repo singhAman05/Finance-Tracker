@@ -1,102 +1,431 @@
-import Image from "next/image";
+"use client";
+
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { ArrowRight, TrendingUp, Wallet, PieChart, Shield, Smartphone, Zap, BarChart3, Lock, ArrowUpRight } from "lucide-react";
+import { motion, useMotionValue, useTransform, animate } from "framer-motion";
+import { useEffect, useRef, useState } from "react";
+
+function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: number }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString());
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    const controls = animate(count, target, { duration });
+    const unsubscribe = rounded.on("change", (v) => setDisplay(v));
+    return () => {
+      controls.stop();
+      unsubscribe();
+    };
+  }, [count, target, duration, rounded]);
+
+  return <span>{display}</span>;
+}
+
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } },
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const router = useRouter();
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const handleAuthNavigation = () => {
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("jwt");
+      const user = localStorage.getItem("user");
+      if (token && user) {
+        router.push("/dashboard");
+        return;
+      }
+    }
+    router.push("/login");
+  };
+
+  return (
+    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 selection:bg-neutral-200 dark:selection:bg-neutral-800 overflow-x-hidden">
+      {/* Navigation */}
+      <nav className="border-b border-neutral-100 dark:border-neutral-800 bg-white/80 dark:bg-black/80 backdrop-blur-md sticky top-0 z-50">
+        <div className="container mx-auto px-6 py-4 flex justify-between items-center">
+          <motion.div 
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex items-center gap-2"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+              <Wallet className="w-4 h-4 text-white dark:text-black" />
+            </div>
+            <span className="text-xl font-bold tracking-tight">
+              FinanceTracker
+            </span>
+          </motion.div>
+          <motion.div 
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            className="flex gap-4 items-center"
           >
-            Read our docs
-          </a>
+            <button 
+              onClick={handleAuthNavigation}
+              className="text-sm font-medium hover:text-neutral-600 dark:hover:text-neutral-300 transition-colors"
+            >
+              Log in
+            </button>
+            <button 
+              onClick={handleAuthNavigation}
+              className="px-5 py-2 rounded-full bg-black dark:bg-white text-white dark:text-black text-sm font-medium hover:opacity-80 transition-opacity"
+            >
+              Get Started
+            </button>
+          </motion.div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+      </nav>
+
+      {/* Hero Section */}
+      <section className="container mx-auto px-6 pt-28 pb-36 relative">
+        {/* Subtle grid background */}
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
+          backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          backgroundSize: '32px 32px',
+        }} />
+
+        <div className="grid lg:grid-cols-2 gap-16 items-center relative">
+          <motion.div
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div variants={fadeUp} className="mb-6">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-800 text-xs font-medium tracking-wide uppercase text-neutral-500 dark:text-neutral-400">
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 dark:bg-white animate-pulse" />
+                Free to get started
+              </span>
+            </motion.div>
+
+            <motion.h1 variants={fadeUp} className="text-6xl md:text-8xl font-bold mb-8 leading-[0.95] tracking-tighter">
+              Master your <br />
+              <span className="text-neutral-400 dark:text-neutral-600">money flow.</span>
+            </motion.h1>
+
+            <motion.p variants={fadeUp} className="text-xl text-neutral-600 dark:text-neutral-400 mb-10 leading-relaxed max-w-lg">
+              Precision financial tracking for the modern era. Visualize expenses and manage accounts without the clutter.
+            </motion.p>
+
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
+              <button 
+                onClick={handleAuthNavigation}
+                className="group px-8 py-4 rounded-full bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit"
+              >
+                Start Free Trial
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </motion.div>
+
+            {/* Trust indicators */}
+            <motion.div variants={fadeUp} className="mt-12 flex items-center gap-8">
+              <div className="flex -space-x-2">
+                {[...Array(4)].map((_, i) => (
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-black bg-neutral-200 dark:bg-neutral-700 flex items-center justify-center text-[10px] font-bold text-neutral-500 dark:text-neutral-400">
+                    {String.fromCharCode(65 + i)}
+                  </div>
+                ))}
+              </div>
+              <div className="text-sm text-neutral-500 dark:text-neutral-400">
+                <span className="font-semibold text-neutral-900 dark:text-white">2,400+</span> people already tracking
+              </div>
+            </motion.div>
+          </motion.div>
+
+          {/* Interactive Dashboard Preview */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
+            className="relative"
+          >
+            <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 overflow-hidden shadow-2xl shadow-neutral-200/50 dark:shadow-none">
+              {/* Mock browser bar */}
+              <div className="flex items-center gap-2 px-4 py-3 border-b border-neutral-100 dark:border-neutral-800">
+                <div className="flex gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                  <div className="w-2.5 h-2.5 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                </div>
+                <div className="flex-1 mx-8">
+                  <div className="h-5 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center px-3">
+                    <Lock className="w-2.5 h-2.5 text-neutral-400 mr-1.5" />
+                    <span className="text-[10px] text-neutral-400">financetracker.app/dashboard</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Dashboard content */}
+              <div className="p-6 space-y-4">
+                {/* Stats row */}
+                <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { label: "Balance", value: "24,580", prefix: "$" },
+                    { label: "Income", value: "8,200", prefix: "+" },
+                    { label: "Savings", value: "32", suffix: "%" },
+                  ].map((stat) => (
+                    <motion.div
+                      key={stat.label}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.8 }}
+                      className="p-3 rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800"
+                    >
+                      <p className="text-[10px] uppercase tracking-wider text-neutral-400 mb-1">{stat.label}</p>
+                      <p className="text-lg font-bold tracking-tight">
+                        {stat.prefix}<AnimatedCounter target={parseInt(stat.value.replace(",", ""))} />
+                        {stat.suffix}
+                      </p>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Chart placeholder - animated bars */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1 }}
+                  className="rounded-xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 p-4"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-medium text-neutral-500">Monthly Overview</span>
+                    <BarChart3 className="w-3.5 h-3.5 text-neutral-400" />
+                  </div>
+                  <div className="flex items-end gap-1.5 h-20">
+                    {[40, 65, 45, 80, 55, 90, 70, 60, 85, 50, 75, 95].map((h, i) => (
+                      <motion.div
+                        key={i}
+                        className="flex-1 rounded-sm bg-neutral-900 dark:bg-white"
+                        initial={{ height: 0 }}
+                        animate={{ height: `${h}%` }}
+                        transition={{ delay: 1.2 + i * 0.05, duration: 0.4, ease: "easeOut" }}
+                      />
+                    ))}
+                  </div>
+                  <div className="flex justify-between mt-2">
+                    <span className="text-[9px] text-neutral-400">Jan</span>
+                    <span className="text-[9px] text-neutral-400">Dec</span>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Floating notification */}
+            <motion.div
+              initial={{ opacity: 0, x: 20, y: 20 }}
+              animate={{ opacity: 1, x: 0, y: 0 }}
+              transition={{ delay: 1.5, duration: 0.5 }}
+              className="absolute -right-4 top-16 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-xl p-3 shadow-lg max-w-[180px]"
+            >
+              <div className="flex items-center gap-2">
+                <div className="w-6 h-6 rounded-full bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center flex-shrink-0">
+                  <ArrowUpRight className="w-3 h-3 text-neutral-900 dark:text-white" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-medium">Savings up</p>
+                  <p className="text-[9px] text-neutral-400">+12% this month</p>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Marquee Stats Band */}
+      <section className="border-y border-neutral-100 dark:border-neutral-800 py-6 overflow-hidden">
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="flex justify-center gap-16 md:gap-24 items-center"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+          {[
+            { value: "50K+", label: "Transactions Tracked" },
+            { value: "99.9%", label: "Uptime" },
+            { value: "2.4K", label: "Active Users" },
+            { value: "4.9★", label: "User Rating" },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center flex-shrink-0">
+              <p className="text-2xl md:text-3xl font-bold tracking-tight">{stat.value}</p>
+              <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </motion.div>
+      </section>
+
+      {/* Features Section */}
+      <section className="py-32">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-20 max-w-2xl"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
+              Essential utilities.
+            </h2>
+            <p className="text-xl text-neutral-500 dark:text-neutral-400 max-w-xl">
+              Everything you need to maintain financial clarity, stripped down to the essentials.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: Smartphone,
+                title: "Multi-Platform",
+                description: "Seamless access across all your devices with synchronized data.",
+                stat: "3+ Platforms"
+              },
+              {
+                icon: PieChart,
+                title: "Smart Sorting",
+                description: "Intelligent categorization algorithms that learn from your spending.",
+                stat: "Auto-Categorize"
+              },
+              {
+                icon: Zap,
+                title: "Instant Sync",
+                description: "Real-time updates ensure your balance is always accurate to the second.",
+                stat: "< 100ms"
+              }
+            ].map((feature, idx) => (
+              <motion.div
+                key={feature.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="group p-8 rounded-2xl border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-all duration-300 relative overflow-hidden"
+              >
+                {/* Hover background effect */}
+                <div className="absolute inset-0 bg-neutral-50 dark:bg-neutral-900 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                
+                <div className="relative z-10">
+                  <div className="mb-6 flex items-center justify-between">
+                    <div className="w-12 h-12 rounded-xl border border-neutral-200 dark:border-neutral-800 flex items-center justify-center group-hover:border-neutral-400 dark:group-hover:border-neutral-600 transition-colors">
+                      <feature.icon className="w-5 h-5 text-neutral-900 dark:text-white stroke-[1.5]" />
+                    </div>
+                    <span className="text-[10px] font-medium uppercase tracking-widest text-neutral-400 group-hover:text-neutral-600 dark:group-hover:text-neutral-300 transition-colors">
+                      {feature.stat}
+                    </span>
+                  </div>
+                  <h3 className="text-xl font-bold mb-3 tracking-tight">{feature.title}</h3>
+                  <p className="text-neutral-600 dark:text-neutral-400 leading-relaxed text-sm">{feature.description}</p>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* How it works */}
+      <section className="border-t border-neutral-100 dark:border-neutral-900 py-32">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-20 text-center"
+          >
+            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
+              Three steps to clarity.
+            </h2>
+            <p className="text-lg text-neutral-500 dark:text-neutral-400 max-w-md mx-auto">
+              Get set up in minutes, not hours.
+            </p>
+          </motion.div>
+
+          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+            {[
+              { step: "01", title: "Create Account", desc: "Sign up for free in under 30 seconds." },
+              { step: "02", title: "Link Accounts", desc: "Add your bank accounts and credit cards." },
+              { step: "03", title: "Track & Grow", desc: "Watch your financial clarity improve daily." },
+            ].map((item, idx) => (
+              <motion.div
+                key={item.step}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.15 }}
+                className="text-center"
+              >
+                <div className="text-5xl md:text-6xl font-bold text-neutral-100 dark:text-neutral-800 mb-4 tracking-tighter">
+                  {item.step}
+                </div>
+                <h3 className="text-lg font-bold mb-2 tracking-tight">{item.title}</h3>
+                <p className="text-sm text-neutral-500 dark:text-neutral-400 max-w-[200px] mx-auto">
+                  {item.desc}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="container mx-auto px-6 py-24">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="rounded-3xl bg-neutral-900 dark:bg-white text-white dark:text-black p-12 md:p-24 text-center relative overflow-hidden"
         >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+          {/* Background pattern */}
+          <div className="absolute inset-0 opacity-5" style={{
+            backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+            backgroundSize: '24px 24px',
+          }} />
+
+          <div className="relative z-10 max-w-2xl mx-auto">
+            <motion.p
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              className="text-sm font-medium uppercase tracking-widest mb-6 text-neutral-400 dark:text-neutral-500"
+            >
+              Start today
+            </motion.p>
+            <h2 className="text-4xl md:text-6xl font-bold mb-4 tracking-tighter">
+              Ready to clarify your finances?
+            </h2>
+            <p className="text-neutral-400 dark:text-neutral-500 mb-10 max-w-md mx-auto">
+              Join thousands who have already transformed their relationship with money.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button 
+                onClick={handleAuthNavigation}
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white dark:bg-black text-black dark:text-white hover:scale-105 transition-transform font-medium"
+              >
+                Create Free Account
+                <ArrowRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+      {/* Footer */}
+      <footer className="border-t border-neutral-100 dark:border-neutral-900 py-12">
+        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+           <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-all">
+             <Wallet className="w-5 h-5" />
+             <span className="font-bold tracking-tight">FinanceTracker</span>
+           </div>
+          <p className="text-sm text-neutral-500">
+            © 2026 FinanceTracker Inc.
+          </p>
+        </div>
       </footer>
     </div>
   );
