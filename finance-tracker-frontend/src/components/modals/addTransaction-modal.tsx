@@ -24,7 +24,7 @@ export function AddTransactionModal() {
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-3xl px-4"
       >
-        <AddTransaction onClose={() => dispatch(closeModal())} />
+        <AddTransaction />
       </motion.div>
     </motion.div>
   );
