@@ -52,20 +52,24 @@ import {
   Landmark,
   TrendingUp,
   CreditCard,
-  AlertCircle,
   RefreshCw,
   Wallet,
+  ArrowUpRight,
 } from "lucide-react";
 
-// Animation Variants
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+// Animation Variants (Matched to page.tsx)
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
-const itemVariants = {
-  hidden: { y: 10, opacity: 0, filter: "blur(4px)" },
-  visible: { y: 0, opacity: 1, filter: "blur(0px)" },
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
 };
 
 export default function AccountsPage() {
@@ -103,31 +107,12 @@ export default function AccountsPage() {
   );
 
   useEffect(() => {
-    // Initial load only if Redux is empty to save bandwidth
     if (accounts.length === 0) {
       loadAccounts();
     } else {
       setLoading(false);
     }
   }, [loadAccounts, accounts.length]);
-
-  const handleDeleteClick = (accountId: string) => {
-    dispatch(
-      openModal({
-        type: "CONFIRM_DELETE",
-        payload: {
-          title: "Delete Account",
-          description:
-            "This action will permanently remove this account and all associated transactions.",
-          confirmText: "Delete",
-          cancelText: "Cancel",
-          onConfirm: () => {
-            dispatch(deleteAccount(accountId));
-          },
-        },
-      })
-    );
-  };
 
   const confirmDelete = async () => {
     if (!deleteAccountData) return;
@@ -139,7 +124,7 @@ export default function AccountsPage() {
       if (res.error) throw new Error(res.error.message);
     } catch (err) {
       console.error("Delete error:", err);
-      loadAccounts(true); // Revert on failure
+      loadAccounts(true);
     } finally {
       setDeleteAccountData(null);
     }
@@ -179,10 +164,13 @@ export default function AccountsPage() {
     <div className="space-y-4">
       <div className="flex gap-4">
         {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-32 w-full rounded-xl" />
+          <Skeleton
+            key={i}
+            className="h-32 w-full rounded-2xl bg-neutral-100 dark:bg-neutral-800"
+          />
         ))}
       </div>
-      <Skeleton className="h-[400px] w-full rounded-xl" />
+      <Skeleton className="h-[400px] w-full rounded-2xl bg-neutral-100 dark:bg-neutral-800" />
     </div>
   );
 
@@ -197,312 +185,348 @@ export default function AccountsPage() {
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="w-full space-y-6 p-2 md:p-6 mx-auto"
-    >
-      <AnimatePresence>
-        {showAddAccountModal && (
-          <AddAccount
-            onClose={() => {
-              setShowAddAccountModal(false);
-              loadAccounts(true);
-            }}
-          />
-        )}
-      </AnimatePresence>
+    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 relative overflow-hidden">
+      {/* Background Pattern matched from page.tsx */}
+      <div
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          backgroundSize: "32px 32px",
+        }}
+      />
 
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deleteAccountData}
-        onOpenChange={(open: any) => !open && setDeleteAccountData(null)}
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="relative w-full space-y-6 p-2 md:p-6 mx-auto"
       >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the account
-              <span className="font-bold text-foreground">
-                {" "}
-                {deleteAccountData?.name}{" "}
-              </span>
-              and remove all associated transaction history.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+        <AnimatePresence>
+          {showAddAccountModal && (
+            <AddAccount
+              onClose={() => {
+                setShowAddAccountModal(false);
+                loadAccounts(true);
+              }}
+            />
+          )}
+        </AnimatePresence>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog
+          open={!!deleteAccountData}
+          onOpenChange={(open: any) => !open && setDeleteAccountData(null)}
+        >
+          <AlertDialogContent className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="text-neutral-900 dark:text-neutral-50 tracking-tight">
+                Are you absolutely sure?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-neutral-500 dark:text-neutral-400">
+                This will permanently delete the account
+                <span className="font-bold text-neutral-900 dark:text-neutral-50">
+                  {" "}
+                  {deleteAccountData?.name}{" "}
+                </span>
+                and remove all associated transaction history.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
+                Cancel
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmDelete}
+                className="rounded-full bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm transition-colors"
+              >
+                Delete Account
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Header Section */}
+        <motion.div
+          variants={fadeUp}
+          className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
+        >
+          <div>
+            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-neutral-900 dark:text-neutral-50">
+              Financial Assets
+            </h1>
+            <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-lg max-w-md leading-relaxed">
+              Manage your bank accounts, credit cards, and cash flow in one
+              place.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={() => loadAccounts(true)}
+              className={cn(
+                "rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 w-12 h-12",
+                isRefreshing && "animate-spin"
+              )}
+              disabled={isRefreshing}
             >
-              Delete Account
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              <RefreshCw className="h-5 w-5" />
+            </Button>
+            <Button
+              onClick={() => setShowAddAccountModal(true)}
+              className="rounded-full px-8 py-6 bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-all font-medium text-base shadow-none dark:shadow-none"
+            >
+              <Plus className="mr-2 h-5 w-5" /> Add Account
+            </Button>
+          </div>
+        </motion.div>
 
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
-            Financial Assets
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Manage your bank accounts, credit cards, and cash flow.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={() => loadAccounts(true)}
-            className={cn("rounded-full", isRefreshing && "animate-spin")}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className="h-4 w-4" />
-          </Button>
-          <Button
-            onClick={() => setShowAddAccountModal(true)}
-            className="shadow-lg shadow-primary/20 hover:shadow-primary/30 transition-all rounded-full px-6"
-          >
-            <Plus className="mr-2 h-4 w-4" /> Add Account
-          </Button>
-        </div>
-      </div>
-
-      {/* Insights Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {[
-          {
-            label: "Net Worth",
-            val: stats.total,
-            icon: Wallet,
-            color: "text-blue-500",
-            bg: "bg-blue-500/10",
-          },
-          {
-            label: "Total Liabilities",
-            val: stats.debt,
-            icon: CreditCard,
-            color: "text-rose-500",
-            bg: "bg-rose-500/10",
-          },
-          {
-            label: "Active Accounts",
-            val: stats.count, // Just showing count here
-            isCount: true,
-            icon: Landmark,
-            color: "text-emerald-500",
-            bg: "bg-emerald-500/10",
-          },
-        ].map((item) => (
-          <motion.div
-            key={item.label}
-            variants={itemVariants}
-            whileHover={{ y: -4 }}
-          >
-            <Card className="border-none shadow-sm bg-card hover:bg-accent/5 transition-colors duration-200">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between space-y-0 pb-2">
-                  <p className="text-sm font-medium text-muted-foreground">
+        {/* Insights Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {[
+            {
+              label: "Net Worth",
+              val: stats.total,
+              icon: Wallet,
+              trend: "+2.4%",
+            },
+            {
+              label: "Total Liabilities",
+              val: stats.debt,
+              icon: CreditCard,
+            },
+            {
+              label: "Active Accounts",
+              val: stats.count,
+              isCount: true,
+              icon: Landmark,
+            },
+          ].map((item) => (
+            <motion.div
+              key={item.label}
+              variants={fadeUp}
+              whileHover={{ y: -4 }}
+              className="cursor-default"
+            >
+              {/* Using the stats card style from page.tsx (lines 170-190) */}
+              <div className="p-6 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-all duration-300">
+                <div className="flex items-center justify-between mb-4">
+                  <p className="text-xs font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
                     {item.label}
                   </p>
-                  <div className={cn("p-2 rounded-full", item.bg)}>
-                    <item.icon className={cn("h-4 w-4", item.color)} />
+                  <div className="w-8 h-8 rounded-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 flex items-center justify-center">
+                    <item.icon className="h-4 w-4 text-neutral-900 dark:text-white" />
                   </div>
                 </div>
-                <div className="flex items-baseline gap-2 mt-2">
-                  <span className="text-2xl font-bold tracking-tight">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-3xl font-bold tracking-tighter text-neutral-900 dark:text-neutral-50">
                     {item.isCount
                       ? item.val
                       : formatCurrency(item.val as number)}
                   </span>
-                  {item.label === "Net Worth" && (
-                    <span className="text-xs text-emerald-500 flex items-center">
-                      <TrendingUp className="h-3 w-3 mr-1" /> +2.4%
-                    </span>
+                  {item.trend && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800">
+                      <ArrowUpRight className="h-3 w-3 text-neutral-700 dark:text-neutral-300" />
+                      <span className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300">
+                        {item.trend}
+                      </span>
+                    </div>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Main Table Card */}
-      <motion.div variants={itemVariants}>
-        <Card className="overflow-hidden border-slate-200 dark:border-slate-800 shadow-md">
-          <CardHeader className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b bg-slate-50/40 dark:bg-slate-900/40 px-6 py-4">
-            <div className="space-y-1">
-              <CardTitle className="text-lg font-semibold">
-                My Accounts
-              </CardTitle>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Badge variant="outline" className="text-xs font-normal">
-                  {filteredAccounts.length} Total
-                </Badge>
               </div>
-            </div>
-            <div className="relative w-full md:w-72">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search banks..."
-                className="pl-10 bg-background rounded-full border-slate-200 focus-visible:ring-1"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </div>
-          </CardHeader>
+            </motion.div>
+          ))}
+        </div>
 
-          <CardContent className="p-0">
-            {filteredAccounts.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
-                  {searchQuery ? (
-                    <Search className="h-8 w-8 text-muted-foreground" />
-                  ) : (
-                    <Landmark className="h-8 w-8 text-muted-foreground" />
-                  )}
-                </div>
-                <h3 className="text-lg font-medium">
-                  {searchQuery ? "No results found" : "No accounts yet"}
-                </h3>
-                <p className="text-muted-foreground max-w-xs mt-2 text-sm">
-                  {searchQuery
-                    ? `We couldn't find anything matching "${searchQuery}"`
-                    : "Add your first bank account to start tracking your wealth."}
-                </p>
-                {!searchQuery && (
-                  <Button
-                    onClick={() => setShowAddAccountModal(true)}
-                    variant="link"
-                    className="mt-2 text-primary"
+        {/* Main Table Card */}
+        <motion.div variants={fadeUp}>
+          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black overflow-hidden shadow-sm">
+            {/* Table Header */}
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-8 py-6 border-b border-neutral-100 dark:border-neutral-800">
+              <div className="space-y-1">
+                <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                  Accounts Overview
+                </h2>
+                <div className="flex items-center gap-2">
+                  <Badge
+                    variant="outline"
+                    className="rounded-full px-2.5 font-medium border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400"
                   >
-                    Create an account
-                  </Button>
-                )}
+                    {filteredAccounts.length} Connected
+                  </Badge>
+                </div>
               </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent">
-                      <TableHead className="w-[300px] pl-6">Details</TableHead>
-                      <TableHead>Type</TableHead>
-                      <TableHead className="text-right">Balance</TableHead>
-                      <TableHead className="text-center">Status</TableHead>
-                      <TableHead className="text-right pr-6">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <AnimatePresence mode="popLayout">
-                      {filteredAccounts.map((account) => (
-                        <motion.tr
-                          key={account.id}
-                          layout
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0, x: -20 }}
-                          transition={{ duration: 0.2 }}
-                          className="group hover:bg-slate-50 dark:hover:bg-slate-900/50 transition-colors border-b last:border-0"
-                        >
-                          <TableCell className="pl-6 py-4">
-                            <div className="flex items-center gap-4">
-                              <div className="h-10 w-10 rounded-xl bg-white p-1.5 border shadow-sm shrink-0 flex items-center justify-center">
-                                <img
-                                  src={getBankLogoUrl(account.bank)}
-                                  alt={account.bank}
-                                  className="h-full w-full object-contain"
-                                  // onError={(e) =>
-                                  //   (e.currentTarget.src =
-                                  //     "/placeholder-bank.png")
-                                  // } // Fallback
-                                />
-                              </div>
-                              <div className="flex flex-col min-w-0">
-                                <span className="font-semibold text-sm truncate">
-                                  {account.name}
-                                </span>
-                                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                                  {account.bank}{" "}
-                                  <span className="text-[10px]">•</span> ****
-                                  {account.lastDigits}
-                                </span>
-                              </div>
-                            </div>
-                          </TableCell>
-
-                          <TableCell>
-                            <Badge
-                              variant="secondary"
-                              className="font-medium capitalize text-xs"
-                            >
-                              {account.type}
-                            </Badge>
-                          </TableCell>
-
-                          <TableCell className="text-right">
-                            <span
-                              className={cn(
-                                "font-mono font-medium tracking-tight",
-                                account.balance < 0
-                                  ? "text-destructive"
-                                  : "text-emerald-600 dark:text-emerald-400"
-                              )}
-                            >
-                              {formatCurrency(account.balance)}
-                            </span>
-                          </TableCell>
-
-                          <TableCell className="text-center">
-                            <div
-                              className={cn(
-                                "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium",
-                                account.status === "active"
-                                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
-                                  : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-400"
-                              )}
-                            >
-                              {account.status}
-                            </div>
-                          </TableCell>
-
-                          <TableCell className="text-right pr-6">
-                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-slate-500 hover:text-blue-600 hover:bg-blue-50"
-                              >
-                                <Pencil className="h-3.5 w-3.5" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-slate-500 hover:text-destructive hover:bg-destructive/10"
-                                onClick={() =>
-                                  setDeleteAccountData({
-                                    id: account.id,
-                                    name: account.name,
-                                  })
-                                }
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </motion.tr>
-                      ))}
-                    </AnimatePresence>
-                  </TableBody>
-                </Table>
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <Input
+                  placeholder="Search by bank or name..."
+                  className="pl-11 h-12 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 rounded-full focus-visible:ring-1 focus-visible:ring-neutral-900 dark:focus-visible:ring-neutral-100 transition-all font-medium"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+
+            {/* Table Body */}
+            <div>
+              {filteredAccounts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 text-center">
+                  <div className="w-16 h-16 bg-neutral-50 dark:bg-neutral-900 rounded-full flex items-center justify-center mb-6">
+                    {searchQuery ? (
+                      <Search className="h-6 w-6 text-neutral-400" />
+                    ) : (
+                      <Wallet className="h-6 w-6 text-neutral-400" />
+                    )}
+                  </div>
+                  <h3 className="text-lg font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                    {searchQuery ? "No matching accounts" : "No accounts linked"}
+                  </h3>
+                  <p className="text-neutral-500 dark:text-neutral-400 max-w-xs mt-2 text-sm leading-relaxed">
+                    {searchQuery
+                      ? "Try adjusting your search terms to find what you're looking for."
+                      : "Start tracking your wealth by adding your first bank account."}
+                  </p>
+                  {!searchQuery && (
+                    <Button
+                      onClick={() => setShowAddAccountModal(true)}
+                      variant="link"
+                      className="mt-4 text-neutral-900 dark:text-neutral-50 font-semibold underline-offset-4"
+                    >
+                      + Add new account
+                    </Button>
+                  )}
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent border-b border-neutral-100 dark:border-neutral-800 bg-transparent">
+                        <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Account Details
+                        </TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Type
+                        </TableHead>
+                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Balance
+                        </TableHead>
+                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Status
+                        </TableHead>
+                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                          Actions
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence mode="popLayout">
+                        {filteredAccounts.map((account) => (
+                          <motion.tr
+                            key={account.id}
+                            layout
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0, x: -20 }}
+                            transition={{ duration: 0.2 }}
+                            className="group hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                          >
+                            <TableCell className="pl-8 py-5">
+                              <div className="flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-white p-2 border border-neutral-100 dark:border-neutral-800 flex items-center justify-center shrink-0">
+                                  <img
+                                    src={getBankLogoUrl(account.bank)}
+                                    alt={account.bank}
+                                    className="h-full w-full object-contain"
+                                  />
+                                </div>
+                                <div className="flex flex-col min-w-0">
+                                  <span className="font-bold text-sm tracking-tight text-neutral-900 dark:text-neutral-50 truncate">
+                                    {account.name}
+                                  </span>
+                                  <span className="text-xs text-neutral-500 flex items-center gap-1.5 mt-0.5">
+                                    {account.bank}
+                                    <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                                    <span className="font-mono text-[10px]">
+                                      •••• {account.lastDigits}
+                                    </span>
+                                  </span>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            <TableCell>
+                              <Badge
+                                variant="secondary"
+                                className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                              >
+                                {account.type}
+                              </Badge>
+                            </TableCell>
+
+                            <TableCell className="text-right">
+                              <span
+                                className={cn(
+                                  "font-mono font-bold tracking-tight text-base",
+                                  account.balance < 0
+                                    ? "text-neutral-900 dark:text-neutral-100"
+                                    : "text-neutral-900 dark:text-neutral-50"
+                                )}
+                              >
+                                {formatCurrency(account.balance)}
+                              </span>
+                            </TableCell>
+
+                            <TableCell className="text-center">
+                              <div className="inline-flex items-center justify-center">
+                                {account.status === "active" ? (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-[10px] font-medium text-neutral-700 dark:text-neutral-300">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    Active
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 text-[10px] font-medium text-neutral-500">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                                    Inactive
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+
+                            <TableCell className="text-right pr-8">
+                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800 hover:shadow-sm transition-all border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700"
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-neutral-800 hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                  onClick={() =>
+                                    setDeleteAccountData({
+                                      id: account.id,
+                                      name: account.name,
+                                    })
+                                  }
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </motion.tr>
+                        ))}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
       </motion.div>
-    </motion.div>
+    </div>
   );
 }

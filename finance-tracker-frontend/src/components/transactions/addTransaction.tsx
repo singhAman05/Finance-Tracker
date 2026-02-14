@@ -62,7 +62,9 @@ import {
 import { fetchAccounts } from "@/service/service_accounts";
 import { createTransaction } from "@/service/service_transactions";
 
-export default function AddTransaction() {
+interface AddTransactionProps {}
+
+export default function AddTransaction({}: AddTransactionProps){
   const dispatch = useDispatch();
   const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
