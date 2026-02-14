@@ -1,3 +1,4 @@
+import { notify } from "@/lib/notifications";
 import { addTransactionRoute, fetchTransactionsRoute, deleteTransactionRoute } from "@/routes/route_transactions";
 
 export interface Transaction {
@@ -23,6 +24,7 @@ export const createTransaction = async (payload: {
     recurrence_rule?: string;
     }) => {
     const result = await addTransactionRoute(payload);
+    notify.success(result.message || "Transaction added successfully");
     return result;
 };
 
@@ -35,6 +37,7 @@ export const fetchTransactions = async()=>{
 export const deleteTransaction = async(transaction_id : string)=>{
     try{
         const result = await deleteTransactionRoute(transaction_id);
+        notify.success(result.message || "Transaction deleted successfully");
         return result;
       }
       catch(error){

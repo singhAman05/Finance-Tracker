@@ -1,8 +1,11 @@
 // src/services/service_account.ts
 import { createAccountRoute, fetchAccountsRoute, deleteAccountRoute } from '@/routes/route_accounts';
+import { notify } from '@/lib/notifications';
 
 export const createAccount = async (data: object) => {
   const account = await createAccountRoute(data);
+  console.log("Created account in service:", account);
+  notify.success(account.message || "Account created successfully");
   return account;
 };
 
@@ -46,6 +49,8 @@ export const fetchAccounts = async () => {
 export const deleteAccount = async (accountId: string) => {
   try{
     const result = await deleteAccountRoute(accountId);
+    console.log("Deleted account in service:", result);
+    notify.success(result.message || "Account deleted successfully");
     return result;
   }
   catch(error){
