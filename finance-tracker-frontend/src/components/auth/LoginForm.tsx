@@ -33,12 +33,12 @@ Input.displayName = "Input";
 
 const staggerContainer = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.07 } },
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 const fadeUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.45, ease: [0.25, 0.46, 0.45, 0.94] as const } },
+  hidden: { opacity: 0, y: 24 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
 export default function AuthForm() {
@@ -118,7 +118,7 @@ export default function AuthForm() {
               </div>
 
               <div className="text-center space-y-1.5">
-                <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+                <h1 className="text-2xl md:text-3xl font-bold tracking-tighter text-text-primary">
                   Welcome back
                 </h1>
                 <p className="text-text-secondary text-[15px]">
