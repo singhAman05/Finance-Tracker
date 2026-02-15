@@ -18,56 +18,52 @@
 ================================ */
 .light {
   --background: hsl(0 0% 96%);
-  /* #F5F5F5 refined */
-  --text-primary: hsl(0 0% 13%);
-  /* #212121 */
-  --text-secondary: hsl(0 0% 40%);
-  /* #666666 */
-  --primary: hsl(0 0% 22%);
-  /* #374151 - Grayscale accent */
-
   --card: hsl(0 0% 100%);
-  /* #FFFFFF */
-  --border: hsl(0 0% 91%);
-  /* #E8E8E8 subtle */
   --muted: hsl(0 0% 94%);
-  /* #F0F0F0 */
-  --ring: hsl(0 0% 84%);
-  /* #D6D6D6 */
+  --border: hsl(0 0% 91%);
+  --ring: hsl(222 47% 20%);
+
+  /* Primary (CTA) */
+  --primary: hsl(222 47% 11%);
+  /* Deep slate */
+
+  /* Text */
+  --text-primary: hsl(220 15% 15%);
+  --text-secondary: hsl(220 9% 46%);
+  /* Professional gray */
 }
+
 
 /* ===============================
    DARK MODE
 ================================ */
 .dark {
   --background: hsl(0 0% 7.5%);
-  /* #121212 */
-  --text-primary: hsl(0 0% 100%);
-  /* #FFFFFF */
-  --text-secondary: hsl(0 0% 72%);
-  /* #B8B8B8 refined */
-  --primary: hsl(0 0% 60%);
-  /* #9CA3AF - Lighter grayscale */
-
   --card: hsl(0 0% 12%);
-  /* #1F1F1F */
-  --border: hsl(0 0% 18%);
-  /* #2E2E2E */
   --muted: hsl(0 0% 10%);
-  /* #191919 */
-  --ring: hsl(0 0% 50%);
-  /* #808080 */
+  --border: hsl(0 0% 18%);
+  --ring: hsl(210 40% 70%);
+
+  /* Primary (CTA inverted feel) */
+  --primary: hsl(210 40% 92%);
+  /* Soft light slate */
+
+  /* Text */
+  --text-primary: hsl(0 0% 100%);
+  --text-secondary: hsl(220 9% 60%);
+  /* Balanced gray */
 }
+
 
 /* ===============================
    BASE LAYER & FONT
 ================================ */
 @layer base {
   :root {
-    --font-poppins: 'Poppins', sans-serif;
+    --font-outfit: 'Outfit', sans-serif;
   }
 
   body {
-    @apply bg-background text-[var(--color-text-primary)] font-[var(--font-poppins)];
+    @apply bg-background text-[var(--color-text-primary)] font-[family-name:var(--font-outfit)];
   }
 }

@@ -26,7 +26,7 @@ const Input = forwardRef<
   <input
     ref={ref}
     {...props}
-    className="w-full bg-transparent outline-none text-[15px] placeholder:text-textSecondary text-textPrimary"
+    className="w-full bg-transparent outline-none text-[15px] placeholder:text-text-secondary text-text-primary"
   />
 ));
 Input.displayName = "Input";
@@ -76,7 +76,7 @@ export default function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-textPrimary flex items-center justify-center p-4 md:p-8 relative overflow-hidden selection:bg-muted">
+    <div className="min-h-screen bg-background text-text-primary flex items-center justify-center p-4 md:p-8 relative overflow-hidden selection:bg-muted">
       {/* Dot grid background — matches home page */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
@@ -97,7 +97,7 @@ export default function AuthForm() {
           <motion.div variants={fadeUp} className="mb-8">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-sm text-textSecondary hover:text-textPrimary transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-text-secondary hover:text-text-primary transition-colors"
             >
               <ArrowRight className="w-3.5 h-3.5 rotate-180" />
               Back to home
@@ -121,7 +121,7 @@ export default function AuthForm() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                   Welcome back
                 </h1>
-                <p className="text-textSecondary text-[15px]">
+                <p className="text-text-secondary text-[15px]">
                   Sign in to your account to continue
                 </p>
               </div>
@@ -134,7 +134,7 @@ export default function AuthForm() {
               className="space-y-6"
             >
               <div className="space-y-2.5">
-                <Label className="text-sm font-medium text-textSecondary ml-0.5">
+                <Label className="text-sm font-medium text-text-secondary ml-0.5">
                   Phone Number
                 </Label>
 
@@ -146,11 +146,11 @@ export default function AuthForm() {
                     value={phone}
                     onChange={setPhone}
                     inputComponent={Input}
-                    className="flex flex-1 items-center gap-3 [&>.PhoneInputCountry]:flex [&>.PhoneInputCountry]:items-center [&>.PhoneInputCountrySelectArrow]:text-textSecondary"
+                    className="flex flex-1 items-center gap-3 [&>.PhoneInputCountry]:flex [&>.PhoneInputCountry]:items-center [&>.PhoneInputCountrySelectArrow]:text-text-secondary"
                   />
                 </div>
 
-                <p className="text-xs text-textSecondary ml-0.5">
+                <p className="text-xs text-text-secondary ml-0.5">
                   We&apos;ll verify your phone number on our end
                 </p>
               </div>
@@ -158,8 +158,8 @@ export default function AuthForm() {
               {error && (
                 <div className="border border-border rounded-xl p-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-textSecondary" />
-                    <p className="text-sm font-medium text-textSecondary">
+                    <div className="h-1.5 w-1.5 rounded-full bg-text-secondary" />
+                    <p className="text-sm font-medium text-text-secondary">
                       {error}
                     </p>
                   </div>
@@ -195,7 +195,7 @@ export default function AuthForm() {
                 <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-card px-4 text-xs font-medium uppercase tracking-widest text-textSecondary">
+                <span className="bg-card px-4 text-xs font-medium uppercase tracking-widest text-text-secondary">
                   Or
                 </span>
               </div>
@@ -221,7 +221,7 @@ export default function AuthForm() {
                       className="h-4 w-4"
                       alt="Google"
                     />
-                    <span className="text-sm font-medium text-textSecondary">
+                    <span className="text-sm font-medium text-text-secondary">
                       Continue with Google
                     </span>
                   </>
@@ -238,10 +238,10 @@ export default function AuthForm() {
                   className="h-4 w-4"
                   alt="Microsoft"
                 />
-                <span className="text-sm font-medium text-textSecondary">
+                <span className="text-sm font-medium text-text-secondary">
                   Microsoft 365
                 </span>
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wider font-medium text-textSecondary border border-border px-2 py-0.5 rounded-full">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wider font-medium text-text-secondary border border-border px-2 py-0.5 rounded-full">
                   Soon
                 </span>
               </Button>
@@ -249,18 +249,18 @@ export default function AuthForm() {
 
             {/* Footer */}
             <motion.div variants={fadeUp} className="mt-10 pt-6 border-t border-border">
-              <p className="text-center text-xs text-textSecondary leading-relaxed">
+              <p className="text-center text-xs text-text-secondary leading-relaxed">
                 By continuing, you agree to our{" "}
                 <a
                   href="#"
-                  className="font-medium text-textSecondary hover:text-textPrimary underline underline-offset-2 transition-colors"
+                  className="font-medium text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors"
                 >
                   Terms of Service
                 </a>{" "}
                 and{" "}
                 <a
                   href="#"
-                  className="font-medium text-textSecondary hover:text-textPrimary underline underline-offset-2 transition-colors"
+                  className="font-medium text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors"
                 >
                   Privacy Policy
                 </a>
@@ -271,7 +271,7 @@ export default function AuthForm() {
               <div className="mt-5 text-center">
                 <a
                   href="#"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-textSecondary hover:text-textPrimary transition-colors group"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors group"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                   <span>Need help signing in?</span>
@@ -284,8 +284,8 @@ export default function AuthForm() {
           {/* Demo Notice */}
           <motion.div variants={fadeUp} className="mt-6 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border">
-              <span className="w-1.5 h-1.5 rounded-full bg-textSecondary animate-pulse" />
-              <span className="text-xs font-medium text-textSecondary">
+              <span className="w-1.5 h-1.5 rounded-full bg-text-secondary animate-pulse" />
+              <span className="text-xs font-medium text-text-secondary">
                 Demo: Use +91 9599742303 for testing
               </span>
             </div>

@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { format } from "date-fns";
 import { getTransactionStats } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
@@ -75,15 +75,36 @@ import {
 import { useRouter } from "next/navigation";
 
 // --- Animation Variants (Matching AccountsPage) ---
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.05 } },
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
-const itemVariants = {
-  hidden: { y: 10, opacity: 0, filter: "blur(4px)" },
-  visible: { y: 0, opacity: 1, filter: "blur(0px)" },
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
 };
+
+function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: number }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString("en-IN"));
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    const controls = animate(count, target, { duration });
+    const unsubscribe = rounded.on("change", (v) => setDisplay(v));
+    return () => {
+      controls.stop();
+      unsubscribe();
+    };
+  }, [count, target, duration, rounded]);
+
+  return <span>{display}</span>;
+}
 
 // --- Interfaces ---
 interface Account {
@@ -269,12 +290,22 @@ export default function TransactionPage() {
   }
 
   return (
-    <motion.div
-      variants={containerVariants}
-      initial="hidden"
-      animate="visible"
-      className="w-full space-y-6 p-2 md:p-6 mx-auto"
-    >
+    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
+      {/* Background Pattern matched from page.tsx */}
+      <div
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          backgroundSize: "32px 32px",
+        }}
+      />
+
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="relative w-full space-y-6 p-2 md:p-6 mx-auto"
+      >
       {/* Delete Dialog */}
       <AlertDialog
         open={!!deleteData}
@@ -282,12 +313,12 @@ export default function TransactionPage() {
       >
         <AlertDialogContent className="bg-card border border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-textPrimary tracking-tight">
+            <AlertDialogTitle className="text-text-primary tracking-tight">
               Are you absolutely sure?
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-textSecondary">
+            <AlertDialogDescription className="text-text-secondary">
               This will permanently delete the transaction
-              <span className="font-bold text-textPrimary">
+              <span className="font-bold text-text-primary">
                 {" "}
                 {deleteData?.description}{" "}
               </span>
@@ -295,7 +326,7 @@ export default function TransactionPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full border border-border bg-card text-textPrimary hover:bg-muted transition-colors">
+            <AlertDialogCancel className="rounded-full border border-border bg-card text-text-primary hover:bg-muted transition-colors">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
@@ -309,12 +340,12 @@ export default function TransactionPage() {
       </AlertDialog>
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <motion.div variants={fadeUp} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-textPrimary">
+          <h1 className="text-3xl font-bold tracking-tight text-text-primary">
             Transactions
           </h1>
-          <p className="text-textSecondary mt-1">
+          <p className="text-text-secondary mt-1">
             Track your cash flow and spending habits.
           </p>
         </div>
@@ -324,7 +355,7 @@ export default function TransactionPage() {
             size="icon"
             onClick={() => loadData(true)}
             className={cn(
-              "rounded-full border border-border bg-card text-textPrimary hover:bg-muted",
+              "rounded-full border border-border bg-card text-text-primary hover:bg-muted",
               isRefreshing && "animate-spin"
             )}
             disabled={isRefreshing}
@@ -333,14 +364,14 @@ export default function TransactionPage() {
           </Button>
           <Button
             variant="outline"
-            className="rounded-full border border-border bg-card text-textPrimary hover:bg-muted shadow-sm"
+            className="rounded-full border border-border bg-card text-text-primary hover:bg-muted shadow-sm"
             onClick={() => router.push("/dashboard/reports")}
           >
             <ChartPie className="mr-2 h-4 w-4" /> Analytics
           </Button>
           <AddTransaction />
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -361,34 +392,37 @@ export default function TransactionPage() {
             icon: Wallet,
           },
         ].map((stat, idx) => (
-          <motion.div key={idx} variants={itemVariants} whileHover={{ y: -4 }}>
-            <Card className="border border-border shadow-none bg-card transition-colors hover:border-ring">
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between pb-2">
-                  <p className="text-sm font-medium text-textSecondary">
-                    {stat.label}
-                  </p>
-                  <div className="p-2 rounded-full bg-muted border border-border">
-                    <stat.icon className="h-4 w-4 text-textPrimary" />
-                  </div>
+          <motion.div
+            key={idx}
+            variants={fadeUp}
+            whileHover={{ y: -4 }}
+            className="cursor-default"
+          >
+            <div className="p-6 rounded-2xl bg-card border border-border hover:border-ring transition-all duration-300">
+              <div className="flex items-center justify-between mb-4">
+                <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
+                  {stat.label}
+                </p>
+                <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center">
+                  <stat.icon className="h-4 w-4 text-text-primary" />
                 </div>
+              </div>
 
-                <div className="text-2xl font-bold tracking-tight text-textPrimary">
-                  {formatCurrency(stat.value)}
-                </div>
-              </CardContent>
-            </Card>
+              <div className="text-3xl font-bold tracking-tighter text-text-primary">
+                ₹<AnimatedCounter target={Math.abs(stat.value)} />
+              </div>
+            </div>
           </motion.div>
         ))}
       </div>
 
       {/* Main Content */}
-      <motion.div variants={itemVariants}>
+      <motion.div variants={fadeUp}>
         <Card className="overflow-hidden border border-border shadow-none bg-card">
           <CardHeader className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 border-b border-border bg-card px-6 py-4">
             <div className="flex items-center gap-2">
-              <CardTitle className="text-lg font-semibold text-textPrimary">History</CardTitle>
-              <Badge variant="outline" className="ml-2 font-normal border-border text-textSecondary">
+              <CardTitle className="text-lg font-semibold text-text-primary">History</CardTitle>
+              <Badge variant="outline" className="ml-2 font-normal border-border text-text-secondary">
                 {filteredTransactions.length} items
               </Badge>
             </div>
@@ -396,10 +430,10 @@ export default function TransactionPage() {
             {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
               <div className="relative flex-1 sm:min-w-[200px]">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-textSecondary" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
                 <Input
                   placeholder="Search description..."
-                  className="pl-10 bg-background border-border rounded-full focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium placeholder:text-textSecondary"
+                  className="pl-10 bg-background border-border rounded-full focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium placeholder:text-text-secondary"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -409,13 +443,13 @@ export default function TransactionPage() {
                 value={accountFilter}
                 onValueChange={(v) => setAccountFilter(v)}
               >
-                <SelectTrigger className="w-full sm:w-[160px] rounded-full bg-background border-border text-textPrimary">
+                <SelectTrigger className="w-full sm:w-[160px] rounded-full bg-background border-border text-text-primary">
                   <SelectValue placeholder="Account" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="all" className="text-textPrimary">All Accounts</SelectItem>
+                  <SelectItem value="all" className="text-text-primary">All Accounts</SelectItem>
                   {accounts.map((acc) => (
-                    <SelectItem key={acc.id} value={acc.id} className="text-textPrimary">
+                    <SelectItem key={acc.id} value={acc.id} className="text-text-primary">
                       {acc.name}
                     </SelectItem>
                   ))}
@@ -426,16 +460,16 @@ export default function TransactionPage() {
                 value={categoryFilter}
                 onValueChange={(v) => setCategoryFilter(v)}
               >
-                <SelectTrigger className="w-full sm:w-[160px] rounded-full bg-background border-border text-textPrimary">
+                <SelectTrigger className="w-full sm:w-[160px] rounded-full bg-background border-border text-text-primary">
                   <div className="flex items-center gap-2">
-                    <Filter className="h-3.5 w-3.5 text-textSecondary" />
+                    <Filter className="h-3.5 w-3.5 text-text-secondary" />
                     <SelectValue placeholder="Category" />
                   </div>
                 </SelectTrigger>
                 <SelectContent className="bg-card border-border">
-                  <SelectItem value="all" className="text-textPrimary">All Categories</SelectItem>
+                  <SelectItem value="all" className="text-text-primary">All Categories</SelectItem>
                   {categories.map((cat) => (
-                    <SelectItem key={cat.id} value={cat.id} className="text-textPrimary">
+                    <SelectItem key={cat.id} value={cat.id} className="text-text-primary">
                       {cat.name}
                     </SelectItem>
                   ))}
@@ -451,19 +485,19 @@ export default function TransactionPage() {
                   {search ||
                   accountFilter !== "all" ||
                   categoryFilter !== "all" ? (
-                    <Search className="h-8 w-8 text-textSecondary" />
+                    <Search className="h-8 w-8 text-text-secondary" />
                   ) : (
-                    <ArrowRightLeft className="h-8 w-8 text-textSecondary" />
+                    <ArrowRightLeft className="h-8 w-8 text-text-secondary" />
                   )}
                 </div>
 
-                <h3 className="text-lg font-semibold text-textPrimary">
+                <h3 className="text-lg font-semibold text-text-primary">
                   {search || accountFilter !== "all" || categoryFilter !== "all"
                     ? "No results found"
                     : "No transactions yet"}
                 </h3>
 
-                <p className="text-textSecondary text-sm max-w-xs mt-2 px-4">
+                <p className="text-text-secondary text-sm max-w-xs mt-2 px-4">
                   {search || accountFilter !== "all" || categoryFilter !== "all"
                     ? `We couldn't find any transactions matching your current filters.`
                     : "Start tracking your expenses and income by adding your first transaction."}
@@ -479,7 +513,7 @@ export default function TransactionPage() {
                         setAccountFilter("all");
                         setCategoryFilter("all");
                       }}
-                      className="rounded-full border-border bg-card text-textPrimary hover:bg-muted"
+                      className="rounded-full border-border bg-card text-text-primary hover:bg-muted"
                     >
                       Clear all filters
                     </Button>
@@ -495,12 +529,12 @@ export default function TransactionPage() {
                 <Table>
                   <TableHeader>
                     <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
-                      <TableHead className="w-[150px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-textSecondary">Date</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-textSecondary">Description</TableHead>
-                      <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-textSecondary">Category</TableHead>
-                      <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-textSecondary">Account</TableHead>
-                      <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-textSecondary">Amount</TableHead>
-                      <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-textSecondary">
+                      <TableHead className="w-[150px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-text-secondary">Date</TableHead>
+                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Description</TableHead>
+                      <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Category</TableHead>
+                      <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Account</TableHead>
+                      <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">Amount</TableHead>
+                      <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                         Actions
                       </TableHead>
                     </TableRow>
@@ -529,14 +563,14 @@ export default function TransactionPage() {
                             className="group hover:bg-muted transition-colors border-b border-border last:border-0"
                           >
                             <TableCell className="pl-6 py-4">
-                              <div className="flex items-center text-sm text-textSecondary">
-                                <Calendar className="mr-2 h-3.5 w-3.5 text-textSecondary" />
+                              <div className="flex items-center text-sm text-text-secondary">
+                                <Calendar className="mr-2 h-3.5 w-3.5 text-text-secondary" />
                                 {format(new Date(tx.date), "MMM dd, yyyy")}
                               </div>
                             </TableCell>
 
                             <TableCell>
-                              <span className="font-medium text-sm text-textPrimary">
+                              <span className="font-medium text-sm text-text-primary">
                                 {tx.description ||
                                   `${category?.name} side income/expense`}
                               </span>
@@ -545,7 +579,7 @@ export default function TransactionPage() {
                             <TableCell>
                               <Badge
                                 variant="secondary"
-                                className="font-normal text-xs bg-muted text-textSecondary hover:bg-muted/80 border-0"
+                                className="font-normal text-xs bg-muted text-text-secondary hover:bg-muted/80 border-0"
                               >
                                 {category?.name || "Uncategorized"}
                               </Badge>
@@ -560,7 +594,7 @@ export default function TransactionPage() {
                                     className="h-full w-full object-contain"
                                   />
                                 </div>
-                                <span className="text-sm text-textSecondary truncate max-w-[120px]">
+                                <span className="text-sm text-text-secondary truncate max-w-[120px]">
                                   {account?.name || "account not found"}
                                 </span>
                               </div>
@@ -570,7 +604,7 @@ export default function TransactionPage() {
                               <span
                                 className={cn(
                                   "font-mono font-medium tracking-tight",
-                                  "text-textPrimary"
+                                  "text-text-primary"
                                 )}
                               >
                                 {isExpense ? "-" : "+"}
@@ -582,7 +616,7 @@ export default function TransactionPage() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-9 w-9 rounded-full text-textSecondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                className="h-9 w-9 rounded-full text-text-secondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                                 onClick={() =>
                                   setDeleteData({
                                     id: tx.id,
@@ -604,6 +638,7 @@ export default function TransactionPage() {
           </CardContent>
         </Card>
       </motion.div>
-    </motion.div>
+      </motion.div>
+    </div>
   );
 }

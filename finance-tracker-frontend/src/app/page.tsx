@@ -49,7 +49,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen bg-background text-textPrimary overflow-x-hidden">
+    <div className="min-h-screen bg-background text-text-primary overflow-x-hidden">
       {/* Navigation */}
       <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
@@ -58,7 +58,7 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 bg-black dark:bg-white rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-primary text-white dark:text-black rounded-lg flex items-center justify-center">
               <Wallet className="w-4 h-4 text-white dark:text-black" />
             </div>
             <span className="text-xl font-bold tracking-tight">
@@ -72,12 +72,12 @@ export default function Home() {
           >
             <button 
               onClick={handleAuthNavigation}
-              className="text-sm font-medium hover:text-textSecondary transition-colors">
+              className="text-sm font-medium hover:text-primary transition-colors">
               Log in
             </button>
             <button 
               onClick={handleAuthNavigation}
-              className="px-5 py-2 rounded-full bg-primary text-white text-sm font-medium hover:opacity-80 transition-opacity"
+              className="px-5 py-2 rounded-full bg-primary text-white dark:text-black text-sm font-medium hover:brightness-110 transition-all"
             >
               Get Started
             </button>
@@ -100,7 +100,7 @@ export default function Home() {
             animate="visible"
           >
             <motion.div variants={fadeUp} className="mb-6">
-              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border text-xs font-medium tracking-wide uppercase text-textSecondary">
+              <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border text-xs font-medium tracking-wide uppercase text-text-secondary">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 Free to get started
               </span>
@@ -108,17 +108,17 @@ export default function Home() {
 
             <motion.h1 variants={fadeUp} className="text-6xl md:text-8xl font-bold mb-8 leading-[0.95] tracking-tighter">
               Master your <br />
-              <span className="text-textSecondary">money flow.</span>
+              <span className="text-text-secondary">money flow.</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-xl text-textSecondary mb-10 leading-relaxed max-w-lg">
+            <motion.p variants={fadeUp} className="text-xl text-text-secondary mb-10 leading-relaxed max-w-lg">
               Precision financial tracking for the modern era. Visualize expenses and manage accounts without the clutter.
             </motion.p>
 
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={handleAuthNavigation}
-                className="group px-8 py-4 rounded-full bg-primary text-white hover:opacity-90 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit"
+                className="group px-8 py-4 rounded-full bg-primary text-white dark:text-black hover:brightness-110 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit"
               >
                 Start Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -129,13 +129,13 @@ export default function Home() {
             <motion.div variants={fadeUp} className="mt-12 flex items-center gap-8">
               <div className="flex -space-x-2">
                 {[...Array(4)].map((_, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-white dark:border-black bg-border flex items-center justify-center text-[10px] font-bold text-textSecondary">
+                  <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-border flex items-center justify-center text-[10px] font-bold text-text-secondary">
                     {String.fromCharCode(65 + i)}
                   </div>
                 ))}
               </div>
-              <div className="text-sm text-textSecondary">
-                <span className="font-semibold text-textPrimary">2,400+</span> people already tracking
+              <div className="text-sm text-text-secondary">
+                <span className="font-semibold text-text-primary">2,400+</span> people already tracking
               </div>
             </motion.div>
           </motion.div>
@@ -147,7 +147,7 @@ export default function Home() {
             transition={{ duration: 0.7, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="relative"
           >
-            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-2xl shadow-neutral-200/50 dark:shadow-none">
+            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg dark:shadow-none">
               {/* Mock browser bar */}
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
                 <div className="flex gap-1.5">
@@ -157,8 +157,8 @@ export default function Home() {
                 </div>
                 <div className="flex-1 mx-8">
                   <div className="h-5 rounded-full bg-muted flex items-center px-3">
-                    <Lock className="w-2.5 h-2.5 text-textSecondary mr-1.5" />
-                    <span className="text-[10px] text-textSecondary">financetracker.app/dashboard</span>
+                    <Lock className="w-2.5 h-2.5 text-text-secondary mr-1.5" />
+                    <span className="text-[10px] text-text-secondary">financetracker.app/dashboard</span>
                   </div>
                 </div>
               </div>
@@ -179,7 +179,7 @@ export default function Home() {
                       transition={{ delay: 0.8 }}
                       className="p-3 rounded-xl bg-card border border-border"
                     >
-                      <p className="text-[10px] uppercase tracking-wider text-textSecondary mb-1">{stat.label}</p>
+                      <p className="text-[10px] uppercase tracking-wider text-text-secondary mb-1">{stat.label}</p>
                       <p className="text-lg font-bold tracking-tight">
                         {stat.prefix}<AnimatedCounter target={parseInt(stat.value.replace(",", ""))} />
                         {stat.suffix}
@@ -196,8 +196,8 @@ export default function Home() {
                   className="rounded-xl bg-card border border-border p-4"
                 >
                   <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-textSecondary">Monthly Overview</span>
-                    <BarChart3 className="w-3.5 h-3.5 text-textSecondary" />
+                    <span className="text-xs font-medium text-text-secondary">Monthly Overview</span>
+                    <BarChart3 className="w-3.5 h-3.5 text-text-secondary" />
                   </div>
                   <div className="flex items-end gap-1.5 h-20">
                     {[40, 65, 45, 80, 55, 90, 70, 60, 85, 50, 75, 95].map((h, i) => (
@@ -211,8 +211,8 @@ export default function Home() {
                     ))}
                   </div>
                   <div className="flex justify-between mt-2">
-                    <span className="text-[9px] text-textSecondary">Jan</span>
-                    <span className="text-[9px] text-textSecondary">Dec</span>
+                    <span className="text-[9px] text-text-secondary">Jan</span>
+                    <span className="text-[9px] text-text-secondary">Dec</span>
                   </div>
                 </motion.div>
               </div>
@@ -227,11 +227,11 @@ export default function Home() {
             >
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
-                  <ArrowUpRight className="w-3 h-3 text-textPrimary" />
+                  <ArrowUpRight className="w-3 h-3 text-text-primary" />
                 </div>
                 <div>
                   <p className="text-[10px] font-medium">Savings up</p>
-                  <p className="text-[9px] text-textSecondary">+12% this month</p>
+                  <p className="text-[9px] text-text-secondary">+12% this month</p>
                 </div>
               </div>
             </motion.div>
@@ -255,7 +255,7 @@ export default function Home() {
           ].map((stat) => (
             <div key={stat.label} className="text-center flex-shrink-0">
               <p className="text-2xl md:text-3xl font-bold tracking-tight">{stat.value}</p>
-              <p className="text-xs text-textSecondary mt-1">{stat.label}</p>
+              <p className="text-xs text-text-secondary mt-1">{stat.label}</p>
             </div>
           ))}
         </motion.div>
@@ -273,7 +273,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
               Essential utilities.
             </h2>
-            <p className="text-xl text-textSecondary max-w-xl">
+            <p className="text-xl text-text-secondary max-w-xl">
               Everything you need to maintain financial clarity, stripped down to the essentials.
             </p>
           </motion.div>
@@ -305,22 +305,22 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="group p-8 rounded-2xl border border-border hover:border-ring transition-all duration-300 relative overflow-hidden"
+                className="group p-8 rounded-2xl border border-border hover:bg-muted transition-all duration-300 relative overflow-hidden"
               >
                 {/* Hover background effect */}
-                <div className="absolute inset-0 bg-card opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="transition-opacity duration-300" />
                 
                 <div className="relative z-10">
                   <div className="mb-6 flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-xl border border-border flex items-center justify-center group-hover:border-ring transition-colors">
-                      <feature.icon className="w-5 h-5 text-textPrimary stroke-[1.5]" />
+                    <div className="w-12 h-12 rounded-xl border border-border flex items-center justify-center group-hover:bg-muted transition-colors">
+                      <feature.icon className="w-5 h-5 text-text-primary stroke-[1.5]" />
                     </div>
-                    <span className="text-[10px] font-medium uppercase tracking-widest text-textSecondary group-hover:text-textPrimary transition-colors">
+                    <span className="text-[10px] font-medium uppercase tracking-widest text-text-secondary group-hover:text-text-primary transition-colors">
                       {feature.stat}
                     </span>
                   </div>
                   <h3 className="text-xl font-bold mb-3 tracking-tight">{feature.title}</h3>
-                  <p className="text-textSecondary leading-relaxed text-sm">{feature.description}</p>
+                  <p className="text-text-secondary leading-relaxed text-sm">{feature.description}</p>
                 </div>
               </motion.div>
             ))}
@@ -340,7 +340,7 @@ export default function Home() {
             <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
               Three steps to clarity.
             </h2>
-            <p className="text-lg text-textSecondary max-w-md mx-auto">
+            <p className="text-lg text-text-secondary max-w-md mx-auto">
               Get set up in minutes, not hours.
             </p>
           </motion.div>
@@ -359,11 +359,11 @@ export default function Home() {
                 transition={{ delay: idx * 0.15 }}
                 className="text-center"
               >
-                <div className="text-5xl md:text-6xl font-bold text-muted mb-4 tracking-tighter">
+                <div className="text-5xl md:text-6xl font-bold text-primary mb-4 tracking-tighter">
                   {item.step}
                 </div>
                 <h3 className="text-lg font-bold mb-2 tracking-tight">{item.title}</h3>
-                <p className="text-sm text-textSecondary max-w-[200px] mx-auto">
+                <p className="text-sm text-text-secondary max-w-[200px] mx-auto">
                   {item.desc}
                 </p>
               </motion.div>
@@ -391,20 +391,20 @@ export default function Home() {
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              className="text-sm font-medium uppercase tracking-widest mb-6 text-neutral-400 dark:text-neutral-500"
+              className="text-sm font-medium uppercase tracking-widest mb-6 text-text-secondary"
             >
               Start today
             </motion.p>
             <h2 className="text-4xl md:text-6xl font-bold mb-4 tracking-tighter">
               Ready to clarify your finances?
             </h2>
-            <p className="text-neutral-400 dark:text-neutral-500 mb-10 max-w-md mx-auto">
+            <p className="text-text-secondary mb-10 max-w-md mx-auto">
               Join thousands who have already transformed their relationship with money.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 onClick={handleAuthNavigation}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white dark:bg-black text-black dark:text-white hover:scale-105 transition-transform font-medium"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-background text-text-primary hover:bg-muted text-black dark:text-white hover:scale-105 transition-transform font-medium"
               >
                 Create Free Account
                 <ArrowRight className="w-4 h-4" />
@@ -415,13 +415,13 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-12">
+      <footer className="border-t border-border bg-muted/40 py-12">
         <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
            <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-all">
              <Wallet className="w-5 h-5" />
              <span className="font-bold tracking-tight">FinanceTracker</span>
            </div>
-          <p className="text-sm text-textSecondary">
+          <p className="text-sm text-text-secondary">
             © 2026 FinanceTracker Inc.
           </p>
         </div>
