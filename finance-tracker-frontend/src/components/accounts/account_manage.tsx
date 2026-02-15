@@ -166,11 +166,11 @@ export default function AccountsPage() {
         {[1, 2, 3].map((i) => (
           <Skeleton
             key={i}
-            className="h-32 w-full rounded-2xl bg-neutral-100 dark:bg-neutral-800"
+            className="h-32 w-full rounded-2xl bg-muted"
           />
         ))}
       </div>
-      <Skeleton className="h-[400px] w-full rounded-2xl bg-neutral-100 dark:bg-neutral-800" />
+      <Skeleton className="h-[400px] w-full rounded-2xl bg-muted" />
     </div>
   );
 
@@ -185,7 +185,7 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-textPrimary relative overflow-hidden">
       {/* Background Pattern matched from page.tsx */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -217,14 +217,14 @@ export default function AccountsPage() {
           open={!!deleteAccountData}
           onOpenChange={(open: any) => !open && setDeleteAccountData(null)}
         >
-          <AlertDialogContent className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800">
+          <AlertDialogContent className="bg-card border border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-neutral-900 dark:text-neutral-50 tracking-tight">
+              <AlertDialogTitle className="text-textPrimary tracking-tight">
                 Are you absolutely sure?
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-neutral-500 dark:text-neutral-400">
+              <AlertDialogDescription className="text-textSecondary">
                 This will permanently delete the account
-                <span className="font-bold text-neutral-900 dark:text-neutral-50">
+                <span className="font-bold text-textPrimary">
                   {" "}
                   {deleteAccountData?.name}{" "}
                 </span>
@@ -232,7 +232,7 @@ export default function AccountsPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors">
+              <AlertDialogCancel className="rounded-full border border-border bg-card text-textPrimary hover:bg-muted transition-colors">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
@@ -251,10 +251,10 @@ export default function AccountsPage() {
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
         >
           <div>
-            <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-neutral-900 dark:text-neutral-50">
+            <h1 className="text-3xl font-bold tracking-tight text-textPrimary">
               Financial Assets
             </h1>
-            <p className="text-neutral-500 dark:text-neutral-400 mt-2 text-lg max-w-md leading-relaxed">
+            <p className="text-textSecondary mt-1">
               Manage your bank accounts, credit cards, and cash flow in one
               place.
             </p>
@@ -265,7 +265,7 @@ export default function AccountsPage() {
               size="icon"
               onClick={() => loadAccounts(true)}
               className={cn(
-                "rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 hover:bg-neutral-50 dark:hover:bg-neutral-900 w-12 h-12",
+                "rounded-full border border-border bg-card text-textPrimary hover:bg-muted w-12 h-12",
                 isRefreshing && "animate-spin"
               )}
               disabled={isRefreshing}
@@ -274,7 +274,7 @@ export default function AccountsPage() {
             </Button>
             <Button
               onClick={() => setShowAddAccountModal(true)}
-              className="rounded-full px-8 py-6 bg-black dark:bg-white text-white dark:text-black hover:opacity-90 transition-all font-medium text-base shadow-none dark:shadow-none"
+              className="rounded-full px-8 py-6 bg-primary text-white dark:text-black hover:opacity-90 transition-all font-medium text-base shadow-none dark:shadow-none"
             >
               <Plus className="mr-2 h-5 w-5" /> Add Account
             </Button>
@@ -308,26 +308,26 @@ export default function AccountsPage() {
               whileHover={{ y: -4 }}
               className="cursor-default"
             >
-              {/* Using the stats card style from page.tsx (lines 170-190) */}
-              <div className="p-6 rounded-2xl bg-white dark:bg-neutral-950 border border-neutral-200 dark:border-neutral-800 hover:border-neutral-400 dark:hover:border-neutral-600 transition-all duration-300">
+              {/* Stats card */}
+              <div className="p-6 rounded-2xl bg-card border border-border hover:border-ring transition-all duration-300">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-medium uppercase tracking-widest text-neutral-500 dark:text-neutral-400">
+                  <p className="text-xs font-medium uppercase tracking-widest text-textSecondary">
                     {item.label}
                   </p>
-                  <div className="w-8 h-8 rounded-full bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 flex items-center justify-center">
-                    <item.icon className="h-4 w-4 text-neutral-900 dark:text-white" />
+                  <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center">
+                    <item.icon className="h-4 w-4 text-textPrimary" />
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tighter text-neutral-900 dark:text-neutral-50">
+                  <span className="text-3xl font-bold tracking-tighter text-textPrimary">
                     {item.isCount
                       ? item.val
                       : formatCurrency(item.val as number)}
                   </span>
                   {item.trend && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-200 dark:bg-neutral-800">
-                      <ArrowUpRight className="h-3 w-3 text-neutral-700 dark:text-neutral-300" />
-                      <span className="text-[10px] font-bold text-neutral-700 dark:text-neutral-300">
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
+                      <ArrowUpRight className="h-3 w-3 text-textPrimary" />
+                      <span className="text-[10px] font-bold text-textPrimary">
                         {item.trend}
                       </span>
                     </div>
@@ -340,27 +340,27 @@ export default function AccountsPage() {
 
         {/* Main Table Card */}
         <motion.div variants={fadeUp}>
-          <div className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black overflow-hidden shadow-sm">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
             {/* Table Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-8 py-6 border-b border-neutral-100 dark:border-neutral-800">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-8 py-6 border-b border-border">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                <h2 className="text-xl font-bold tracking-tight text-textPrimary">
                   Accounts Overview
                 </h2>
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="rounded-full px-2.5 font-medium border-neutral-200 dark:border-neutral-800 text-neutral-500 dark:text-neutral-400"
+                    className="rounded-full px-2.5 font-medium border-border text-textSecondary"
                   >
                     {filteredAccounts.length} Connected
                   </Badge>
                 </div>
               </div>
               <div className="relative w-full md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-neutral-400" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-textSecondary" />
                 <Input
                   placeholder="Search by bank or name..."
-                  className="pl-11 h-12 bg-white dark:bg-neutral-950 border-neutral-200 dark:border-neutral-800 rounded-full focus-visible:ring-1 focus-visible:ring-neutral-900 dark:focus-visible:ring-neutral-100 transition-all font-medium"
+                  className="pl-11 h-12 bg-background border-border rounded-full focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium placeholder:text-textSecondary"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -371,17 +371,17 @@ export default function AccountsPage() {
             <div>
               {filteredAccounts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-20 text-center">
-                  <div className="w-16 h-16 bg-neutral-50 dark:bg-neutral-900 rounded-full flex items-center justify-center mb-6">
+                  <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-6">
                     {searchQuery ? (
-                      <Search className="h-6 w-6 text-neutral-400" />
+                      <Search className="h-6 w-6 text-textSecondary" />
                     ) : (
-                      <Wallet className="h-6 w-6 text-neutral-400" />
+                      <Wallet className="h-6 w-6 text-textSecondary" />
                     )}
                   </div>
-                  <h3 className="text-lg font-bold tracking-tight text-neutral-900 dark:text-neutral-50">
+                  <h3 className="text-lg font-bold tracking-tight text-textPrimary">
                     {searchQuery ? "No matching accounts" : "No accounts linked"}
                   </h3>
-                  <p className="text-neutral-500 dark:text-neutral-400 max-w-xs mt-2 text-sm leading-relaxed">
+                  <p className="text-textSecondary max-w-xs mt-2 text-sm leading-relaxed">
                     {searchQuery
                       ? "Try adjusting your search terms to find what you're looking for."
                       : "Start tracking your wealth by adding your first bank account."}
@@ -390,7 +390,7 @@ export default function AccountsPage() {
                     <Button
                       onClick={() => setShowAddAccountModal(true)}
                       variant="link"
-                      className="mt-4 text-neutral-900 dark:text-neutral-50 font-semibold underline-offset-4"
+                      className="mt-4 text-textPrimary font-semibold underline-offset-4"
                     >
                       + Add new account
                     </Button>
@@ -400,20 +400,20 @@ export default function AccountsPage() {
                 <div className="overflow-x-auto">
                   <Table>
                     <TableHeader>
-                      <TableRow className="hover:bg-transparent border-b border-neutral-100 dark:border-neutral-800 bg-transparent">
-                        <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                      <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
+                        <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-textSecondary">
                           Account Details
                         </TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-textSecondary">
                           Type
                         </TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-textSecondary">
                           Balance
                         </TableHead>
-                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-textSecondary">
                           Status
                         </TableHead>
-                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">
+                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-textSecondary">
                           Actions
                         </TableHead>
                       </TableRow>
@@ -428,11 +428,11 @@ export default function AccountsPage() {
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0, x: -20 }}
                             transition={{ duration: 0.2 }}
-                            className="group hover:bg-neutral-50 dark:hover:bg-neutral-900/50 transition-colors border-b border-neutral-100 dark:border-neutral-800 last:border-0"
+                            className="group hover:bg-muted transition-colors border-b border-border last:border-0"
                           >
                             <TableCell className="pl-8 py-5">
                               <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-white p-2 border border-neutral-100 dark:border-neutral-800 flex items-center justify-center shrink-0">
+                                <div className="h-12 w-12 rounded-xl bg-card p-2 border border-border flex items-center justify-center shrink-0">
                                   <img
                                     src={getBankLogoUrl(account.bank)}
                                     alt={account.bank}
@@ -440,12 +440,12 @@ export default function AccountsPage() {
                                   />
                                 </div>
                                 <div className="flex flex-col min-w-0">
-                                  <span className="font-bold text-sm tracking-tight text-neutral-900 dark:text-neutral-50 truncate">
+                                  <span className="font-bold text-sm tracking-tight text-textPrimary truncate">
                                     {account.name}
                                   </span>
-                                  <span className="text-xs text-neutral-500 flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-xs text-textSecondary flex items-center gap-1.5 mt-0.5">
                                     {account.bank}
-                                    <span className="w-1 h-1 rounded-full bg-neutral-300 dark:bg-neutral-700" />
+                                    <span className="w-1 h-1 rounded-full bg-muted" />
                                     <span className="font-mono text-[10px]">
                                       •••• {account.lastDigits}
                                     </span>
@@ -457,7 +457,7 @@ export default function AccountsPage() {
                             <TableCell>
                               <Badge
                                 variant="secondary"
-                                className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-neutral-100 dark:bg-neutral-900 text-neutral-600 dark:text-neutral-300 border border-neutral-200 dark:border-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-800"
+                                className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-textSecondary border border-border hover:bg-muted/80"
                               >
                                 {account.type}
                               </Badge>
@@ -468,8 +468,8 @@ export default function AccountsPage() {
                                 className={cn(
                                   "font-mono font-bold tracking-tight text-base",
                                   account.balance < 0
-                                    ? "text-neutral-900 dark:text-neutral-100"
-                                    : "text-neutral-900 dark:text-neutral-50"
+                                    ? "text-textPrimary"
+                                    : "text-textPrimary"
                                 )}
                               >
                                 {formatCurrency(account.balance)}
@@ -479,13 +479,13 @@ export default function AccountsPage() {
                             <TableCell className="text-center">
                               <div className="inline-flex items-center justify-center">
                                 {account.status === "active" ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black text-[10px] font-medium text-neutral-700 dark:text-neutral-300">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card text-[10px] font-medium text-textPrimary">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     Active
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-neutral-200 dark:border-neutral-800 bg-neutral-100 dark:bg-neutral-900 text-[10px] font-medium text-neutral-500">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted text-[10px] font-medium text-textSecondary">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
                                     Inactive
                                   </span>
                                 )}
@@ -497,14 +497,14 @@ export default function AccountsPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 rounded-full text-neutral-400 hover:text-neutral-900 dark:hover:text-white hover:bg-white dark:hover:bg-neutral-800 hover:shadow-sm transition-all border border-transparent hover:border-neutral-200 dark:hover:border-neutral-700"
+                                  className="h-9 w-9 rounded-full text-textSecondary hover:text-textPrimary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 rounded-full text-neutral-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-white dark:hover:bg-neutral-800 hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                  className="h-9 w-9 rounded-full text-textSecondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                                   onClick={() =>
                                     setDeleteAccountData({
                                       id: account.id,

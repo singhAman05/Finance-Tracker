@@ -26,7 +26,7 @@ const Input = forwardRef<
   <input
     ref={ref}
     {...props}
-    className="w-full bg-transparent outline-none text-[15px] placeholder:text-neutral-400 text-neutral-900 dark:text-neutral-100"
+    className="w-full bg-transparent outline-none text-[15px] placeholder:text-textSecondary text-textPrimary"
   />
 ));
 Input.displayName = "Input";
@@ -76,7 +76,7 @@ export default function AuthForm() {
   };
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black text-neutral-900 dark:text-neutral-50 flex items-center justify-center p-4 md:p-8 relative overflow-hidden selection:bg-neutral-200 dark:selection:bg-neutral-800">
+    <div className="min-h-screen bg-background text-textPrimary flex items-center justify-center p-4 md:p-8 relative overflow-hidden selection:bg-muted">
       {/* Dot grid background — matches home page */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
@@ -97,7 +97,7 @@ export default function AuthForm() {
           <motion.div variants={fadeUp} className="mb-8">
             <Link
               href="/"
-              className="inline-flex items-center gap-2 text-sm text-neutral-500 hover:text-neutral-900 dark:hover:text-white transition-colors"
+              className="inline-flex items-center gap-2 text-sm text-textSecondary hover:text-textPrimary transition-colors"
             >
               <ArrowRight className="w-3.5 h-3.5 rotate-180" />
               Back to home
@@ -107,7 +107,7 @@ export default function AuthForm() {
           {/* Card */}
           <motion.div
             variants={fadeUp}
-            className="rounded-2xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 p-8 md:p-10 relative z-10"
+            className="rounded-2xl border border-border bg-card p-8 md:p-10 relative z-10"
           >
             {/* Brand Header */}
             <motion.div variants={fadeUp} className="flex flex-col items-center mb-10">
@@ -121,7 +121,7 @@ export default function AuthForm() {
                 <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
                   Welcome back
                 </h1>
-                <p className="text-neutral-500 dark:text-neutral-400 text-[15px]">
+                <p className="text-textSecondary text-[15px]">
                   Sign in to your account to continue
                 </p>
               </div>
@@ -134,32 +134,32 @@ export default function AuthForm() {
               className="space-y-6"
             >
               <div className="space-y-2.5">
-                <Label className="text-sm font-medium text-neutral-700 dark:text-neutral-300 ml-0.5">
+                <Label className="text-sm font-medium text-textSecondary ml-0.5">
                   Phone Number
                 </Label>
 
                 {/* Phone Input */}
-                <div className="group relative flex h-12 items-center rounded-xl border border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-3 transition-all duration-200 focus-within:border-neutral-900 dark:focus-within:border-neutral-300">
+                <div className="group relative flex h-12 items-center rounded-xl border border-border bg-card px-3 transition-all duration-200 focus-within:border-ring">
                   <PhoneInput
                     international
                     defaultCountry="IN"
                     value={phone}
                     onChange={setPhone}
                     inputComponent={Input}
-                    className="flex flex-1 items-center gap-3 [&>.PhoneInputCountry]:flex [&>.PhoneInputCountry]:items-center [&>.PhoneInputCountrySelectArrow]:text-neutral-400"
+                    className="flex flex-1 items-center gap-3 [&>.PhoneInputCountry]:flex [&>.PhoneInputCountry]:items-center [&>.PhoneInputCountrySelectArrow]:text-textSecondary"
                   />
                 </div>
 
-                <p className="text-xs text-neutral-400 ml-0.5">
+                <p className="text-xs text-textSecondary ml-0.5">
                   We&apos;ll verify your phone number on our end
                 </p>
               </div>
 
               {error && (
-                <div className="border border-neutral-300 dark:border-neutral-700 rounded-xl p-4">
+                <div className="border border-border rounded-xl p-4">
                   <div className="flex items-center gap-2">
-                    <div className="h-1.5 w-1.5 rounded-full bg-neutral-900 dark:bg-white" />
-                    <p className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    <div className="h-1.5 w-1.5 rounded-full bg-textSecondary" />
+                    <p className="text-sm font-medium text-textSecondary">
                       {error}
                     </p>
                   </div>
@@ -171,7 +171,7 @@ export default function AuthForm() {
                 disabled={
                   !phone || !isValidPhoneNumber(phone) || loadingType === "phone"
                 }
-                className={`w-full h-12 bg-black dark:bg-white text-white dark:text-black font-medium rounded-full hover:opacity-90 active:scale-[0.98] transition-all duration-200 ${
+                className={`w-full h-12 bg-primary text-white dark:text-black font-medium rounded-full hover:opacity-90 active:scale-[0.98] transition-all duration-200 ${
                   loadingType === "phone" ? "opacity-80" : ""
                 }`}
               >
@@ -192,10 +192,10 @@ export default function AuthForm() {
             {/* Divider */}
             <motion.div variants={fadeUp} className="relative my-8">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-neutral-200 dark:border-neutral-800" />
+                <span className="w-full border-t border-border" />
               </div>
               <div className="relative flex justify-center">
-                <span className="bg-white dark:bg-neutral-950 px-4 text-xs font-medium uppercase tracking-widest text-neutral-400">
+                <span className="bg-card px-4 text-xs font-medium uppercase tracking-widest text-textSecondary">
                   Or
                 </span>
               </div>
@@ -207,7 +207,7 @@ export default function AuthForm() {
                 variant="outline"
                 onClick={handleGoogleLogin}
                 disabled={loadingType === "google"}
-                className="w-full h-12 flex items-center justify-center gap-3 rounded-full border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 hover:bg-neutral-50 dark:hover:bg-neutral-900 transition-colors"
+                className="w-full h-12 flex items-center justify-center gap-3 rounded-full border-border bg-card hover:bg-muted transition-colors"
               >
                 {loadingType === "google" ? (
                   <>
@@ -221,7 +221,7 @@ export default function AuthForm() {
                       className="h-4 w-4"
                       alt="Google"
                     />
-                    <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                    <span className="text-sm font-medium text-textSecondary">
                       Continue with Google
                     </span>
                   </>
@@ -231,36 +231,36 @@ export default function AuthForm() {
               <Button
                 variant="outline"
                 disabled
-                className="w-full h-12 flex items-center justify-center gap-3 rounded-full border-neutral-300 dark:border-neutral-700 bg-white dark:bg-neutral-950 opacity-50 cursor-not-allowed relative"
+                className="w-full h-12 flex items-center justify-center gap-3 rounded-full border-border bg-card opacity-50 cursor-not-allowed relative"
               >
                 <img
                   src="/logos/microsoft-5.svg"
                   className="h-4 w-4"
                   alt="Microsoft"
                 />
-                <span className="text-sm font-medium text-neutral-700 dark:text-neutral-300">
+                <span className="text-sm font-medium text-textSecondary">
                   Microsoft 365
                 </span>
-                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wider font-medium text-neutral-400 border border-neutral-200 dark:border-neutral-700 px-2 py-0.5 rounded-full">
+                <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] uppercase tracking-wider font-medium text-textSecondary border border-border px-2 py-0.5 rounded-full">
                   Soon
                 </span>
               </Button>
             </motion.div>
 
             {/* Footer */}
-            <motion.div variants={fadeUp} className="mt-10 pt-6 border-t border-neutral-200 dark:border-neutral-800">
-              <p className="text-center text-xs text-neutral-400 leading-relaxed">
+            <motion.div variants={fadeUp} className="mt-10 pt-6 border-t border-border">
+              <p className="text-center text-xs text-textSecondary leading-relaxed">
                 By continuing, you agree to our{" "}
                 <a
                   href="#"
-                  className="font-medium text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white underline underline-offset-2 transition-colors"
+                  className="font-medium text-textSecondary hover:text-textPrimary underline underline-offset-2 transition-colors"
                 >
                   Terms of Service
                 </a>{" "}
                 and{" "}
                 <a
                   href="#"
-                  className="font-medium text-neutral-600 dark:text-neutral-300 hover:text-neutral-900 dark:hover:text-white underline underline-offset-2 transition-colors"
+                  className="font-medium text-textSecondary hover:text-textPrimary underline underline-offset-2 transition-colors"
                 >
                   Privacy Policy
                 </a>
@@ -271,7 +271,7 @@ export default function AuthForm() {
               <div className="mt-5 text-center">
                 <a
                   href="#"
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors group"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-textSecondary hover:text-textPrimary transition-colors group"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                   <span>Need help signing in?</span>
@@ -283,9 +283,9 @@ export default function AuthForm() {
 
           {/* Demo Notice */}
           <motion.div variants={fadeUp} className="mt-6 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-neutral-200 dark:border-neutral-800">
-              <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 dark:bg-white animate-pulse" />
-              <span className="text-xs font-medium text-neutral-500 dark:text-neutral-400">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border">
+              <span className="w-1.5 h-1.5 rounded-full bg-textSecondary animate-pulse" />
+              <span className="text-xs font-medium text-textSecondary">
                 Demo: Use +91 9599742303 for testing
               </span>
             </div>
