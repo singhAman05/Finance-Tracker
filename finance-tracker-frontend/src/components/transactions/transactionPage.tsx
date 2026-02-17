@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { format } from "date-fns";
-import { getTransactionStats } from "@/service/service_transactions";
+import { getTransactionStats, getFinancialHealth } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
 
@@ -246,6 +246,11 @@ export default function TransactionPage() {
     [filteredTransactions, accounts]
   );
 
+  const financialHealth = useMemo(
+    () => getFinancialHealth(filteredTransactions, accounts),
+    [filteredTransactions, accounts]
+  );
+
   // --- Handlers ---
   const confirmDelete = async () => {
     if (!deleteData) return;
@@ -380,16 +385,22 @@ export default function TransactionPage() {
             label: "Total Income",
             value: stats.income,
             icon: ArrowDownLeft,
+            trend: financialHealth.incomeGrowth,
+            trendLabel: "vs last month"
           },
           {
             label: "Total Expenses",
             value: stats.expense,
             icon: ArrowUpRight,
+            trend: financialHealth.expenseGrowth,
+            trendLabel: "vs last month"
           },
           {
             label: "Net Flow",
             value: stats.net,
             icon: Wallet,
+            trend: null, 
+            trendLabel: ""
           },
         ].map((stat, idx) => (
           <motion.div
@@ -408,9 +419,26 @@ export default function TransactionPage() {
                 </div>
               </div>
 
-              <div className="text-3xl font-bold tracking-tighter text-text-primary">
+              <div className="text-3xl font-bold tracking-tighter text-text-primary mb-2">
                 ₹<AnimatedCounter target={Math.abs(stat.value)} />
               </div>
+
+              {stat.trend !== null && (
+                 <div className="flex items-center text-xs">
+                 <span
+                   className={cn(
+                     "font-medium mr-1",
+                     stat.trend > 0
+                       ? stat.label === "Total Expenses" ? "text-red-500" : "text-emerald-500"
+                       : stat.label === "Total Expenses" ? "text-emerald-500" : "text-red-500"
+                   )}
+                 >
+                   {stat.trend > 0 ? "+" : ""}
+                   {stat.trend}%
+                 </span>
+                 <span className="text-text-secondary">{stat.trendLabel}</span>
+               </div>
+              )}
             </div>
           </motion.div>
         ))}
