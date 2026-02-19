@@ -22,28 +22,28 @@ export const createTransaction = async (payload: {
     description?: string;
     is_recurring?: boolean;
     recurrence_rule?: string;
-    }) => {
+}) => {
     const result = await addTransactionRoute(payload);
     notify.success(result.message || "Transaction added successfully");
     return result;
 };
 
-export const fetchTransactions = async()=>{
+export const fetchTransactions = async () => {
     const result = await fetchTransactionsRoute();
     // console.log("Fetched transactions in service:", result);
     return result;
 }
 
-export const deleteTransaction = async(transaction_id : string)=>{
-    try{
+export const deleteTransaction = async (transaction_id: string) => {
+    try {
         const result = await deleteTransactionRoute(transaction_id);
         notify.success(result.message || "Transaction deleted successfully");
         return result;
-      }
-      catch(error){
+    }
+    catch (error) {
         console.error("Failed to delete transaction:", error);
         throw error;
-      }
+    }
 };
 
 function percentageChange(current: number, previous: number): number | null {
@@ -54,16 +54,16 @@ function percentageChange(current: number, previous: number): number | null {
 export function getTransactionStats(
     transactions: Transaction[],
     accounts: Account[]
-    ) {
+) {
     let income = 0;
     let expense = 0;
 
     // Calculate transaction-based income & expense
     transactions.forEach((tx) => {
         if (tx.type === "income") {
-        income += tx.amount;
+            income += tx.amount;
         } else {
-        expense += Math.abs(tx.amount);
+            expense += Math.abs(tx.amount);
         }
     });
 
@@ -83,12 +83,12 @@ export function getTransactionStats(
 
     const trend =
         growthPercent === null
-        ? "neutral"
-        : growthPercent > 0
-        ? "up"
-        : growthPercent < 0
-        ? "down"
-        : "neutral";
+            ? "neutral"
+            : growthPercent > 0
+                ? "up"
+                : growthPercent < 0
+                    ? "down"
+                    : "neutral";
 
     return {
         income,
@@ -96,8 +96,56 @@ export function getTransactionStats(
         net,
         count: transactions.length,
         growthPercent: growthPercent
-        ? Number(growthPercent.toFixed(2))
-        : null,
+            ? Number(growthPercent.toFixed(2))
+            : null,
         trend,
+    };
+}
+
+export function getFinancialHealth(transactions: Transaction[], accounts: Account[]) {
+    // Helper to get month key (YYYY-MM)
+    const getMonthKey = (dateStr: string) => dateStr.substring(0, 7);
+
+    const now = new Date();
+    const currentMonthKey = getMonthKey(now.toISOString());
+
+    // Calculate previous month key
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthKey = getMonthKey(prevDate.toISOString());
+
+    let currentIncome = 0;
+    let currentExpense = 0;
+    let prevIncome = 0;
+    let prevExpense = 0;
+
+    transactions.forEach((tx) => {
+        const key = getMonthKey(tx.date);
+        if (key === currentMonthKey) {
+            if (tx.type === "income") currentIncome += tx.amount;
+            else currentExpense += Math.abs(tx.amount);
+        } else if (key === prevMonthKey) {
+            if (tx.type === "income") prevIncome += tx.amount;
+            else prevExpense += Math.abs(tx.amount);
+        }
+    });
+
+    const netWorth = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    const cashFlow = currentIncome - currentExpense;
+
+    // Percent changes
+    const incomeGrowth = percentageChange(currentIncome, prevIncome);
+    const expenseGrowth = percentageChange(currentExpense, prevExpense);
+    const netWorthGrowth = 0; // Placeholder as we don't have historical account balances easily available without more logic
+
+    return {
+        netWorth,
+        cashFlow,
+        currentIncome,
+        currentExpense,
+        incomeGrowth: incomeGrowth ? Number(incomeGrowth.toFixed(1)) : 0,
+        expenseGrowth: expenseGrowth ? Number(expenseGrowth.toFixed(1)) : 0,
+        netWorthGrowth,
+        prevIncome,
+        prevExpense
     };
 }

@@ -25,6 +25,18 @@ import {
   Moon,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useDispatch } from "react-redux";
+import { logout } from "@/components/redux/slices/slice_auth";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const navItems = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
@@ -56,6 +68,8 @@ export function Sidebar() {
   const router = useRouter();
   const { resolvedTheme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
+  const [showLogoutDialog, setShowLogoutDialog] = useState(false);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     setMounted(true);
@@ -67,7 +81,12 @@ export function Sidebar() {
   const expanded = !isCollapsed || isHoverExpand;
 
   const handleLogout = () => {
-    console.log("Logging out...");
+    setShowLogoutDialog(true);
+  };
+
+  const confirmLogout = () => {
+    dispatch(logout());
+    router.push("/");
   };
 
   const renderSection = (
@@ -222,59 +241,61 @@ export function Sidebar() {
         })}
 
         {/* Theme Toggle Button - Professional Design */}
-        <div className="mx-2">
-          <div
-            role="button"
-            onClick={() => setTheme(isDark ? "light" : "dark")}
-            className={cn(
-              "flex items-center h-10 px-3 rounded-lg transition-all duration-300 group cursor-pointer",
-              "bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700",
-              !expanded && "justify-center"
-            )}
-            aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
-          >
-            <div className="flex items-center w-full gap-3">
-              <div className="relative w-6 h-6 flex items-center justify-center">
-                <Sun
-                  className={cn(
-                    "w-4 h-4 absolute transition-all duration-300 ease-in-out",
-                    isDark
-                      ? "opacity-0 -rotate-90"
-                      : "opacity-100 rotate-0 text-amber-500"
-                  )}
-                />
-                <Moon
-                  className={cn(
-                    "w-4 h-4 absolute transition-all duration-300 ease-in-out",
-                    isDark
-                      ? "opacity-100 rotate-0 text-blue-300"
-                      : "opacity-0 rotate-90"
-                  )}
-                />
-              </div>
-
-              <span
+        <div
+          role="button"
+          onClick={() => setTheme(isDark ? "light" : "dark")}
+          className={cn(
+            "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3",
+            "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70"
+          )}
+          aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+        >
+          <div className="flex items-center w-full gap-3">
+            <div className="relative w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:scale-105">
+              <Sun
                 className={cn(
-                  "text-sm font-medium whitespace-nowrap transition-all duration-300",
-                  expanded
-                    ? "opacity-100 translate-x-0"
-                    : "opacity-0 -translate-x-2 w-0 overflow-hidden"
+                  "w-[18px] h-[18px] absolute transition-all duration-300 ease-in-out",
+                  isDark
+                    ? "opacity-0 -rotate-90"
+                    : "opacity-100 rotate-0 text-amber-500"
                 )}
-              >
-                {isDark ? "Dark Mode" : "Light Mode"}
-              </span>
+              />
+              <Moon
+                className={cn(
+                  "w-[18px] h-[18px] absolute transition-all duration-300 ease-in-out",
+                  isDark
+                    ? "opacity-100 rotate-0 text-blue-300"
+                    : "opacity-0 rotate-90"
+                )}
+              />
+            </div>
 
-              {expanded && (
-                <div className="ml-auto relative w-10 h-5 flex items-center">
-                  <div className="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-full transition-colors duration-300" />
-                  <div
-                    className={cn(
-                      "absolute w-3.5 h-3.5 bg-white dark:bg-slate-900 rounded-full shadow-sm transition-all duration-300 ease-in-out",
-                      isDark ? "translate-x-7" : "translate-x-0.5"
-                    )}
-                  />
-                </div>
+            <span
+              className={cn(
+                "text-sm font-medium whitespace-nowrap transition-all duration-300",
+                expanded
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-2 w-0 overflow-hidden"
               )}
+            >
+              {isDark ? "Dark" : "Light"}
+            </span>
+
+            <div
+              className={cn(
+                "ml-auto relative w-10 h-5 flex items-center transition-all duration-300",
+                expanded
+                  ? "opacity-100 translate-x-0"
+                  : "opacity-0 -translate-x-2 w-0 overflow-hidden"
+              )}
+            >
+              <div className="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-full transition-colors duration-300" />
+              <div
+                className={cn(
+                  "absolute w-3.5 h-3.5 bg-white dark:bg-slate-900 rounded-full shadow-sm transition-all duration-300 ease-in-out",
+                  isDark ? "translate-x-7" : "translate-x-0.5"
+                )}
+              />
             </div>
           </div>
         </div>
@@ -299,26 +320,33 @@ export function Sidebar() {
             </span>
           </div>
         </div>
-
-        {/* User Profile Mini - Optional */}
-        {expanded && (
-          <div className="mx-2 mt-4 pt-4 border-t border-slate-200/50 dark:border-slate-800/50">
-            <div className="flex items-center gap-3 px-3">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-                <span className="text-xs font-semibold text-white">JD</span>
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                  John Doe
-                </p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                  john@example.com
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
+
+
+      <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
+        <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-slate-900 dark:text-white">
+              Sign out confirmation
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
+              Are you sure you want to sign out? You will be redirected to the
+              home page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmLogout}
+              className="bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 border-0"
+            >
+              Sign out
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }

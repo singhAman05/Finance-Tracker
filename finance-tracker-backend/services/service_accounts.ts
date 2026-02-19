@@ -1,4 +1,4 @@
-import {supabase} from "../config/supabase"
+import { supabase } from "../config/supabase"
 
 export const creatingAccount = async (account_payload: any) => {
    const {
@@ -15,7 +15,7 @@ export const creatingAccount = async (account_payload: any) => {
       .from('accounts')
       .insert({
          client_id,
-         account_type : account_type,
+         account_type: account_type,
          balance: balance ?? 0,
          currency: currency ?? 'INR',
          account_holder_name,
@@ -28,13 +28,13 @@ export const creatingAccount = async (account_payload: any) => {
    return { data, error };
 };
 
-export const fetchAllaccounts = async(client_id : string)=>{
-   const {data, error} = await supabase
+export const fetchAllaccounts = async (client_id: string) => {
+   const { data, error } = await supabase
       .from('accounts')
       .select()
       .eq('client_id', client_id)
 
-   return {data,error};
+   return { data, error };
 };
 
 export const deleteAccount = async (account_id: string, client_id: string) => {

@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo } from "react";
 import { openModal } from "@/components/redux/slices/slice_modal";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "framer-motion";
 import { RootState } from "@/app/store";
 import {
   setAccounts,
@@ -71,6 +71,23 @@ const fadeUp = {
     transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
+
+function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: number }) {
+  const count = useMotionValue(0);
+  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString("en-IN"));
+  const [display, setDisplay] = useState("0");
+
+  useEffect(() => {
+    const controls = animate(count, target, { duration });
+    const unsubscribe = rounded.on("change", (v) => setDisplay(v));
+    return () => {
+      controls.stop();
+      unsubscribe();
+    };
+  }, [count, target, duration, rounded]);
+
+  return <span>{display}</span>;
+}
 
 export default function AccountsPage() {
   const dispatch = useDispatch();
@@ -185,7 +202,7 @@ export default function AccountsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-textPrimary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
       {/* Background Pattern matched from page.tsx */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -219,12 +236,12 @@ export default function AccountsPage() {
         >
           <AlertDialogContent className="bg-card border border-border">
             <AlertDialogHeader>
-              <AlertDialogTitle className="text-textPrimary tracking-tight">
+              <AlertDialogTitle className="text-text-primary tracking-tight">
                 Are you absolutely sure?
               </AlertDialogTitle>
-              <AlertDialogDescription className="text-textSecondary">
+              <AlertDialogDescription className="text-text-secondary">
                 This will permanently delete the account
-                <span className="font-bold text-textPrimary">
+                <span className="font-bold text-text-primary">
                   {" "}
                   {deleteAccountData?.name}{" "}
                 </span>
@@ -232,7 +249,7 @@ export default function AccountsPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel className="rounded-full border border-border bg-card text-textPrimary hover:bg-muted transition-colors">
+              <AlertDialogCancel className="rounded-full border border-border bg-card text-text-primary hover:bg-muted transition-colors">
                 Cancel
               </AlertDialogCancel>
               <AlertDialogAction
@@ -251,10 +268,10 @@ export default function AccountsPage() {
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
         >
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-textPrimary">
+            <h1 className="text-3xl font-bold tracking-tight text-text-primary">
               Financial Assets
             </h1>
-            <p className="text-textSecondary mt-1">
+            <p className="text-text-secondary mt-1">
               Manage your bank accounts, credit cards, and cash flow in one
               place.
             </p>
@@ -265,7 +282,7 @@ export default function AccountsPage() {
               size="icon"
               onClick={() => loadAccounts(true)}
               className={cn(
-                "rounded-full border border-border bg-card text-textPrimary hover:bg-muted w-12 h-12",
+                "rounded-full border border-border bg-card text-text-primary hover:bg-muted w-12 h-12",
                 isRefreshing && "animate-spin"
               )}
               disabled={isRefreshing}
@@ -311,23 +328,27 @@ export default function AccountsPage() {
               {/* Stats card */}
               <div className="p-6 rounded-2xl bg-card border border-border hover:border-ring transition-all duration-300">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-medium uppercase tracking-widest text-textSecondary">
+                  <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
                     {item.label}
                   </p>
                   <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center">
-                    <item.icon className="h-4 w-4 text-textPrimary" />
+                    <item.icon className="h-4 w-4 text-text-primary" />
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tighter text-textPrimary">
-                    {item.isCount
-                      ? item.val
-                      : formatCurrency(item.val as number)}
+                  <span className="text-3xl font-bold tracking-tighter text-text-primary">
+                    {item.isCount ? (
+                      <AnimatedCounter target={item.val as number} />
+                    ) : (
+                      <>
+                        ₹<AnimatedCounter target={Math.abs(item.val as number)} />
+                      </>
+                    )}
                   </span>
                   {item.trend && (
                     <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
-                      <ArrowUpRight className="h-3 w-3 text-textPrimary" />
-                      <span className="text-[10px] font-bold text-textPrimary">
+                      <ArrowUpRight className="h-3 w-3 text-text-primary" />
+                      <span className="text-[10px] font-bold text-text-primary">
                         {item.trend}
                       </span>
                     </div>
@@ -344,23 +365,23 @@ export default function AccountsPage() {
             {/* Table Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-8 py-6 border-b border-border">
               <div className="space-y-1">
-                <h2 className="text-xl font-bold tracking-tight text-textPrimary">
+                <h2 className="text-xl font-bold tracking-tight text-text-primary">
                   Accounts Overview
                 </h2>
                 <div className="flex items-center gap-2">
                   <Badge
                     variant="outline"
-                    className="rounded-full px-2.5 font-medium border-border text-textSecondary"
+                    className="rounded-full px-2.5 font-medium border-border text-text-secondary"
                   >
                     {filteredAccounts.length} Connected
                   </Badge>
                 </div>
               </div>
               <div className="relative w-full md:w-80">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-textSecondary" />
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-text-secondary" />
                 <Input
                   placeholder="Search by bank or name..."
-                  className="pl-11 h-12 bg-background border-border rounded-full focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium placeholder:text-textSecondary"
+                  className="pl-11 h-12 bg-background border-border rounded-full focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium placeholder:text-text-secondary"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
@@ -373,15 +394,15 @@ export default function AccountsPage() {
                 <div className="flex flex-col items-center justify-center py-20 text-center">
                   <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-6">
                     {searchQuery ? (
-                      <Search className="h-6 w-6 text-textSecondary" />
+                      <Search className="h-6 w-6 text-text-secondary" />
                     ) : (
-                      <Wallet className="h-6 w-6 text-textSecondary" />
+                      <Wallet className="h-6 w-6 text-text-secondary" />
                     )}
                   </div>
-                  <h3 className="text-lg font-bold tracking-tight text-textPrimary">
+                  <h3 className="text-lg font-bold tracking-tight text-text-primary">
                     {searchQuery ? "No matching accounts" : "No accounts linked"}
                   </h3>
-                  <p className="text-textSecondary max-w-xs mt-2 text-sm leading-relaxed">
+                  <p className="text-text-secondary max-w-xs mt-2 text-sm leading-relaxed">
                     {searchQuery
                       ? "Try adjusting your search terms to find what you're looking for."
                       : "Start tracking your wealth by adding your first bank account."}
@@ -390,7 +411,7 @@ export default function AccountsPage() {
                     <Button
                       onClick={() => setShowAddAccountModal(true)}
                       variant="link"
-                      className="mt-4 text-textPrimary font-semibold underline-offset-4"
+                      className="mt-4 text-text-primary font-semibold underline-offset-4"
                     >
                       + Add new account
                     </Button>
@@ -401,19 +422,19 @@ export default function AccountsPage() {
                   <Table>
                     <TableHeader>
                       <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
-                        <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-textSecondary">
+                        <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                           Account Details
                         </TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-textSecondary">
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
                           Type
                         </TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-textSecondary">
+                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-text-secondary">
                           Balance
                         </TableHead>
-                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-textSecondary">
+                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-text-secondary">
                           Status
                         </TableHead>
-                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-textSecondary">
+                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">
                           Actions
                         </TableHead>
                       </TableRow>
@@ -440,10 +461,10 @@ export default function AccountsPage() {
                                   />
                                 </div>
                                 <div className="flex flex-col min-w-0">
-                                  <span className="font-bold text-sm tracking-tight text-textPrimary truncate">
+                                  <span className="font-bold text-sm tracking-tight text-text-primary truncate">
                                     {account.name}
                                   </span>
-                                  <span className="text-xs text-textSecondary flex items-center gap-1.5 mt-0.5">
+                                  <span className="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
                                     {account.bank}
                                     <span className="w-1 h-1 rounded-full bg-muted" />
                                     <span className="font-mono text-[10px]">
@@ -457,7 +478,7 @@ export default function AccountsPage() {
                             <TableCell>
                               <Badge
                                 variant="secondary"
-                                className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-textSecondary border border-border hover:bg-muted/80"
+                                className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-text-secondary border border-border hover:bg-muted/80"
                               >
                                 {account.type}
                               </Badge>
@@ -468,8 +489,8 @@ export default function AccountsPage() {
                                 className={cn(
                                   "font-mono font-bold tracking-tight text-base",
                                   account.balance < 0
-                                    ? "text-textPrimary"
-                                    : "text-textPrimary"
+                                    ? "text-text-primary"
+                                    : "text-text-primary"
                                 )}
                               >
                                 {formatCurrency(account.balance)}
@@ -479,12 +500,12 @@ export default function AccountsPage() {
                             <TableCell className="text-center">
                               <div className="inline-flex items-center justify-center">
                                 {account.status === "active" ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card text-[10px] font-medium text-textPrimary">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card text-[10px] font-medium text-text-primary">
                                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                                     Active
                                   </span>
                                 ) : (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted text-[10px] font-medium text-textSecondary">
+                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted text-[10px] font-medium text-text-secondary">
                                     <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
                                     Inactive
                                   </span>
@@ -497,14 +518,14 @@ export default function AccountsPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 rounded-full text-textSecondary hover:text-textPrimary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
+                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-text-primary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
                                 >
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 rounded-full text-textSecondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
                                   onClick={() =>
                                     setDeleteAccountData({
                                       id: account.id,

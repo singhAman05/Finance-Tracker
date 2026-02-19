@@ -105,8 +105,8 @@ export const handleAccountDeletion = async (req: Request, res: Response) => {
         await deleteCache(cacheKey);
 
         res.status(200).json({
-        message: "Account deleted successfully",
-        data: { account_id },
+            message: "Account deleted successfully",
+            data: { account_id },
         });
     } catch (err) {
         console.error("Account deletion failed:", err);

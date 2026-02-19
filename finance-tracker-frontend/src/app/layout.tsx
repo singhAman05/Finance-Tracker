@@ -1,14 +1,14 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "next-themes";
-import { Geist, Geist_Mono, Poppins } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import ReduxProvider from "./ReduxProvider";
 
-const poppins = Poppins({
+const outfit = Outfit({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-poppins",
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-outfit",
 });
 
 export const metadata: Metadata = {
@@ -23,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={poppins.variable}>
+      <body className={outfit.variable}>
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
