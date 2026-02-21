@@ -77,7 +77,8 @@ export const aggregateTransactions = (transactions: Transaction[]) => {
   const monthlyMap: Record<string, { income: number; expenses: number }> = {};
 
   for (const tx of transactions) {
-    const monthKey = `${tx.date.getFullYear()}-${tx.date.getMonth()}`; // stable key
+    const dateObj = tx.date instanceof Date ? tx.date : new Date(tx.date);
+    const monthKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}`; // stable key
 
     if (!monthlyMap[monthKey]) {
       monthlyMap[monthKey] = { income: 0, expenses: 0 };

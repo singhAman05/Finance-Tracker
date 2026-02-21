@@ -58,7 +58,7 @@ export default function ReportPage() {
     try {
       setPendingLoads((prev) => prev + 1);
       const data = await fetchAccounts();
-      dispatch(setAccounts(data));
+      dispatch(setAccounts(data.data || data)); // Handle both {data} and raw array
     } catch (err) {
       console.error(err);
     } finally {
@@ -70,12 +70,15 @@ export default function ReportPage() {
     if (transactions.length > 0) return;
     try {
       setPendingLoads((prev) => prev + 1);
-      const data = await fetchTransactions();
-      const transformedData = data.map((tx: any) => ({
-        ...tx,
-        date: new Date(tx.date),
-      }));
-      dispatch(setTransactions(transformedData));
+      const res = await fetchTransactions();
+      const txArray = res.data || res; // Extract .data if it exists
+      if (Array.isArray(txArray)) {
+        const transformedData = txArray.map((tx: any) => ({
+          ...tx,
+          date: new Date(tx.date),
+        }));
+        dispatch(setTransactions(transformedData));
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -88,7 +91,7 @@ export default function ReportPage() {
     try {
       setPendingLoads((prev) => prev + 1);
       const data = await fetchCategories();
-      dispatch(setCategories(data));
+      dispatch(setCategories(data.data || data));
     } catch (err) {
       console.error(err);
     } finally {
@@ -106,11 +109,11 @@ export default function ReportPage() {
   const { categoryMap, accountMap: aggregatedAccountMap, monthlyMap } =
   aggregateTransactions(transactions);
 
-  const categoryData = getCategoryData(categories, categoryLookup);
+  const categoryData = getCategoryData(categories, categoryMap);
   const accountData = getAccountData(accounts, aggregatedAccountMap);
   const monthlyData = getMonthlyData(monthlyMap);
 
-  const summary = calculateSummaryFromAggregation(accounts, categoryLookup);
+  const summary = calculateSummaryFromAggregation(accounts, categoryMap);
 
   const handleExport = () => {
     const today = new Date();

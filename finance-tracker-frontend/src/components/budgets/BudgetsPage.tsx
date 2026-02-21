@@ -116,7 +116,7 @@ export default function BudgetsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"

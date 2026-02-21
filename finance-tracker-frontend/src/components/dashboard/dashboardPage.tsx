@@ -31,7 +31,7 @@ import { useRouter } from "next/navigation";
 // Services and Actions
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
 import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
-import { getCategoryData } from "@/service/service_reports"; 
+import { getCategoryData, aggregateTransactions } from "@/service/service_reports"; 
 import { fetchCategories } from "@/service/service_categories";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setAccounts } from "../redux/slices/slice_accounts";
@@ -112,15 +112,17 @@ export default function DashboardPage() {
   }, [transactions, accounts]);
 
   const categoryData = useMemo(() => {
-      // Map category names to transactions for the chart
-      // We need to ensure categories are loaded to get names if they aren't in transaction objects directly? 
-      // The current getCategoryData helper uses the category list.
-      return getCategoryData(categories, transactions);
+    if (!Array.isArray(categories) || !Array.isArray(transactions) || transactions.length === 0) {
+        return [];
+    }
+    const { categoryMap } = aggregateTransactions(transactions);
+    return getCategoryData(categories, categoryMap);
   }, [categories, transactions]);
   
   // Prepare data for "Spending Distribution" (Top 5 expenses)
   const spendingChartData = useMemo(() => {
-    return categoryData
+    if (!Array.isArray(categoryData)) return [];
+    return [...categoryData]
       .sort((a, b) => b.expenses - a.expenses)
       .slice(0, 5)
       .map(c => ({
@@ -133,6 +135,7 @@ export default function DashboardPage() {
 
   // Recent transactions (Top 5)
   const recentTransactions = useMemo(() => {
+    if (!Array.isArray(transactions) || !Array.isArray(categories)) return [];
     return [...transactions]
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     .slice(0, 5)

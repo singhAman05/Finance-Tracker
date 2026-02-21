@@ -104,14 +104,17 @@ export function getTransactionStats(
 
 export function getFinancialHealth(transactions: Transaction[], accounts: Account[]) {
     // Helper to get month key (YYYY-MM)
-    const getMonthKey = (dateStr: string) => dateStr.substring(0, 7);
+    const getMonthKey = (date: any) => {
+        const d = date instanceof Date ? date : new Date(date);
+        return d.toISOString().substring(0, 7);
+    };
 
     const now = new Date();
-    const currentMonthKey = getMonthKey(now.toISOString());
+    const currentMonthKey = getMonthKey(now);
 
     // Calculate previous month key
     const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthKey = getMonthKey(prevDate.toISOString());
+    const prevMonthKey = getMonthKey(prevDate);
 
     let currentIncome = 0;
     let currentExpense = 0;
