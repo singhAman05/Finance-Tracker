@@ -3,9 +3,9 @@
 import { motion } from "framer-motion";
 import { useDispatch } from "react-redux";
 import { closeModal } from "@/components/redux/slices/slice_modal";
-import { AddAccount } from "@/components/accounts/addAccount";
+import AddBillForm from "@/components/bills/addBillForm";
 
-export function AddAccountModal() {
+export function AddBillModal() {
   const dispatch = useDispatch();
 
   return (
@@ -22,9 +22,9 @@ export function AddAccountModal() {
         exit={{ scale: 0.95, y: 20, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl"
+        className="w-full max-w-2xl"
       >
-        <AddAccount onClose={() => dispatch(closeModal())} />
+        <AddBillForm onClose={() => dispatch(closeModal())} />
       </motion.div>
     </motion.div>
   );

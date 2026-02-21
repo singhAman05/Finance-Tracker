@@ -4,6 +4,8 @@ import accountReducer from "@/components/redux/slices/slice_accounts";
 import transactionReducer from "@/components/redux/slices/slice_transactions";
 import categoryReducer from "@/components/redux/slices/slice_categories";
 import modalReducer from "@/components/redux/slices/slice_modal";
+import billsReducer from "@/components/redux/slices/slice_bills";
+import budgetReducer from "@/components/redux/slices/slice_budgets";
 
 export const store = configureStore({
   reducer: {
@@ -12,6 +14,8 @@ export const store = configureStore({
     transactions: transactionReducer,
     categories: categoryReducer,
     modal: modalReducer,
+    bills: billsReducer,
+    budgets: budgetReducer,
   },
 });
 

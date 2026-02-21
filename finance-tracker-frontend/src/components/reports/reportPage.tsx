@@ -22,12 +22,14 @@ import AccountsTab from "@/components/reports/accountsTab";
 import TrendsTab from "@/components/reports/trendsTab";
 import TransactionsTab from "@/components/reports/transactionTab";
 import {
-  calculateSummary,
+  aggregateTransactions,
   getCategoryData,
   getAccountData,
   getMonthlyData,
+  calculateSummaryFromAggregation,
   exportCategoryDataToCSV,
 } from "@/service/service_reports";
+
 
 export default function ReportPage() {
   const dispatch = useDispatch();
@@ -41,12 +43,12 @@ export default function ReportPage() {
   );
   const [pendingLoads, setPendingLoads] = useState(0);
 
-  const accountMap = accounts.reduce((map, acc) => {
+  const accountLookup = accounts.reduce((map, acc) => {
     map[acc.id] = acc;
     return map;
   }, {} as Record<string, any>);
 
-  const categoryMap = categories.reduce((map, cat) => {
+  const categoryLookup = categories.reduce((map, cat) => {
     map[cat.id] = cat;
     return map;
   }, {} as Record<string, any>);
@@ -93,11 +95,6 @@ export default function ReportPage() {
       setPendingLoads((prev) => prev - 1);
     }
   }, [categories, dispatch]);
-  const handleExport = () => {
-    const today = new Date();
-    const dateStr = today.toISOString().split("T")[0];
-    exportCategoryDataToCSV(categoryData, `financial-report-${dateStr}.csv`);
-  };
 
   useEffect(() => {
     loadAccounts();
@@ -106,10 +103,21 @@ export default function ReportPage() {
   }, [loadAccounts, loadTransactions, loadCategories]);
 
   // Calculate all data using our service functions
-  const summary = calculateSummary(accounts, transactions);
-  const categoryData = getCategoryData(categories, transactions);
-  const accountData = getAccountData(accounts, transactions);
-  const monthlyData = getMonthlyData(transactions);
+  const { categoryMap, accountMap: aggregatedAccountMap, monthlyMap } =
+  aggregateTransactions(transactions);
+
+  const categoryData = getCategoryData(categories, categoryLookup);
+  const accountData = getAccountData(accounts, aggregatedAccountMap);
+  const monthlyData = getMonthlyData(monthlyMap);
+
+  const summary = calculateSummaryFromAggregation(accounts, categoryLookup);
+
+  const handleExport = () => {
+    const today = new Date();
+    const dateStr = today.toISOString().split("T")[0];
+    exportCategoryDataToCSV(categoryData, `financial-report-${dateStr}.csv`);
+  };
+
 
   return (
     <div className="w-full p-6">
@@ -165,8 +173,8 @@ export default function ReportPage() {
               <TabsContent value="transactions" className="mt-6">
                 <TransactionsTab
                   transactions={transactions}
-                  accountMap={accountMap}
-                  categoryMap={categoryMap}
+                  accountMap={accountLookup}
+                  categoryMap={categoryLookup}
                 />
               </TabsContent>
             </Tabs>

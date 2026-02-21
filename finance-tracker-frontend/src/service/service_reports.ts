@@ -1,103 +1,211 @@
-import { Account, Category, Transaction,   CategoryAnalysis, AccountAnalysis, MonthlyData, ChartDataInput  } from "@/types/interfaces";
+import { Account, Category, Transaction, CategoryAnalysis, AccountAnalysis, MonthlyData, ChartDataInput } from "@/types/interfaces";
+
+interface Bill {
+  id: string;
+  amount: number;
+  due_date: Date;
+  paid: boolean;
+}
+
+export interface Budget {
+  id: string;
+  category_id: string;
+  limit: number;
+}
+
+export const getBudgetVsActual = (
+  categories: Category[],
+  budgets: Budget[],
+  categoryMap: Record<string, { income: number; expenses: number; count: number }>
+) => {
+  const budgetMap = Object.fromEntries(
+    budgets.map(b => [b.category_id, b])
+  );
+
+  return categories.map(category => {
+    const stats = categoryMap[category.id];
+    const budget = budgetMap[category.id];
+
+    const actual = stats?.expenses || 0;
+    const limit = budget?.limit || 0;
+    const remaining = limit - actual;
+    const percentage = limit > 0 ? (actual / limit) * 100 : 0;
+
+    return {
+      category_id: category.id,
+      category_name: category.name,
+      limit,
+      actual,
+      remaining,
+      percentage,
+      overspent: limit > 0 && actual > limit,
+    };
+  });
+};
+
 
 // Calculate summary values
-export const calculateSummary = (accounts: Account[], transactions: Transaction[]) => {
+export const calculateSummaryFromAggregation = (
+  accounts: Account[],
+  categoryMap: Record<string, { income: number; expenses: number; count: number }>
+) => {
   const totalBalance = accounts.reduce(
     (sum, acc) => sum + (acc.balance || 0),
     0
   );
-  
-  const totalIncome = transactions
-    .filter(tx => tx.amount < 0)
-    .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-    
-  const totalExpenses = transactions
-    .filter(tx => tx.amount > 0)
-    .reduce((sum, tx) => sum + tx.amount, 0);
-    
-  const netWorthChange = totalIncome - totalExpenses;
 
-  return { totalBalance, totalIncome, totalExpenses, netWorthChange };
+  let totalIncome = 0;
+  let totalExpenses = 0;
+
+  Object.values(categoryMap).forEach(stat => {
+    totalIncome += stat.income;
+    totalExpenses += stat.expenses;
+  });
+
+  return {
+    totalBalance,
+    totalIncome,
+    totalExpenses,
+    netWorthChange: totalIncome - totalExpenses,
+  };
 };
+
+
+export const aggregateTransactions = (transactions: Transaction[]) => {
+  const categoryMap: Record<string, { income: number; expenses: number; count: number }> = {};
+  const accountMap: Record<string, { income: number; expenses: number; count: number }> = {};
+  const monthlyMap: Record<string, { income: number; expenses: number }> = {};
+
+  for (const tx of transactions) {
+    const monthKey = `${tx.date.getFullYear()}-${tx.date.getMonth()}`; // stable key
+
+    if (!monthlyMap[monthKey]) {
+      monthlyMap[monthKey] = { income: 0, expenses: 0 };
+    }
+
+    const isIncome = tx.amount < 0;
+    const absAmount = Math.abs(tx.amount);
+
+    // Monthly
+    if (isIncome) monthlyMap[monthKey].income += absAmount;
+    else monthlyMap[monthKey].expenses += absAmount;
+
+    // Category
+    if (!categoryMap[tx.category_id]) {
+      categoryMap[tx.category_id] = { income: 0, expenses: 0, count: 0 };
+    }
+
+    if (isIncome) categoryMap[tx.category_id].income += absAmount;
+    else categoryMap[tx.category_id].expenses += absAmount;
+
+    categoryMap[tx.category_id].count++;
+
+    // Account
+    if (!accountMap[tx.account_id]) {
+      accountMap[tx.account_id] = { income: 0, expenses: 0, count: 0 };
+    }
+
+    if (isIncome) accountMap[tx.account_id].income += absAmount;
+    else accountMap[tx.account_id].expenses += absAmount;
+
+    accountMap[tx.account_id].count++;
+  }
+
+  return { categoryMap, accountMap, monthlyMap };
+};
+
 
 // Prepare data for category-wise analysis
-export const getCategoryData = (categories: Category[], transactions: Transaction[]) => {
-  return categories.map(category => {
-    const categoryTransactions = transactions.filter(
-      tx => tx.category_id === category.id
-    );
-    
-    const income = categoryTransactions
-      .filter(tx => tx.amount < 0)
-      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-      
-    const expenses = categoryTransactions
-      .filter(tx => tx.amount > 0)
-      .reduce((sum, tx) => sum + tx.amount, 0);
-      
-    return {
-      id: category.id,
-      name: category.name,
-      income,
-      expenses,
-      net: income - expenses,
-      count: categoryTransactions.length,
-      color: category.color
-    };
-  }).filter(item => item.count > 0);
+export const getCategoryData = (
+  categories: Category[],
+  categoryMap: Record<string, { income: number; expenses: number; count: number }>
+): CategoryAnalysis[] => {
+  return categories
+    .map(category => {
+      const stats = categoryMap[category.id];
+
+      if (!stats) return null;
+
+      return {
+        id: category.id,
+        name: category.name,
+        income: stats.income,
+        expenses: stats.expenses,
+        net: stats.income - stats.expenses,
+        count: stats.count,
+        color: category.color,
+      };
+    })
+    .filter(Boolean) as CategoryAnalysis[];
 };
+
 
 // Prepare data for account-wise analysis
-export const getAccountData = (accounts: Account[], transactions: Transaction[]) => {
-  return accounts.map(account => {
-    const accountTransactions = transactions.filter(
-      tx => tx.account_id === account.id
-    );
-    
-    const income = accountTransactions
-      .filter(tx => tx.amount < 0)
-      .reduce((sum, tx) => sum + Math.abs(tx.amount), 0);
-      
-    const expenses = accountTransactions
-      .filter(tx => tx.amount > 0)
-      .reduce((sum, tx) => sum + tx.amount, 0);
-      
-    return {
-      id: account.id,
-      name: account.name,
-      bankName: account.bankName,
-      income,
-      expenses,
-      net: income - expenses,
-      count: accountTransactions.length,
-      currentBalance: account.balance || 0
-    };
-  }).filter(item => item.count > 0);
+export const getAccountData = (
+  accounts: Account[],
+  accountMap: Record<string, { income: number; expenses: number; count: number }>
+): AccountAnalysis[] => {
+  return accounts
+    .map(account => {
+      const stats = accountMap[account.id];
+      if (!stats) return null;
+
+      return {
+        id: account.id,
+        name: account.name,
+        bankName: account.bankName,
+        income: stats.income,
+        expenses: stats.expenses,
+        net: stats.income - stats.expenses,
+        count: stats.count,
+        currentBalance: account.balance || 0,
+      };
+    })
+    .filter(Boolean) as AccountAnalysis[];
 };
 
+
 // Prepare data for time-based analysis (monthly)
-export const getMonthlyData = (transactions: Transaction[]) => {
-  const months: Record<string, MonthlyData> = {};
-  
-  transactions.forEach(tx => {
-    const monthKey = new Date(tx.date).toLocaleString('default', { month: 'short', year: 'numeric' });
-    if (!months[monthKey]) {
-      months[monthKey] = { month: monthKey, income: 0, expenses: 0 };
-    }
-    
-    if (tx.amount < 0) {
-      months[monthKey].income += Math.abs(tx.amount);
-    } else {
-      months[monthKey].expenses += tx.amount;
-    }
-  });
-  
-  return Object.values(months).sort((a, b) => {
-    const aDate = new Date(a.month);
-    const bDate = new Date(b.month);
-    return aDate.getTime() - bDate.getTime();
-  });
+export const getMonthlyData = (
+  monthlyMap: Record<string, { income: number; expenses: number }>
+) => {
+  return Object.entries(monthlyMap)
+    .map(([key, value]) => {
+      const [year, month] = key.split("-").map(Number);
+      const date = new Date(year, month);
+
+      return {
+        month: date.toLocaleString("default", { month: "short", year: "numeric" }),
+        income: value.income,
+        expenses: value.expenses,
+        sortKey: date.getTime(),
+      };
+    })
+    .sort((a, b) => a.sortKey - b.sortKey)
+    .map(({ sortKey, ...rest }) => rest);
 };
+
+export const getUpcomingBillsSummary = (bills: Bill[], daysAhead = 30) => {
+  const now = new Date();
+  const future = new Date();
+  future.setDate(now.getDate() + daysAhead);
+
+  const upcoming = bills.filter(
+    bill =>
+      !bill.paid &&
+      new Date(bill.due_date) >= now &&
+      new Date(bill.due_date) <= future
+  );
+
+  const totalDue = upcoming.reduce((sum, bill) => sum + bill.amount, 0);
+
+  return {
+    count: upcoming.length,
+    totalDue,
+    upcoming,
+  };
+};
+
 
 // Get top spending categories
 export const getTopSpendingCategories = (categoryData: CategoryAnalysis[], limit = 5) => {
@@ -146,16 +254,16 @@ export const convertToIncomeChartData = (data: CategoryAnalysis[]): ChartDataInp
 // Add this function to your service_reports.ts
 export const exportCategoryDataToCSV = (categoryData: CategoryAnalysis[], filename: string = 'financial-report.csv') => {
   const header = 'Category,Income,Expenses,Net,Transactions\n';
-  const rows = categoryData.map(category => 
+  const rows = categoryData.map(category =>
     `"${category.name.replace(/"/g, '""')}",${category.income},${category.expenses},${category.net},${category.count}`
   ).join('\n');
 
   const csv = header + rows;
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-  
+
   const link = document.createElement('a');
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute('href', url);
   link.setAttribute('download', filename);
   link.style.visibility = 'hidden';

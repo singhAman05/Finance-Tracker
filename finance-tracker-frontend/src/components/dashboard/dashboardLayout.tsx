@@ -9,7 +9,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [isMobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="relative flex h-screen w-full overflow-hidden bg-[#FAFAFA] dark:bg-black">
+    <div className="relative flex h-screen w-full overflow-hidden bg-background text-text-primary">
       {/* Sidebar: Fixed and rigid */}
       <aside className="hidden md:flex flex-col h-full shrink-0 z-40">
         <Sidebar />
@@ -17,14 +17,14 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
 
       <div className="flex flex-col flex-1 min-w-0 h-full relative">
         {/* Mobile Header: Minimalist */}
-        <header className="md:hidden flex items-center justify-between h-14 px-4 border-b bg-white/80 backdrop-blur-md dark:bg-black/80 sticky top-0 z-30">
+        <header className="md:hidden flex items-center justify-between h-14 px-4 border-b border-border bg-card/80 backdrop-blur-md sticky top-0 z-30">
           <button
             onClick={() => setMobileOpen(true)}
-            className="p-2 -ml-2 hover:bg-slate-100 dark:hover:bg-slate-900 rounded-full transition-colors"
+            className="p-2 -ml-2 hover:bg-muted rounded-full transition-colors"
           >
-            <Menu className="h-5 w-5 text-slate-600" />
+            <Menu className="h-5 w-5 text-text-secondary" />
           </button>
-          <span className="text-sm font-semibold tracking-tight">Finance</span>
+          <span className="text-sm font-semibold tracking-tight text-text-primary">Finance</span>
           <div className="w-9" /> {/* Spacer for balance */}
         </header>
 
@@ -45,10 +45,10 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
       {isMobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div
-            className="absolute inset-0 bg-black/20 backdrop-blur-sm animate-in fade-in duration-300"
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in duration-300"
             onClick={() => setMobileOpen(false)}
           />
-          <div className="absolute left-0 top-0 h-full w-[280px] bg-white dark:bg-slate-950 shadow-2xl animate-in slide-in-from-left duration-300">
+          <div className="absolute left-0 top-0 h-full w-[280px] bg-card border-r border-border shadow-2xl animate-in slide-in-from-left duration-300">
             <MobileSidebar onClose={() => setMobileOpen(false)} />
           </div>
         </div>

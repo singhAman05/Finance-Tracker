@@ -161,7 +161,7 @@ export default function DashboardPage() {
       <div 
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
           backgroundSize: "32px 32px",
         }}
       />
@@ -175,17 +175,17 @@ export default function DashboardPage() {
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-gray-900 dark:text-white">
+            <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
               Financial Dashboard
             </h1>
             <div className="mt-2">
               {isClient && user ? (
-                <p className="text-base text-muted-foreground">
+                <p className="text-base text-text-secondary">
                   Welcome back,{" "}
-                  <span className="font-semibold text-foreground">{user.full_name}</span>
+                  <span className="font-semibold text-text-primary">{user.full_name}</span>
                 </p>
               ) : (
-                <p className="text-base text-muted-foreground">
+                <p className="text-base text-text-secondary">
                   Welcome to your dashboard
                 </p>
               )}
@@ -194,7 +194,7 @@ export default function DashboardPage() {
 
           <Button 
             size="lg" 
-            className="gap-2 w-full md:w-auto shadow-lg hover:shadow-xl transition-all duration-300 rounded-full"
+            className="gap-2 w-full md:w-auto shadow-lg hover:shadow-xl transition-all duration-300 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
             onClick={() => router.push("/transactions")} // Redirect to add transaction there or open modal
           >
             <Plus size={18} />
@@ -216,11 +216,11 @@ export default function DashboardPage() {
               <div className="text-3xl font-bold tracking-tighter">
                 <AnimatedCounter target={financialHealth.netWorth} prefix="₹" />
               </div>
-              <p className="text-xs text-muted-foreground flex items-center mt-2 font-medium">
+              <p className="text-xs text-text-secondary flex items-center mt-2 font-medium">
                  {/* Placeholder for Net Worth Growth since we don't have history yet */}
-                <ArrowUpRight className="h-4 w-4 text-emerald-500 mr-1" />
-                <span className="text-emerald-500">Live</span>
-                <span className="ml-1">updated from accounts</span>
+                <ArrowUpRight className="h-4 w-4 text-success mr-1" />
+                <span className="text-success">Live</span>
+                <span className="ml-1 text-text-secondary">updated from accounts</span>
               </p>
             </CardContent>
           </Card>
@@ -234,12 +234,12 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-3xl font-bold tracking-tighter ${financialHealth.cashFlow >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+              <div className={`text-3xl font-bold tracking-tighter ${financialHealth.cashFlow >= 0 ? "text-success" : "text-danger"}`}>
                 <AnimatedCounter target={Math.abs(financialHealth.cashFlow)} prefix={financialHealth.cashFlow < 0 ? "-₹" : "₹"} />
               </div>
-              <p className="text-xs text-muted-foreground mt-2 font-medium">
-                Income: <span className="text-foreground">{formatCurrency(financialHealth.currentIncome)}</span> | Expenses:{" "}
-                <span className="text-foreground">{formatCurrency(financialHealth.currentExpense)}</span>
+              <p className="text-xs text-text-secondary mt-2 font-medium">
+                Income: <span className="text-text-primary">{formatCurrency(financialHealth.currentIncome)}</span> | Expenses:{" "}
+                <span className="text-text-primary">{formatCurrency(financialHealth.currentExpense)}</span>
               </p>
             </CardContent>
           </Card>
@@ -257,10 +257,10 @@ export default function DashboardPage() {
                 <AnimatedCounter target={mockBudgetData.health} />
                 <span>%</span>
               </div>
-              <p className="text-xs text-muted-foreground mt-2 font-medium">
-                <span className="text-foreground">{formatCurrency(mockBudgetData.used)}</span> of {formatCurrency(mockBudgetData.total)} used
+              <p className="text-xs text-text-secondary mt-2 font-medium">
+                <span className="text-text-primary">{formatCurrency(mockBudgetData.used)}</span> of {formatCurrency(mockBudgetData.total)} used
               </p>
-              <Progress value={mockBudgetData.health} className="h-1.5 mt-3 bg-secondary" />
+              <Progress value={mockBudgetData.health} className="h-1.5 mt-3 bg-muted" />
             </CardContent>
           </Card>
         </motion.div>
@@ -377,7 +377,7 @@ export default function DashboardPage() {
                 <Button 
                     variant="ghost" 
                     size="sm" 
-                    className="text-primary hover:text-primary/80 hover:bg-primary/10"
+                    className="text-primary hover:text-primary/80 hover:bg-primary/5"
                     onClick={() => router.push("/transactions")}
                 >
                   View All
@@ -394,8 +394,8 @@ export default function DashboardPage() {
                         <div
                           className={`p-2.5 rounded-xl mr-4 transition-colors ${
                             transaction.amount > 0
-                              ? "bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20"
-                              : "bg-red-100 text-red-600 dark:bg-red-500/20"
+                              ? "bg-success/10 text-success"
+                              : "bg-danger/10 text-danger"
                           }`}
                         >
                           {transaction.amount > 0 ? (
@@ -406,7 +406,7 @@ export default function DashboardPage() {
                         </div>
                         <div>
                           <div className="font-semibold tracking-tight group-hover:text-primary transition-colors max-w-[150px] truncate">{transaction.description || "No description"}</div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
+                          <div className="text-xs text-text-secondary mt-0.5">
                             {new Date(transaction.date).toLocaleDateString()} • {transaction.categoryName}
                           </div>
                         </div>
@@ -414,8 +414,8 @@ export default function DashboardPage() {
                       <div
                         className={`font-semibold tracking-tight ${
                           transaction.amount > 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                            ? "text-success"
+                            : "text-danger"
                         }`}
                       >
                         {transaction.amount < 0 ? "-" : "+"}{formatCurrency(Math.abs(transaction.amount))}
@@ -432,10 +432,10 @@ export default function DashboardPage() {
 
           {/* Upcoming Bills - MOCK DATA */}
           <div className="lg:col-span-3">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full bg-slate-900 text-white dark:bg-slate-950">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full bg-primary text-primary-foreground border-primary/20">
               <CardHeader className="pb-6">
-                <CardTitle className="text-lg text-white">Upcoming Bills</CardTitle>
-                <CardDescription className="text-slate-400">Next 7 days</CardDescription>
+                <CardTitle className="text-lg text-primary-foreground">Upcoming Bills</CardTitle>
+                <CardDescription className="text-primary-foreground/60">Next 7 days</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -445,12 +445,12 @@ export default function DashboardPage() {
                       className="flex items-center justify-between"
                     >
                       <div>
-                        <div className="font-semibold tracking-tight text-white">{bill.name}</div>
-                        <div className="text-xs text-slate-400 mt-0.5">
+                        <div className="font-semibold tracking-tight text-primary-foreground">{bill.name}</div>
+                        <div className="text-xs text-primary-foreground/60 mt-0.5">
                           Due: {bill.dueDate}
                         </div>
                       </div>
-                      <div className="font-semibold text-red-400">
+                      <div className="font-semibold text-danger">
                         {formatCurrency(bill.amount)}
                       </div>
                     </div>
@@ -474,11 +474,11 @@ export default function DashboardPage() {
                     return (
                       <div key={goal.id}>
                         <div className="flex justify-between text-sm mb-2">
-                          <span className="font-semibold tracking-tight">{goal.name}</span>
-                          <span className="text-muted-foreground font-medium">{progress.toFixed(0)}%</span>
+                          <span className="font-semibold tracking-tight text-text-primary">{goal.name}</span>
+                          <span className="text-text-secondary font-medium">{progress.toFixed(0)}%</span>
                         </div>
-                        <Progress value={progress} className="h-2.5 rounded-full bg-secondary" />
-                        <div className="flex justify-between text-xs text-muted-foreground mt-2 font-medium">
+                        <Progress value={progress} className="h-2.5 rounded-full bg-muted" />
+                        <div className="flex justify-between text-xs text-text-secondary mt-2 font-medium">
                           <span>
                             {formatCurrency(goal.current)} /{" "}
                             {formatCurrency(goal.target)}

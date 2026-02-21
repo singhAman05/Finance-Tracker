@@ -1,19 +1,21 @@
 import { createSlice, PayloadAction } from "@reduxjs/toolkit";
-    export type ModalType =
+export type ModalType =
     | "ADD_ACCOUNT"
     | "ADD_TRANSACTION"
-    | "CONFIRM_DELETE";
+    | "ADD_BILL"
+    | "CONFIRM_DELETE"
+    | "ADD_BUDGET";
 
 export type ModalPayload =
-  | ConfirmDeletePayload
-  | undefined;
+    | ConfirmDeletePayload
+    | undefined;
 
 export interface ConfirmDeletePayload {
-  title: string;
-  description?: string;
-  confirmLabel?: string;
-  cancelLabel?: string;
-  onConfirm: () => void | Promise<void>;
+    title: string;
+    description?: string;
+    confirmLabel?: string;
+    cancelLabel?: string;
+    onConfirm: () => void | Promise<void>;
 }
 
 interface ModalState {
@@ -36,10 +38,10 @@ const modalSlice = createSlice({
                 type: ModalType;
                 payload?: ModalPayload;
             }>
-            ) => {
+        ) => {
             state.type = action.payload.type;
             state.payload = action.payload.payload;
-            },
+        },
 
         closeModal: (state) => {
             state.type = null;
