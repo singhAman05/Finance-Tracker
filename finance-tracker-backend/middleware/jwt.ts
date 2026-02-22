@@ -1,9 +1,12 @@
 import { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken"
-const SECRET_KEY = "KMUFsIDTnFmyG3nMiGM6H9FNFUROf3wh7SmqJp-QV30"
+import dotenv from 'dotenv';
+dotenv.config();
 
-export const tokenGenerator = async(payload:any)=>{
-    const token = jwt.sign({ payload }, SECRET_KEY, {expiresIn: '1 hour'});
+const SECRET_KEY = process.env.JWT_SECRET || "fallback-secret-key-for-local-only";
+
+export const tokenGenerator = async (payload: any) => {
+    const token = jwt.sign({ payload }, SECRET_KEY, { expiresIn: '1 hour' });
     return token;
 };
 

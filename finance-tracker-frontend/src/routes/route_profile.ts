@@ -1,3 +1,5 @@
+import { baseUrl } from "@/utils/Error_handler";
+
 export const profileRoute = async (profile_update: any): Promise<void> => {
   try {
     const token = localStorage.getItem('jwt');
@@ -5,7 +7,7 @@ export const profileRoute = async (profile_update: any): Promise<void> => {
       throw new Error("Authentication token not found.");
     }
 
-    const response = await fetch("http://localhost:8000/api/profile/complete_profile", {
+    const response = await fetch(`${baseUrl}/api/profile/complete_profile`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

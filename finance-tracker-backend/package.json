@@ -1,4 +1,12 @@
 {
+  "name": "finance-tracker-backend",
+  "version": "1.0.0",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node-dev --respawn --transpile-only server.ts"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.0",
     "cors": "^2.8.5",
