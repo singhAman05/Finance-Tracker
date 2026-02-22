@@ -64,9 +64,9 @@ export const calculateSummaryFromAggregation = (
 
   return {
     totalBalance,
-    totalIncome,
+    totalIncome: totalIncome + totalBalance,
     totalExpenses,
-    netWorthChange: totalIncome - totalExpenses,
+    netWorthChange: (totalIncome + totalBalance) - totalExpenses,
   };
 };
 
@@ -84,7 +84,7 @@ export const aggregateTransactions = (transactions: Transaction[]) => {
       monthlyMap[monthKey] = { income: 0, expenses: 0 };
     }
 
-    const isIncome = tx.amount < 0;
+    const isIncome = tx.type === 'income' || tx.amount < 0; // fallback for some old data
     const absAmount = Math.abs(tx.amount);
 
     // Monthly

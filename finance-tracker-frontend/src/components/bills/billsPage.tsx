@@ -84,8 +84,26 @@ export default function BillsPage() {
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   const stats = useMemo(() => {
-    const upcoming = instances.filter((i) => i.status === "upcoming");
-    const overdue = instances.filter((i) => i.status === "overdue");
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const upcoming = instances.filter((i) => {
+        if (i.status !== "upcoming") return false;
+        const dueDate = new Date(i.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate >= now;
+    });
+
+    const overdue = instances.filter((i) => {
+        if (i.status === "overdue") return true;
+        if (i.status === "upcoming") {
+            const dueDate = new Date(i.due_date);
+            dueDate.setHours(0, 0, 0, 0);
+            return dueDate < now;
+        }
+        return false;
+    });
+
     const paidThisMonth = instances.filter(
       (i) =>
         i.status === "paid" &&

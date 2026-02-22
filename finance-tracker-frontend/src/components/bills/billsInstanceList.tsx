@@ -24,8 +24,8 @@ const statusConfig = {
   upcoming: {
     label: "Upcoming",
     icon: Clock,
-    color: "text-primary",
-    badgeClass: "bg-primary/10 text-primary border-primary/20",
+    color: "text-info",
+    badgeClass: "bg-info/10 text-info border-info/20",
   },
   paid: {
     label: "Paid",
@@ -68,10 +68,39 @@ export default function BillsInstanceList({
     return acc;
   }, {} as Record<string, Bill>);
 
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+
   const sorted = [...instances].sort((a, b) => {
+    // 1. Determine effective status (taking date into account)
+    const getEffectiveStatus = (inst: BillInstance) => {
+        if (inst.status === 'paid') return 'paid';
+        const dueDate = new Date(inst.due_date);
+        dueDate.setHours(0, 0, 0, 0);
+        return dueDate < now ? 'overdue' : 'upcoming';
+    };
+
+    const statusA = getEffectiveStatus(a);
+    const statusB = getEffectiveStatus(b);
+
     const order = { overdue: 0, upcoming: 1, paid: 2 };
-    if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
-    return new Date(a.due_date).getTime() - new Date(b.due_date).getTime();
+    
+    // Sort by status priority first
+    if (order[statusA] !== order[statusB]) {
+        return order[statusA] - order[statusB];
+    }
+
+    // Within same status, sort by proximity to today
+    const dateA = new Date(a.due_date).getTime();
+    const dateB = new Date(b.due_date).getTime();
+
+    if (statusA === 'overdue') {
+        // Overdue: Closest to today should be at the top (i.e. latest due date)
+        return dateB - dateA;
+    }
+
+    // Upcoming or Paid: Earliest date first
+    return dateA - dateB;
   });
 
   if (sorted.length === 0) {
@@ -97,7 +126,16 @@ export default function BillsInstanceList({
       <AnimatePresence mode="popLayout">
         {sorted.map((instance, i) => {
           const bill = billMap[instance.bill_id];
-          const status = statusConfig[instance.status];
+          
+          // Determine effective status for display
+          let effectiveStatus: "upcoming" | "paid" | "overdue" = instance.status;
+          if (instance.status === "upcoming") {
+              const dueDate = new Date(instance.due_date);
+              dueDate.setHours(0, 0, 0, 0);
+              if (dueDate < now) effectiveStatus = "overdue";
+          }
+
+          const status = statusConfig[effectiveStatus];
           const StatusIcon = status.icon;
           const isPaying = payingId === instance.id;
 
@@ -118,11 +156,11 @@ export default function BillsInstanceList({
                     <div className="flex items-start gap-4">
                       <div
                         className={`p-2.5 rounded-xl mt-0.5 shrink-0 ${
-                          instance.status === "paid"
+                          effectiveStatus === "paid"
                             ? "bg-success/10"
-                            : instance.status === "overdue"
+                            : effectiveStatus === "overdue"
                             ? "bg-danger/10"
-                            : "bg-primary/10"
+                            : "bg-info/10"
                         }`}
                       >
                         <StatusIcon className={`h-5 w-5 ${status.color}`} />
@@ -161,26 +199,26 @@ export default function BillsInstanceList({
                     <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-2">
                       <span
                         className={`text-xl font-bold tracking-tighter ${
-                          instance.status === "paid"
+                          effectiveStatus === "paid"
                             ? "text-success"
-                            : instance.status === "overdue"
+                            : effectiveStatus === "overdue"
                             ? "text-danger"
-                            : "text-text-primary"
+                            : "text-info"
                         }`}
                       >
                         {formatCurrency(instance.amount)}
                       </span>
 
-                      {instance.status !== "paid" && (
+                      {effectiveStatus !== "paid" && (
                         <Button
                           size="sm"
-                          variant={instance.status === "overdue" ? "destructive" : "default"}
+                          variant={effectiveStatus === "overdue" ? "destructive" : "default"}
                           onClick={() => onPay(instance.id)}
                           disabled={isPaying}
                           className={cn(
                             "rounded-full text-xs h-8 px-4 shrink-0 font-medium transition-all shadow-sm",
-                            instance.status === "upcoming" && "bg-primary text-primary-foreground hover:bg-primary/90",
-                            instance.status === "overdue" && "bg-danger text-white hover:bg-danger/90"
+                            effectiveStatus === "upcoming" && "bg-info text-white hover:bg-info/90",
+                            effectiveStatus === "overdue" && "bg-danger text-white hover:bg-danger/90"
                           )}
                         >
                           {isPaying ? "Processing…" : "Mark as Paid"}

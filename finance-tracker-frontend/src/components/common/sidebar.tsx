@@ -47,18 +47,18 @@ const navItems = [
 
 const analyticsItems = [
   { label: "Reports", icon: LineChart, href: "/dashboard/reports" },
-  { label: "Cash Flow", icon: BarChart2, href: "/cash-flow" },
+  { label: "Cash Flow", icon: BarChart2, href: "/cash-flow", disabled: true },
 ];
 
 const planningItems = [
-  { label: "Goals", icon: Target, href: "/goals" },
+  { label: "Goals", icon: Target, href: "/goals", disabled: true },
   { label: "Bills", icon: Calendar, href: "/dashboard/bills" },
-  { label: "Investments", icon: PiggyBank, href: "/investments" },
+  { label: "Investments", icon: PiggyBank, href: "/investments", disabled: true },
 ];
 
 const utilityItems = [
-  { label: "Categories", icon: Tag, href: "/categories" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+  { label: "Categories", icon: Tag, href: "/categories", disabled: true },
+  { label: "Settings", icon: Settings, href: "/settings", disabled: true },
 ];
 
 export function Sidebar() {
@@ -106,30 +106,32 @@ export function Sidebar() {
         {title}
       </h3>
 
-      {items.map(({ label, icon: Icon, href }) => {
+      {items.map((item) => {
         const isActive =
-          href === "/dashboard"
+          item.href === "/dashboard"
             ? pathname === "/dashboard"
-            : pathname.startsWith(href);
+            : pathname.startsWith(item.href);
 
         return (
           <div
-            key={label}
+            key={item.label}
             role="button"
             onClick={() => {
+              if (item.disabled) return;
               startTransition(() => {
-                router.push(href);
+                router.push(item.href);
               });
             }}
             className={cn(
               "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 mb-1 px-3",
               isActive
                 ? "bg-primary text-primary-foreground shadow-sm"
-                : "text-text-secondary hover:bg-muted"
+                : "text-text-secondary hover:bg-muted font-normal",
+              item.disabled ? "opacity-40 pointer-events-none grayscale" : "cursor-pointer"
             )}
           >
             <div className="flex items-center w-full gap-3">
-              <Icon
+              <item.icon
                 className={cn(
                   "w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200",
                   !isActive && "group-hover:scale-105"
@@ -144,7 +146,7 @@ export function Sidebar() {
                     : "opacity-0 -translate-x-2 w-0 overflow-hidden"
                 )}
               >
-                {label}
+                {item.label}
               </span>
             </div>
           </div>
@@ -203,23 +205,26 @@ export function Sidebar() {
 
       {/* Footer Section */}
       <div className="border-t border-slate-200/50 dark:border-slate-800/50 px-1 pt-4 pb-6 bg-slate-50/30 dark:bg-slate-900/20 space-y-3">
-        {utilityItems.map(({ label, icon: Icon, href }) => {
-          const isActive = pathname.startsWith(href);
+        {utilityItems.map((item) => {
+          const { icon: Icon } = item;
+          const isActive = pathname.startsWith(item.href);
 
           return (
             <div
-              key={label}
+              key={item.label}
               role="button"
               onClick={() => {
+                if (item.disabled) return;
                 startTransition(() => {
-                  router.push(href);
+                  router.push(item.href);
                 });
               }}
               className={cn(
                 "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-text-secondary hover:bg-muted"
+                  : "text-text-secondary hover:bg-muted",
+                item.disabled ? "opacity-40 pointer-events-none grayscale" : "cursor-pointer font-medium"
               )}
             >
               <div className="flex items-center w-full gap-3">
@@ -233,7 +238,7 @@ export function Sidebar() {
                       : "opacity-0 -translate-x-2 w-0 overflow-hidden"
                   )}
                 >
-                  {label}
+                  {item.label}
                 </span>
               </div>
             </div>
@@ -246,7 +251,7 @@ export function Sidebar() {
           onClick={() => setTheme(isDark ? "light" : "dark")}
           className={cn(
             "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3",
-            "text-text-secondary hover:bg-muted"
+            "text-text-secondary hover:bg-muted cursor-pointer"
           )}
           aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
         >
@@ -304,7 +309,7 @@ export function Sidebar() {
         <div
           role="button"
           onClick={handleLogout}
-          className="group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3 text-danger hover:bg-danger/5"
+          className="group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3 text-danger hover:bg-danger/5 cursor-pointer"
         >
           <div className="flex items-center w-full gap-3">
             <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:-translate-x-1" />

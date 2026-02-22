@@ -19,11 +19,29 @@ import {
   PiggyBank,
   ArrowUpRight,
   ArrowDownRight,
-  BarChart2,
   PieChart,
   LineChart,
   Plus,
+  TrendingUp,
+  Activity,
+  CalendarDays,
 } from "lucide-react";
+import {
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  AreaChart,
+  Area,
+  Line,
+  Cell,
+  PieChart as RechartsPieChart,
+  Pie,
+} from "recharts";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useRouter } from "next/navigation";
@@ -31,14 +49,16 @@ import { useRouter } from "next/navigation";
 // Services and Actions
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
 import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
-import { getCategoryData, aggregateTransactions } from "@/service/service_reports"; 
+import { getCategoryData, aggregateTransactions, getMonthlyData } from "@/service/service_reports"; 
 import { fetchCategories } from "@/service/service_categories";
+import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
+import { fetchBillInstances } from "@/service/service_bills";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setAccounts } from "../redux/slices/slice_accounts";
 import { setCategories } from "../redux/slices/slice_categories";
 
-// Mock Data
-import { mockUpcomingBills, mockFinancialGoals, mockBudgetData } from "@/lib/mockDashboardData";
+// Types
+import { BillInstance } from "@/types/interfaces";
 
 const staggerContainer = {
   hidden: {},
@@ -71,6 +91,28 @@ function AnimatedCounter({ target, duration = 2, prefix = "" }: { target: number
   return <span>{display}</span>;
 }
 
+const GlassTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-2xl shadow-xl">
+        <p className="font-bold text-xs mb-2 text-text-primary">{label}</p>
+        <div className="space-y-1.5">
+          {payload.map((item: any, idx: number) => (
+            <div key={idx} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-tight">{item.name}:</span>
+              </div>
+              <span className="text-xs font-bold text-text-primary">₹{item.value.toLocaleString()}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 export default function DashboardPage() {
   const dispatch = useDispatch();
   const router = useRouter();
@@ -80,6 +122,9 @@ export default function DashboardPage() {
   const categories = useSelector((state: RootState) => state.categories.categories);
 
   const [isClient, setIsClient] = useState(false);
+  const [budgetSummary, setBudgetSummary] = useState<any[]>([]);
+  const [upcomingBills, setUpcomingBills] = useState<BillInstance[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     setIsClient(true);
@@ -88,18 +133,36 @@ export default function DashboardPage() {
   // --- Data Loading ---
   useEffect(() => {
     const loadData = async () => {
-        // Only fetch if we don't have data (or you could perform a background refresh)
-        if (transactions.length === 0) {
-            const txRes = await fetchTransactions();
-            dispatch(setTransactions(txRes.data));
-        }
-        if (accounts.length === 0) {
-            const accRes = await fetchAccounts();
-            dispatch(setAccounts(accRes.data));
-        }
-        if (categories.length === 0) {
-            const catRes = await fetchCategories();
-            dispatch(setCategories(catRes.data));
+        setLoading(true);
+        try {
+            // Only fetch if we don't have data (or you could perform a background refresh)
+            const promises = [];
+            
+            if (transactions.length === 0) promises.push(fetchTransactions().then(res => dispatch(setTransactions(res.data))));
+            if (accounts.length === 0) promises.push(fetchAccounts().then(res => dispatch(setAccounts(res.data))));
+            if (categories.length === 0) promises.push(fetchCategories().then(res => dispatch(setCategories(res.data))));
+            
+            // Always fetch fresh summaries for dashboard
+            promises.push(fetchBudgetSummary().then(res => setBudgetSummary(res?.data || [])));
+            promises.push(fetchBillInstances().then(res => {
+                const instances = res?.data || [];
+                // Filter for upcoming/unpaid bills in the next 15 days
+                const now = new Date();
+                const fifteenDaysLater = new Date();
+                fifteenDaysLater.setDate(now.getDate() + 15);
+
+                const upcoming = instances
+                    .filter((bi: any) => bi.status !== 'paid' && new Date(bi.due_date) <= fifteenDaysLater)
+                    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+                    .slice(0, 5);
+                setUpcomingBills(upcoming);
+            }));
+
+            await Promise.all(promises);
+        } catch (error) {
+            console.error("Dashboard data load error:", error);
+        } finally {
+            setLoading(false);
         }
     };
     loadData();
@@ -119,6 +182,15 @@ export default function DashboardPage() {
     return getCategoryData(categories, categoryMap);
   }, [categories, transactions]);
   
+  // Budget stats
+  const budgetStats = useMemo(() => {
+    return calculateBudgetSummaryStats(budgetSummary);
+  }, [budgetSummary]);
+
+  // Prepared data for charts using real data
+  const { monthlyMap } = aggregateTransactions(transactions);
+  const monthlyData = getMonthlyData(monthlyMap).slice(-6); // Last 6 months
+  
   // Prepare data for "Spending Distribution" (Top 5 expenses)
   const spendingChartData = useMemo(() => {
     if (!Array.isArray(categoryData)) return [];
@@ -128,7 +200,7 @@ export default function DashboardPage() {
       .map(c => ({
           name: c.name,
           value: c.expenses,
-          color: c.color || "bg-gray-500" // Fallback color
+          color: c.color || "#6366f1" // Fallback indigo
       })); 
   }, [categoryData]);
 
@@ -197,11 +269,11 @@ export default function DashboardPage() {
 
           <Button 
             size="lg" 
-            className="gap-2 w-full md:w-auto shadow-lg hover:shadow-xl transition-all duration-300 rounded-full bg-primary text-primary-foreground hover:bg-primary/90"
-            onClick={() => router.push("/transactions")} // Redirect to add transaction there or open modal
+            className="gap-2 w-full md:w-auto shadow-lg hover:shadow-xl transition-all duration-300 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
+            onClick={() => router.push("/dashboard/bills")}
           >
             <Plus size={18} />
-            View Transactions
+            View Bills
           </Button>
         </motion.div>
 
@@ -247,7 +319,6 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          {/* Budget Health - MOCK DATA */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Budget Health</CardTitle>
@@ -257,13 +328,13 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold tracking-tighter">
-                <AnimatedCounter target={mockBudgetData.health} />
+                <AnimatedCounter target={Math.min(100, Math.round(budgetStats.overallPercentage))} />
                 <span>%</span>
               </div>
               <p className="text-xs text-text-secondary mt-2 font-medium">
-                <span className="text-text-primary">{formatCurrency(mockBudgetData.used)}</span> of {formatCurrency(mockBudgetData.total)} used
+                <span className="text-text-primary">{formatCurrency(budgetStats.totalSpent)}</span> of {formatCurrency(budgetStats.totalBudget)} used
               </p>
-              <Progress value={mockBudgetData.health} className="h-1.5 mt-3 bg-muted" />
+              <Progress value={budgetStats.overallPercentage} className="h-1.5 mt-3 bg-muted" />
             </CardContent>
           </Card>
         </motion.div>
@@ -273,19 +344,46 @@ export default function DashboardPage() {
           {/* Monthly Cash Flow - Placeholder/Future Feature */}
           <div className="lg:col-span-8">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300">
-              <CardHeader>
-                <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
-                <CardDescription>
-                  Income vs Expenses over last 6 months
-                </CardDescription>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                   <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
+                   <CardDescription>
+                     Income vs Expenses over last 6 months
+                   </CardDescription>
+                </div>
+                <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-success" />
+                        <span className="text-text-secondary">Income</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                        <div className="w-2 h-2 rounded-full bg-danger" />
+                        <span className="text-text-secondary">Expense</span>
+                    </div>
+                </div>
               </CardHeader>
               <CardContent className="h-[300px]">
-                <div className="flex items-center justify-center h-full border-2 border-dashed border-muted rounded-xl bg-muted/20">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <BarChart2 className="h-10 w-10" />
-                    <span className="font-medium">Cash Flow Chart (Coming Soon)</span>
-                  </div>
-                </div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="opacity-[0.05]" />
+                    <XAxis 
+                        dataKey="month" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 600 }}
+                        dy={10}
+                    />
+                    <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 600 }}
+                        tickFormatter={(val) => `₹${val/1000}k`}
+                    />
+                    <Tooltip content={<GlassTooltip />} cursor={{ fill: 'currentColor', opacity: 0.05 }} />
+                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
+                    <Bar dataKey="expenses" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={24} />
+                  </BarChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
@@ -330,40 +428,70 @@ export default function DashboardPage() {
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
               <CardHeader>
                 <CardTitle className="text-lg">Net Worth Trend</CardTitle>
-                <CardDescription>12-month progression</CardDescription>
+                <CardDescription>Monthly progression</CardDescription>
               </CardHeader>
               <CardContent className="h-[250px]">
-                <div className="flex items-center justify-center h-full border-2 border-dashed border-muted rounded-xl bg-muted/20">
-                   <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <LineChart className="h-10 w-10" />
-                    <span className="font-medium">Trend Chart (Coming Soon)</span>
-                  </div>
-                </div>
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="opacity-[0.05]" />
+                    <XAxis 
+                        dataKey="month" 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 600 }}
+                        dy={10}
+                    />
+                    <YAxis 
+                        axisLine={false} 
+                        tickLine={false} 
+                        tick={{ fontSize: 10, fontWeight: 600 }}
+                        tickFormatter={(val) => `₹${val/1000}k`}
+                    />
+                    <Tooltip content={<GlassTooltip />} />
+                    <Area 
+                        type="monotone" 
+                        dataKey={(d) => d.income - d.expenses} 
+                        name="Net Cash Flow"
+                        stroke="#6366f1" 
+                        strokeWidth={3}
+                        fillOpacity={1} 
+                        fill="url(#colorNet)" 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
 
-          {/* Budget Progress - MOCK DATA (reusing Spending Data logic for UI but using mock values) */}
           <div className="lg:col-span-7">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
               <CardHeader>
                 <CardTitle className="text-lg">Budget Progress</CardTitle>
-                <CardDescription>Monthly spending by category (Target)</CardDescription>
+                <CardDescription>Monthly spending by category</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {mockBudgetData.spending.map((item) => (
-                    <div key={item.name}>
+                  {budgetSummary.slice(0, 4).map((item) => (
+                    <div key={item.category_id || item.category_name}>
                       <div className="flex justify-between text-sm mb-2 font-medium">
-                        <span className="tracking-tight">{item.name}</span>
-                        <span className="text-muted-foreground">{formatCurrency(item.value)}</span>
+                        <span className="tracking-tight">{item.category_name}</span>
+                        <span className="text-muted-foreground">{formatCurrency(item.spent_amount)} / {formatCurrency(item.budget_amount)}</span>
                       </div>
                       <Progress
-                        value={(item.value / 4000) * 100} // Arbitrary denom for mock
-                        className={`h-2.5 rounded-full ${item.color.replace('bg-', 'bg-')}`} 
+                        value={item.percentage_used}
+                        className={`h-2.5 rounded-full`} 
                       />
                     </div>
                   ))}
+                  {budgetSummary.length === 0 && (
+                      <p className="text-sm text-center text-muted-foreground py-4">No budgets set up yet.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -433,64 +561,56 @@ export default function DashboardPage() {
             </Card>
           </div>
 
-          {/* Upcoming Bills - MOCK DATA */}
           <div className="lg:col-span-3">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full bg-primary text-primary-foreground border-primary/20">
               <CardHeader className="pb-6">
                 <CardTitle className="text-lg text-primary-foreground">Upcoming Bills</CardTitle>
-                <CardDescription className="text-primary-foreground/60">Next 7 days</CardDescription>
+                <CardDescription className="text-primary-foreground/60">Next 15 days</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {mockUpcomingBills.map((bill) => (
+                  {upcomingBills.map((bill) => (
                     <div
                       key={bill.id}
                       className="flex items-center justify-between"
                     >
-                      <div>
-                        <div className="font-semibold tracking-tight text-primary-foreground">{bill.name}</div>
+                      <div className="max-w-[120px]">
+                        <div className="font-semibold tracking-tight text-primary-foreground truncate">Bill Due</div>
                         <div className="text-xs text-primary-foreground/60 mt-0.5">
-                          Due: {bill.dueDate}
+                          {new Date(bill.due_date).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="font-semibold text-danger">
+                      <div className="font-semibold text-danger bg-white/10 px-2 py-1 rounded-lg">
                         {formatCurrency(bill.amount)}
                       </div>
                     </div>
                   ))}
+                  {upcomingBills.length === 0 && (
+                      <p className="text-sm text-center text-primary-foreground/60 py-4">No upcoming bills.</p>
+                  )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Financial Goals - MOCK DATA */}
           <div className="lg:col-span-4">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
               <CardHeader className="pb-6">
-                <CardTitle className="text-lg">Financial Goals</CardTitle>
-                <CardDescription>Savings progress</CardDescription>
+                <CardTitle className="text-lg">Financial Overview</CardTitle>
+                <CardDescription>Monthly Analysis</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {mockFinancialGoals.map((goal) => {
-                    const progress = (goal.current / goal.target) * 100;
-                    return (
-                      <div key={goal.id}>
+                   <div>
                         <div className="flex justify-between text-sm mb-2">
-                          <span className="font-semibold tracking-tight text-text-primary">{goal.name}</span>
-                          <span className="text-text-secondary font-medium">{progress.toFixed(0)}%</span>
+                           <span className="font-semibold tracking-tight text-text-primary">Savings Goal Progress</span>
+                           <span className="text-text-secondary font-medium">Inactive</span>
                         </div>
-                        <Progress value={progress} className="h-2.5 rounded-full bg-muted" />
+                        <Progress value={0} className="h-2.5 rounded-full bg-muted" />
                         <div className="flex justify-between text-xs text-text-secondary mt-2 font-medium">
-                          <span>
-                            {formatCurrency(goal.current)} /{" "}
-                            {formatCurrency(goal.target)}
-                          </span>
-                          <span>Until {goal.deadline}</span>
+                           <span>Module disabled in settings</span>
                         </div>
-                      </div>
-                    );
-                  })}
+                   </div>
                 </div>
               </CardContent>
             </Card>

@@ -132,7 +132,8 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
         }
     });
 
-    const netWorth = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    const totalBalances = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
+    const netWorth = totalBalances + currentIncome - currentExpense;
     const cashFlow = currentIncome - currentExpense;
 
     // Percent changes

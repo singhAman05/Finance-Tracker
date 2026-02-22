@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { motion, AnimatePresence } from "framer-motion";
 import { setAccounts } from "../redux/slices/slice_accounts";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
@@ -106,14 +107,22 @@ export default function ReportPage() {
   }, [loadAccounts, loadTransactions, loadCategories]);
 
   // Calculate all data using our service functions
-  const { categoryMap, accountMap: aggregatedAccountMap, monthlyMap } =
-  aggregateTransactions(transactions);
+  const currentMonthTransactions = transactions.filter(tx => {
+    const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
+    const now = new Date();
+    return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
+  });
 
-  const categoryData = getCategoryData(categories, categoryMap);
+  const { categoryMap, accountMap: aggregatedAccountMap, monthlyMap } =
+  aggregateTransactions(transactions); // Use all transactions for historical trends
+
+  const { categoryMap: currentCategoryMap } = aggregateTransactions(currentMonthTransactions);
+
+  const categoryData = getCategoryData(categories, currentCategoryMap);
   const accountData = getAccountData(accounts, aggregatedAccountMap);
   const monthlyData = getMonthlyData(monthlyMap);
 
-  const summary = calculateSummaryFromAggregation(accounts, categoryMap);
+  const summary = calculateSummaryFromAggregation(accounts, currentCategoryMap);
 
   const handleExport = () => {
     const today = new Date();
@@ -122,9 +131,38 @@ export default function ReportPage() {
   };
 
 
+  // --- Animation Variants ---
+  const staggerContainer = {
+    hidden: {},
+    visible: { transition: { staggerChildren: 0.1 } },
+  };
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 24 },
+    visible: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+    },
+  };
+
   return (
-    <div className="w-full p-6">
-      <div className="flex flex-col gap-6 relative">
+    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
+      {/* Background Pattern */}
+      <div
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+          backgroundSize: "32px 32px",
+        }}
+      />
+
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="relative w-full p-2 md:p-6 space-y-6 mx-auto z-10"
+      >
         <ReportHeader
           title="Financial Reports"
           subtitle="Analyze your income, expenses, and financial trends"
@@ -137,53 +175,67 @@ export default function ReportPage() {
           </div>
         ) : (
           <>
-            <SummaryCards
-              totalBalance={summary.totalBalance}
-              totalIncome={summary.totalIncome}
-              totalExpenses={summary.totalExpenses}
-              netWorthChange={summary.netWorthChange}
-            />
+            <motion.div variants={fadeUp}>
+              <SummaryCards
+                totalBalance={summary.totalBalance}
+                totalIncome={summary.totalIncome}
+                totalExpenses={summary.totalExpenses}
+                netWorthChange={summary.netWorthChange}
+              />
+            </motion.div>
 
-            <Tabs defaultValue="overview" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 lg:grid-cols-5">
-                <TabsTrigger value="overview">Overview</TabsTrigger>
-                <TabsTrigger value="categories">By Category</TabsTrigger>
-                <TabsTrigger value="accounts">By Account</TabsTrigger>
-                <TabsTrigger value="trends">Trends</TabsTrigger>
-                <TabsTrigger value="transactions">Transactions</TabsTrigger>
-              </TabsList>
+            <motion.div variants={fadeUp}>
+              <Tabs defaultValue="overview" className="w-full">
+                <TabsList className="flex items-center justify-start p-1 bg-muted/50 backdrop-blur-md rounded-2xl border border-border w-fit mb-6 overflow-x-auto max-w-full no-scrollbar">
+                  {[
+                    { value: "overview", label: "Overview" },
+                    { value: "categories", label: "By Category" },
+                    { value: "accounts", label: "By Account" },
+                    { value: "trends", label: "Trends" },
+                    { value: "transactions", label: "Transactions" }
+                  ].map((tab) => (
+                    <TabsTrigger 
+                      key={tab.value}
+                      value={tab.value} 
+                      className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-[0.1em] text-text-secondary data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap"
+                    >
+                      {tab.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
 
-              <TabsContent value="overview" className="mt-6">
-                <OverviewTab
-                  monthlyData={monthlyData}
-                  categoryData={categoryData}
-                  totalExpenses={summary.totalExpenses}
-                />
-              </TabsContent>
+                <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
+                  <OverviewTab
+                    monthlyData={monthlyData}
+                    categoryData={categoryData}
+                    totalExpenses={summary.totalExpenses}
+                  />
+                </TabsContent>
 
-              <TabsContent value="categories" className="mt-6">
-                <CategoriesTab categoryData={categoryData} />
-              </TabsContent>
+                <TabsContent value="categories" className="mt-0 focus-visible:outline-none">
+                  <CategoriesTab categoryData={categoryData} />
+                </TabsContent>
 
-              <TabsContent value="accounts" className="mt-6">
-                <AccountsTab accountData={accountData} />
-              </TabsContent>
+                <TabsContent value="accounts" className="mt-0 focus-visible:outline-none">
+                  <AccountsTab accountData={accountData} />
+                </TabsContent>
 
-              <TabsContent value="trends" className="mt-6">
-                <TrendsTab monthlyData={monthlyData} />
-              </TabsContent>
+                <TabsContent value="trends" className="mt-0 focus-visible:outline-none">
+                  <TrendsTab monthlyData={monthlyData} />
+                </TabsContent>
 
-              <TabsContent value="transactions" className="mt-6">
-                <TransactionsTab
-                  transactions={transactions}
-                  accountMap={accountLookup}
-                  categoryMap={categoryLookup}
-                />
-              </TabsContent>
-            </Tabs>
+                <TabsContent value="transactions" className="mt-0 focus-visible:outline-none">
+                  <TransactionsTab
+                    transactions={transactions}
+                    accountMap={accountLookup}
+                    categoryMap={categoryLookup}
+                  />
+                </TabsContent>
+              </Tabs>
+            </motion.div>
           </>
         )}
-      </div>
+      </motion.div>
     </div>
   );
 }
