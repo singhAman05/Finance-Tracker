@@ -132,327 +132,310 @@ export function AddAccount({ onClose }: AddAccountProps) {
   const logoUrl = finalBank ? getBankLogoUrl(finalBank) : null;
 
   const inputClasses =
-    "bg-neutral-50 dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-neutral-900 dark:focus-visible:ring-neutral-100 transition-all font-medium text-sm";
+    "bg-muted border border-border h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium text-sm text-text-primary placeholder:text-text-secondary";
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 bg-neutral-900/40 dark:bg-black/60 backdrop-blur-md flex items-center justify-center p-4 z-50"
-    >
-      <motion.div
-        initial={{ scale: 0.95, y: 20, opacity: 0 }}
-        animate={{
-          scale: 1,
-          y: 0,
-          opacity: 1,
-          transition: { duration: 0.4, ease: [0.25, 0.46, 0.45, 0.94] },
-        }}
-        exit={{ scale: 0.95, y: 20, opacity: 0 }}
-        className="w-full max-w-2xl relative"
-      >
-        <div className="rounded-3xl border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-black overflow-hidden shadow-2xl shadow-neutral-200/50 dark:shadow-none relative">
-          {/* Background pattern matching page.tsx */}
-          <div
-            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-            style={{
-              backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
-              backgroundSize: "24px 24px",
-            }}
-          />
+    <div className="w-full max-w-2xl relative mx-auto">
+      <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl transition-all duration-300 relative">
+        {/* Background pattern matching page.tsx */}
+        <div
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+            backgroundSize: "24px 24px",
+          }}
+        />
 
-          {/* Minimalist progress bar */}
-          <div className="absolute top-0 left-0 right-0 h-1 bg-neutral-100 dark:bg-neutral-800">
-            <motion.div
-              className="h-full bg-neutral-900 dark:bg-neutral-50"
-              initial={{ width: "0%" }}
-              animate={{ width: "100%" }}
-              transition={{ duration: 0.8, ease: "circOut" }}
-            />
+        {/* Minimalist progress bar */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-muted">
+          <motion.div
+            className="h-full bg-primary"
+            initial={{ width: "0%" }}
+            animate={{ width: "100%" }}
+            transition={{ duration: 0.8, ease: "circOut" }}
+          />
+        </div>
+
+        <div className="relative p-8 md:p-10">
+          {/* Close button */}
+          <button
+            className="absolute top-6 right-6 w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors z-20"
+            onClick={onClose}
+          >
+            <X className="h-4 w-4 text-text-secondary" />
+          </button>
+
+          {/* Header */}
+          <div className="mb-10 flex items-start gap-5">
+            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
+              <Landmark className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold tracking-tighter text-text-primary">
+                Link New Account
+              </h2>
+              <p className="text-text-secondary mt-1 max-w-sm leading-relaxed">
+                Connect your financial institution to start tracking transparently.
+              </p>
+            </div>
           </div>
 
-          <div className="relative p-8 md:p-10">
-            {/* Close button */}
-            <button
-              className="absolute top-6 right-6 w-10 h-10 rounded-full border border-neutral-200 dark:border-neutral-800 flex items-center justify-center hover:bg-neutral-100 dark:hover:bg-neutral-900 transition-colors z-20"
-              onClick={onClose}
-            >
-              <X className="h-4 w-4 text-neutral-500" />
-            </button>
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Error Alert */}
+            <AnimatePresence mode="wait">
+              {errors.submit && (
+                <motion.div
+                  initial={{ height: 0, opacity: 0 }}
+                  animate={{ height: "auto", opacity: 1 }}
+                  exit={{ height: 0, opacity: 0 }}
+                  className="flex items-center gap-3 p-4 text-sm border border-red-200 dark:border-red-900/30 rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400"
+                >
+                  <AlertCircle className="h-5 w-5 shrink-0" />
+                  <span>{errors.submit}</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
-            {/* Header */}
-            <div className="mb-10 flex items-start gap-5">
-              <div className="w-14 h-14 bg-black dark:bg-white rounded-2xl flex items-center justify-center shadow-lg shadow-neutral-500/10 dark:shadow-none shrink-0">
-                <Landmark className="h-6 w-6 text-white dark:text-black" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Account Holder */}
+              <div className="space-y-2.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+                  Holder Name
+                </Label>
+                <Input
+                  placeholder="e.g. Alex Smith"
+                  value={form.account_holder_name}
+                  onChange={(e) =>
+                    update("account_holder_name", e.target.value)
+                  }
+                  className={cn(
+                    inputClasses,
+                    errors.account_holder_name &&
+                      "border-red-500 focus-visible:ring-red-500"
+                  )}
+                />
+                {errors.account_holder_name && (
+                  <p className="text-xs text-red-500 ml-1">
+                    {errors.account_holder_name}
+                  </p>
+                )}
               </div>
-              <div>
-                <h2 className="text-2xl font-bold tracking-tighter text-neutral-900 dark:text-white">
-                  Link New Account
-                </h2>
-                <p className="text-neutral-500 dark:text-neutral-400 mt-1 max-w-sm leading-relaxed">
-                  Connect your financial institution to start tracking transparently.
-                </p>
-              </div>
-            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-8">
-              {/* Error Alert */}
-              <AnimatePresence mode="wait">
-                {errors.submit && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: "auto", opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    className="flex items-center gap-3 p-4 text-sm border border-red-200 dark:border-red-900/30 rounded-2xl bg-red-50 dark:bg-red-900/10 text-red-600 dark:text-red-400"
+              {/* Bank Name */}
+              <div className="space-y-2.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+                  Bank Institution
+                </Label>
+                <Select
+                  value={form.bank_name}
+                  onValueChange={(v) => update("bank_name", v)}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      inputClasses,
+                      errors.bank_name &&
+                        "border-red-500 focus-visible:ring-red-500"
+                    )}
                   >
-                    <AlertCircle className="h-5 w-5 shrink-0" />
-                    <span>{errors.submit}</span>
+                    <SelectValue placeholder="Select Bank" />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="bg-card border border-border rounded-xl"
+                  >
+                    {bankOptions.map((b) => (
+                      <SelectItem key={b} value={b} className="cursor-pointer">
+                        {b}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {form.bank_name === "Other" && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                  >
+                    <Input
+                      className={cn(inputClasses, "mt-3")}
+                      placeholder="Enter custom bank name"
+                      value={form.custom_bank_name}
+                      onChange={(e) =>
+                        update("custom_bank_name", e.target.value)
+                      }
+                    />
                   </motion.div>
                 )}
-              </AnimatePresence>
+              </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* Account Holder */}
-                <div className="space-y-2.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ml-1">
-                    Holder Name
-                  </Label>
+              {/* Account Number */}
+              <div className="space-y-2.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+                  Account Number
+                </Label>
+                <div className="relative">
                   <Input
-                    placeholder="e.g. Alex Smith"
-                    value={form.account_holder_name}
+                    type={showAccountNumber ? "text" : "password"}
+                    placeholder="0000 0000 0000"
+                    value={form.full_account_number}
                     onChange={(e) =>
-                      update("account_holder_name", e.target.value)
+                      update("full_account_number", e.target.value)
                     }
                     className={cn(
                       inputClasses,
-                      errors.account_holder_name &&
+                      "pr-12 tracking-widest font-mono",
+                      errors.full_account_number &&
                         "border-red-500 focus-visible:ring-red-500"
                     )}
                   />
-                  {errors.account_holder_name && (
-                    <p className="text-xs text-red-500 ml-1">
-                      {errors.account_holder_name}
-                    </p>
-                  )}
-                </div>
-
-                {/* Bank Name */}
-                <div className="space-y-2.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ml-1">
-                    Bank Institution
-                  </Label>
-                  <Select
-                    value={form.bank_name}
-                    onValueChange={(v) => update("bank_name", v)}
+                  <button
+                    type="button"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
+                    onClick={() => setShowAccountNumber(!showAccountNumber)}
                   >
-                    <SelectTrigger
-                      className={cn(
-                        inputClasses,
-                        errors.bank_name &&
-                          "border-red-500 focus-visible:ring-red-500"
-                      )}
-                    >
-                      <SelectValue placeholder="Select Bank" />
-                    </SelectTrigger>
-                    <SelectContent
-                      className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl"
-                    >
-                      {bankOptions.map((b) => (
-                        <SelectItem key={b} value={b} className="cursor-pointer">
-                          {b}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {form.bank_name === "Other" && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                    >
-                      <Input
-                        className={cn(inputClasses, "mt-3")}
-                        placeholder="Enter custom bank name"
-                        value={form.custom_bank_name}
-                        onChange={(e) =>
-                          update("custom_bank_name", e.target.value)
-                        }
+                    {showAccountNumber ? (
+                      <EyeOff size={18} />
+                    ) : (
+                      <Eye size={18} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Account Type */}
+              <div className="space-y-2.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+                  Category
+                </Label>
+                <Select
+                  value={form.account_type}
+                  onValueChange={(v) => update("account_type", v)}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      inputClasses,
+                      errors.account_type &&
+                        "border-red-500 focus-visible:ring-red-500"
+                    )}
+                  >
+                    <SelectValue placeholder="Type" />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="bg-card border border-border rounded-xl"
+                  >
+                    {accountTypes.map((t) => (
+                      <SelectItem key={t.value} value={t.value} className="cursor-pointer">
+                        {t.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Balance */}
+              <div className="space-y-2.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+                  Initial Balance
+                </Label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    placeholder="0.00"
+                    value={form.balance}
+                    onChange={(e) => update("balance", e.target.value)}
+                    className={cn(
+                      inputClasses,
+                      "pl-14 text-lg font-bold tracking-tight",
+                      errors.balance &&
+                        "border-red-500 focus-visible:ring-red-500"
+                    )}
+                  />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm border-r pr-3 border-border">
+                    {form.currency}
+                  </div>
+                </div>
+              </div>
+
+              {/* Currency */}
+              <div className="space-y-2.5">
+                <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">
+                  Currency
+                </Label>
+                <Select
+                  value={form.currency}
+                  onValueChange={(v) => update("currency", v)}
+                >
+                  <SelectTrigger className={inputClasses}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent
+                    className="bg-card border border-border rounded-xl"
+                  >
+                    <SelectItem value="INR">INR (₹)</SelectItem>
+                    <SelectItem value="USD">USD ($)</SelectItem>
+                    <SelectItem value="EUR">EUR (€)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Live Preview Card */}
+            <div className="pt-2">
+              <div className="p-6 rounded-2xl bg-muted border border-border relative overflow-hidden group">
+                <div className="absolute top-4 right-4">
+                  <div className="px-2 py-1 rounded bg-card border border-border text-[10px] font-bold uppercase tracking-wider text-text-secondary">
+                    Preview
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-5 relative z-10">
+                  <div className="w-16 h-16 rounded-2xl bg-card border border-border flex items-center justify-center p-2 shadow-sm">
+                    {logoUrl ? (
+                      <Image
+                        src={logoUrl}
+                        alt="bank"
+                        width={40}
+                        height={40}
+                        className="object-contain"
                       />
-                    </motion.div>
-                  )}
-                </div>
-
-                {/* Account Number */}
-                <div className="space-y-2.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ml-1">
-                    Account Number
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type={showAccountNumber ? "text" : "password"}
-                      placeholder="0000 0000 0000"
-                      value={form.full_account_number}
-                      onChange={(e) =>
-                        update("full_account_number", e.target.value)
-                      }
-                      className={cn(
-                        inputClasses,
-                        "pr-12 tracking-widest font-mono",
-                        errors.full_account_number &&
-                          "border-red-500 focus-visible:ring-red-500"
-                      )}
-                    />
-                    <button
-                      type="button"
-                      className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-900 dark:hover:text-white transition-colors"
-                      onClick={() => setShowAccountNumber(!showAccountNumber)}
-                    >
-                      {showAccountNumber ? (
-                        <EyeOff size={18} />
-                      ) : (
-                        <Eye size={18} />
-                      )}
-                    </button>
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-muted animate-pulse" />
+                    )}
                   </div>
-                </div>
-
-                {/* Account Type */}
-                <div className="space-y-2.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ml-1">
-                    Category
-                  </Label>
-                  <Select
-                    value={form.account_type}
-                    onValueChange={(v) => update("account_type", v)}
-                  >
-                    <SelectTrigger
-                      className={cn(
-                        inputClasses,
-                        errors.account_type &&
-                          "border-red-500 focus-visible:ring-red-500"
-                      )}
-                    >
-                      <SelectValue placeholder="Type" />
-                    </SelectTrigger>
-                    <SelectContent
-                       className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl"
-                    >
-                      {accountTypes.map((t) => (
-                        <SelectItem key={t.value} value={t.value} className="cursor-pointer">
-                          {t.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Balance */}
-                <div className="space-y-2.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ml-1">
-                    Initial Balance
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      value={form.balance}
-                      onChange={(e) => update("balance", e.target.value)}
-                      className={cn(
-                        inputClasses,
-                        "pl-14 text-lg font-bold tracking-tight",
-                        errors.balance &&
-                          "border-red-500 focus-visible:ring-red-500"
-                      )}
-                    />
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-bold text-sm border-r pr-3 border-neutral-200 dark:border-neutral-800">
-                      {form.currency}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Currency */}
-                <div className="space-y-2.5">
-                  <Label className="text-xs font-semibold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 ml-1">
-                    Currency
-                  </Label>
-                  <Select
-                    value={form.currency}
-                    onValueChange={(v) => update("currency", v)}
-                  >
-                    <SelectTrigger className={inputClasses}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent
-                       className="bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 rounded-xl"
-                    >
-                      <SelectItem value="INR">INR (₹)</SelectItem>
-                      <SelectItem value="USD">USD ($)</SelectItem>
-                      <SelectItem value="EUR">EUR (€)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Live Preview Card */}
-              <div className="pt-2">
-                <div className="p-6 rounded-2xl bg-neutral-50 dark:bg-neutral-900 border border-neutral-100 dark:border-neutral-800 relative overflow-hidden group">
-                  <div className="absolute top-4 right-4">
-                     <div className="px-2 py-1 rounded bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 text-[10px] font-bold uppercase tracking-wider text-neutral-500">
-                        Preview
-                     </div>
-                  </div>
-                  
-                  <div className="flex items-center gap-5 relative z-10">
-                    <div className="w-16 h-16 rounded-2xl bg-white dark:bg-black border border-neutral-200 dark:border-neutral-800 flex items-center justify-center p-2 shadow-sm">
-                       {logoUrl ? (
-                        <Image
-                          src={logoUrl}
-                          alt="bank"
-                          width={40}
-                          height={40}
-                          className="object-contain"
-                        />
-                      ) : (
-                        <div className="w-8 h-8 rounded-full bg-neutral-100 dark:bg-neutral-800 animate-pulse" />
-                      )}
-                    </div>
-                    <div>
-                      <p className="text-sm text-neutral-500 dark:text-neutral-400 font-medium mb-1">
-                        {finalBank || "Select Bank"}
-                      </p>
-                      <p className="text-xl font-bold tracking-tight text-neutral-900 dark:text-white">
-                         {form.currency} {Number(form.balance || 0).toLocaleString()}
-                      </p>
-                    </div>
+                  <div>
+                    <p className="text-sm text-text-secondary font-medium mb-1">
+                      {finalBank || "Select Bank"}
+                    </p>
+                    <p className="text-xl font-bold tracking-tight text-text-primary">
+                      {form.currency} {Number(form.balance || 0).toLocaleString()}
+                    </p>
                   </div>
                 </div>
               </div>
+            </div>
 
-              {/* Submit Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className={cn(
-                  "w-full h-14 rounded-full bg-black dark:bg-white text-white dark:text-black font-semibold text-lg hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-neutral-900/10 dark:shadow-none flex items-center justify-center gap-2",
-                  loading && "opacity-70 cursor-not-allowed hover:scale-100"
-                )}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    <span>Processing...</span>
-                  </>
-                ) : (
-                  <>
-                    <span>Create Account</span>
-                    <ArrowRight className="h-5 w-5" />
-                  </>
-                )}
-              </button>
-            </form>
-          </div>
+            {/* Submit Button */}
+            <button
+              type="submit"
+              disabled={loading}
+              className={cn(
+                "w-full h-14 rounded-full bg-primary text-primary-foreground font-semibold text-lg hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/10 flex items-center justify-center gap-2",
+                loading && "opacity-70 cursor-not-allowed hover:scale-100"
+              )}
+            >
+              {loading ? (
+                <>
+                  <Loader2 className="h-5 w-5 animate-spin" />
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create Account</span>
+                  <ArrowRight className="h-5 w-5" />
+                </>
+              )}
+            </button>
+          </form>
         </div>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

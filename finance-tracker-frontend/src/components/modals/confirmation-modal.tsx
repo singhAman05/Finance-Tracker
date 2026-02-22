@@ -46,7 +46,7 @@ export function ConfirmationModal({
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/40 backdrop-blur-sm"
       onClick={handleClose}
     >
       <motion.div
@@ -57,34 +57,39 @@ export function ConfirmationModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md px-4"
       >
-        <Card className="rounded-2xl border border-border bg-background p-6 shadow-xl">
+        <Card className="rounded-3xl border border-border bg-card p-6 shadow-2xl overflow-hidden relative">
+          <div
+            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+            style={{
+              backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+              backgroundSize: "24px 24px",
+            }}
+          />
           {/* Icon */}
-          <div className="mb-4 flex items-center justify-center">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10">
-              <AlertTriangle className="h-6 w-6 text-red-500" />
+          <div className="mb-4 flex items-center justify-center relative z-10">
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-danger/10 border border-danger/20">
+              <AlertTriangle className="h-6 w-6 text-danger" />
             </div>
           </div>
 
           {/* Content */}
-          <div className="text-center space-y-2">
-            <h3 className="text-lg font-semibold">{title}</h3>
-            <p className="text-sm text-muted-foreground">{description}</p>
+          <div className="text-center space-y-2 relative z-10">
+            <h3 className="text-lg font-bold text-text-primary">{title}</h3>
+            <p className="text-sm text-text-secondary">{description}</p>
           </div>
 
           {/* Actions */}
-          <div className="mt-6 flex gap-3">
+          <div className="mt-8 flex gap-3 relative z-10">
             <Button
               variant="outline"
-              className="w-full"
+              className="w-full rounded-full h-11 border-border text-text-primary hover:bg-muted font-semibold transition-all"
               onClick={handleClose}
               disabled={loading}
             >
               {cancelText}
             </Button>
-
             <Button
-              className="w-full"
-              variant={variant === "danger" ? "destructive" : "default"}
+              className="w-full rounded-full h-11 bg-danger text-white hover:bg-danger/90 font-semibold shadow-lg shadow-danger/10 transition-all"
               onClick={handleConfirm}
               disabled={loading}
             >

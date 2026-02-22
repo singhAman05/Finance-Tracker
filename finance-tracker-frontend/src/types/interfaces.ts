@@ -173,3 +173,33 @@ export interface MonthlyData {
   income: number;
   expenses: number;
 }
+
+// Bill interface
+export interface Bill {
+  id: string;
+  client_id: string;
+  account_id: string | null;
+  system_category_id: string;
+  name: string;
+  amount: number;
+  is_recurring: boolean;
+  recurrence_type: "weekly" | "monthly" | "quarterly" | "yearly" | null;
+  recurrence_interval: number | null;
+  start_date: string;
+  end_date: string | null;
+  reminder_days_before: number;
+  notes: string | null;
+  created_at: string;
+}
+
+// BillInstance interface
+export interface BillInstance {
+  id: string;
+  bill_id: string;
+  client_id: string;
+  due_date: string;
+  amount: number;
+  status: "upcoming" | "paid" | "overdue";
+  paid_at: string | null;
+  transaction_id: string | null;
+}

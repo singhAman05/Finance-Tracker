@@ -23,8 +23,27 @@ export const handleBudgetCreation = async (req: Request, res: Response) => {
     } = req.body;
 
     // Basic validation (you can move this to validationUtils later)
-    if (!category_id || !amount || !period_type || !start_date || !end_date) {
+    if (!category_id || amount === undefined || !period_type || !start_date || !end_date) {
         res.status(400).json({ message: "Missing required fields" });
+        return;
+    }
+
+    const parsedAmount = Number(amount);
+    const allowedPeriods = ["weekly", "monthly", "quarterly", "yearly", "custom"];
+
+    if (!allowedPeriods.includes(period_type)) {
+        res.status(400).json({ message: "Invalid period type" });
+        return;
+    }
+
+    if (isNaN(parsedAmount) || parsedAmount < 0) {
+        res.status(400).json({ message: "Invalid amount" });
+        return;
+    }
+    if (new Date(start_date) >= new Date(end_date)) {
+        res.status(400).json({
+            message: "End date must be after start date"
+        });
         return;
     }
 
@@ -33,7 +52,7 @@ export const handleBudgetCreation = async (req: Request, res: Response) => {
             client_id,
             category_id,
             name: name?.trim() || null,
-            amount: parseFloat(amount),
+            amount: parsedAmount,
             period_type,
             start_date,
             end_date,
@@ -41,6 +60,13 @@ export const handleBudgetCreation = async (req: Request, res: Response) => {
         };
 
         const result = await createBudget(payload);
+
+        if (result.error?.message.includes("exclusion")) {
+            res.status(400).json({
+                message: "Budget overlaps with an existing budget for this category"
+            });
+            return;
+        }
 
         if (result.error) {
             console.error("Budget creation error:", result.error);
@@ -51,6 +77,7 @@ export const handleBudgetCreation = async (req: Request, res: Response) => {
         // Invalidate cache
         const cacheKey = `budgets:${client_id}`;
         await deleteCache(cacheKey);
+        await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(201).json({
             message: "Budget created successfully",
@@ -90,7 +117,7 @@ export const handleBudgetFetch = async (req: Request, res: Response) => {
 
         if (result.error) {
             console.error("Budget fetch error:", result.error);
-            res.status(405).json({ message: `${result.error}` });
+            res.status(500).json({ message: `${result.error}` });
             return;
         }
 
@@ -125,6 +152,7 @@ export const handleBudgetDeletion = async (req: Request, res: Response) => {
 
         const cacheKey = `budgets:${client_id}`;
         await deleteCache(cacheKey);
+        await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({
             message: "Budget deleted successfully",
@@ -154,6 +182,7 @@ export const handleBudgetUpdate = async (req: Request, res: Response) => {
 
         const cacheKey = `budgets:${client_id}`;
         await deleteCache(cacheKey);
+        await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({
             message: "Budget updated successfully",
