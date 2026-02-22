@@ -38,25 +38,32 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const navItems = [
+interface SidebarItem {
+  label: string;
+  icon: any;
+  href: string;
+  disabled?: boolean;
+}
+
+const navItems: SidebarItem[] = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
   { label: "Transactions", icon: CreditCard, href: "/dashboard/transactions" },
   { label: "Accounts", icon: Banknote, href: "/dashboard/accounts" },
   { label: "Budgets", icon: ClipboardList, href: "/dashboard/budgets" },
 ];
 
-const analyticsItems = [
+const analyticsItems: SidebarItem[] = [
   { label: "Reports", icon: LineChart, href: "/dashboard/reports" },
   { label: "Cash Flow", icon: BarChart2, href: "/cash-flow", disabled: true },
 ];
 
-const planningItems = [
+const planningItems: SidebarItem[] = [
   { label: "Goals", icon: Target, href: "/goals", disabled: true },
   { label: "Bills", icon: Calendar, href: "/dashboard/bills" },
   { label: "Investments", icon: PiggyBank, href: "/investments", disabled: true },
 ];
 
-const utilityItems = [
+const utilityItems: SidebarItem[] = [
   { label: "Categories", icon: Tag, href: "/categories", disabled: true },
   { label: "Settings", icon: Settings, href: "/settings", disabled: true },
 ];
@@ -91,7 +98,7 @@ export function Sidebar() {
 
   const renderSection = (
     title: string,
-    items: typeof navItems,
+    items: SidebarItem[],
     className = "mt-8"
   ) => (
     <div className={className}>
