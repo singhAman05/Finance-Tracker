@@ -38,27 +38,34 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const navItems = [
+interface SidebarItem {
+  label: string;
+  icon: any;
+  href: string;
+  disabled?: boolean;
+}
+
+const navItems: SidebarItem[] = [
   { label: "Dashboard", icon: Home, href: "/dashboard" },
   { label: "Transactions", icon: CreditCard, href: "/dashboard/transactions" },
   { label: "Accounts", icon: Banknote, href: "/dashboard/accounts" },
-  { label: "Budgets", icon: ClipboardList, href: "/budgets" },
+  { label: "Budgets", icon: ClipboardList, href: "/dashboard/budgets" },
 ];
 
-const analyticsItems = [
+const analyticsItems: SidebarItem[] = [
   { label: "Reports", icon: LineChart, href: "/dashboard/reports" },
-  { label: "Cash Flow", icon: BarChart2, href: "/cash-flow" },
+  { label: "Cash Flow", icon: BarChart2, href: "/cash-flow", disabled: true },
 ];
 
-const planningItems = [
-  { label: "Goals", icon: Target, href: "/goals" },
-  { label: "Bills", icon: Calendar, href: "/bills" },
-  { label: "Investments", icon: PiggyBank, href: "/investments" },
+const planningItems: SidebarItem[] = [
+  { label: "Goals", icon: Target, href: "/goals", disabled: true },
+  { label: "Bills", icon: Calendar, href: "/dashboard/bills" },
+  { label: "Investments", icon: PiggyBank, href: "/investments", disabled: true },
 ];
 
-const utilityItems = [
-  { label: "Categories", icon: Tag, href: "/categories" },
-  { label: "Settings", icon: Settings, href: "/settings" },
+const utilityItems: SidebarItem[] = [
+  { label: "Categories", icon: Tag, href: "/categories", disabled: true },
+  { label: "Settings", icon: Settings, href: "/settings", disabled: true },
 ];
 
 export function Sidebar() {
@@ -91,13 +98,13 @@ export function Sidebar() {
 
   const renderSection = (
     title: string,
-    items: typeof navItems,
+    items: SidebarItem[],
     className = "mt-8"
   ) => (
     <div className={className}>
       <h3
         className={cn(
-          "px-4 mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-slate-400 dark:text-slate-500 transition-all duration-300",
+          "px-4 mb-3 text-[10px] font-semibold uppercase tracking-[0.15em] text-text-secondary transition-all duration-300",
           expanded
             ? "opacity-100 translate-x-0"
             : "opacity-0 -translate-x-2 pointer-events-none"
@@ -106,30 +113,32 @@ export function Sidebar() {
         {title}
       </h3>
 
-      {items.map(({ label, icon: Icon, href }) => {
+      {items.map((item) => {
         const isActive =
-          href === "/dashboard"
+          item.href === "/dashboard"
             ? pathname === "/dashboard"
-            : pathname.startsWith(href);
+            : pathname.startsWith(item.href);
 
         return (
           <div
-            key={label}
+            key={item.label}
             role="button"
             onClick={() => {
+              if (item.disabled) return;
               startTransition(() => {
-                router.push(href);
+                router.push(item.href);
               });
             }}
             className={cn(
               "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 mb-1 px-3",
               isActive
-                ? "bg-slate-900 text-white shadow-sm dark:bg-white dark:text-slate-950"
-                : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70"
+                ? "bg-primary text-primary-foreground shadow-sm"
+                : "text-text-secondary hover:bg-muted font-normal",
+              item.disabled ? "opacity-40 pointer-events-none grayscale" : "cursor-pointer"
             )}
           >
             <div className="flex items-center w-full gap-3">
-              <Icon
+              <item.icon
                 className={cn(
                   "w-[18px] h-[18px] flex-shrink-0 transition-transform duration-200",
                   !isActive && "group-hover:scale-105"
@@ -144,7 +153,7 @@ export function Sidebar() {
                     : "opacity-0 -translate-x-2 w-0 overflow-hidden"
                 )}
               >
-                {label}
+                {item.label}
               </span>
             </div>
           </div>
@@ -156,7 +165,7 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col bg-white dark:bg-slate-950 border-r border-slate-200/80 dark:border-slate-800/80 min-h-screen overflow-hidden relative",
+        "hidden md:flex flex-col bg-card border-r border-border min-h-screen overflow-hidden relative",
         "transition-[width] duration-300 ease-in-out shadow-sm",
         expanded ? "w-64" : "w-20"
       )}
@@ -164,14 +173,14 @@ export function Sidebar() {
       onMouseLeave={() => setIsHoverExpand(false)}
     >
       {/* Header */}
-      <div className="h-20 flex items-center px-4 shrink-0 border-b border-slate-200/50 dark:border-slate-800/50">
+      <div className="h-20 flex items-center px-4 shrink-0 border-b border-border/50">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-gradient-to-br from-slate-800 to-slate-950 dark:from-white dark:to-slate-200 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform hover:scale-105 active:scale-95">
-            <Wallet className="w-5 h-5 text-white dark:text-slate-900" />
+          <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform hover:scale-105 active:scale-95">
+            <Wallet className="w-5 h-5 text-primary-foreground" />
           </div>
           <span
             className={cn(
-              "text-lg font-bold tracking-tight text-slate-900 dark:text-white transition-all duration-300",
+              "text-lg font-bold tracking-tight text-text-primary transition-all duration-300",
               expanded
                 ? "opacity-100 translate-x-0"
                 : "opacity-0 -translate-x-4"
@@ -187,7 +196,7 @@ export function Sidebar() {
               e.stopPropagation();
               setIsCollapsed(!isCollapsed);
             }}
-            className="ml-auto p-2 rounded-lg text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-800 dark:hover:text-slate-100 transition-all active:scale-90"
+            className="ml-auto p-2 rounded-lg text-text-secondary hover:bg-muted hover:text-text-primary transition-all active:scale-90"
             aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <ArrowLeftFromLine className="w-4 h-4" />
@@ -203,23 +212,26 @@ export function Sidebar() {
 
       {/* Footer Section */}
       <div className="border-t border-slate-200/50 dark:border-slate-800/50 px-1 pt-4 pb-6 bg-slate-50/30 dark:bg-slate-900/20 space-y-3">
-        {utilityItems.map(({ label, icon: Icon, href }) => {
-          const isActive = pathname.startsWith(href);
+        {utilityItems.map((item) => {
+          const { icon: Icon } = item;
+          const isActive = pathname.startsWith(item.href);
 
           return (
             <div
-              key={label}
+              key={item.label}
               role="button"
               onClick={() => {
+                if (item.disabled) return;
                 startTransition(() => {
-                  router.push(href);
+                  router.push(item.href);
                 });
               }}
               className={cn(
                 "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3",
                 isActive
-                  ? "bg-slate-900 text-white dark:bg-white dark:text-slate-950"
-                  : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-text-secondary hover:bg-muted",
+                item.disabled ? "opacity-40 pointer-events-none grayscale" : "cursor-pointer font-medium"
               )}
             >
               <div className="flex items-center w-full gap-3">
@@ -233,7 +245,7 @@ export function Sidebar() {
                       : "opacity-0 -translate-x-2 w-0 overflow-hidden"
                   )}
                 >
-                  {label}
+                  {item.label}
                 </span>
               </div>
             </div>
@@ -246,7 +258,7 @@ export function Sidebar() {
           onClick={() => setTheme(isDark ? "light" : "dark")}
           className={cn(
             "group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3",
-            "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800/70"
+            "text-text-secondary hover:bg-muted cursor-pointer"
           )}
           aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
         >
@@ -289,10 +301,10 @@ export function Sidebar() {
                   : "opacity-0 -translate-x-2 w-0 overflow-hidden"
               )}
             >
-              <div className="w-full h-2 bg-slate-300 dark:bg-slate-700 rounded-full transition-colors duration-300" />
+              <div className="w-full h-2 bg-muted rounded-full transition-colors duration-300" />
               <div
                 className={cn(
-                  "absolute w-3.5 h-3.5 bg-white dark:bg-slate-900 rounded-full shadow-sm transition-all duration-300 ease-in-out",
+                  "absolute w-3.5 h-3.5 bg-card rounded-full shadow-sm transition-all duration-300 ease-in-out",
                   isDark ? "translate-x-7" : "translate-x-0.5"
                 )}
               />
@@ -304,7 +316,7 @@ export function Sidebar() {
         <div
           role="button"
           onClick={handleLogout}
-          className="group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3 text-red-500 hover:bg-red-50 dark:hover:bg-red-950/20 dark:text-red-400"
+          className="group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3 text-danger hover:bg-danger/5 cursor-pointer"
         >
           <div className="flex items-center w-full gap-3">
             <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:-translate-x-1" />
@@ -324,9 +336,9 @@ export function Sidebar() {
 
 
       <AlertDialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
-        <AlertDialogContent className="bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800">
+        <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle className="text-slate-900 dark:text-white">
+            <AlertDialogTitle className="text-text-primary">
               Sign out confirmation
             </AlertDialogTitle>
             <AlertDialogDescription className="text-slate-500 dark:text-slate-400">
@@ -335,12 +347,12 @@ export function Sidebar() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel className="border-slate-200 dark:border-slate-800 text-slate-900 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-800">
+            <AlertDialogCancel className="border-border text-text-primary hover:bg-muted">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmLogout}
-              className="bg-red-500 text-white hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 border-0"
+              className="bg-danger text-white hover:bg-danger/90 border-0"
             >
               Sign out
             </AlertDialogAction>

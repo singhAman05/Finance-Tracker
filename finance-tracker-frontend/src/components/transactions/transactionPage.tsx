@@ -25,7 +25,7 @@ import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
 
 // UI Components
-import AddTransaction from "./addTransaction";
+import { openModal } from "@/components/redux/slices/slice_modal";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -60,6 +60,7 @@ import {
 // Icons
 import {
   Search,
+  Plus,
   Trash2,
   ChartPie,
   ArrowUpRight,
@@ -136,6 +137,7 @@ export default function TransactionPage() {
   // Local State
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { type: modalType } = useSelector((state: RootState) => state.modal);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | string>("all");
@@ -208,6 +210,15 @@ export default function TransactionPage() {
       categories,
     ]
   );
+
+  // --- Refresh on Modal Close ---
+  const [prevModalType, setPrevModalType] = useState<string | null>(null);
+  useEffect(() => {
+    if (prevModalType === "ADD_TRANSACTION" && modalType === null) {
+      loadData(true);
+    }
+    setPrevModalType(modalType);
+  }, [modalType, prevModalType, loadData]);
 
   useEffect(() => {
     loadData();
@@ -300,7 +311,7 @@ export default function TransactionPage() {
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
           backgroundSize: "32px 32px",
         }}
       />
@@ -336,7 +347,7 @@ export default function TransactionPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
-              className="rounded-full bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm transition-colors"
+              className="rounded-full bg-danger hover:bg-danger/90 text-white font-medium shadow-sm transition-colors"
             >
               Delete
             </AlertDialogAction>
@@ -374,7 +385,13 @@ export default function TransactionPage() {
           >
             <ChartPie className="mr-2 h-4 w-4" /> Analytics
           </Button>
-          <AddTransaction />
+          <Button
+            onClick={() => dispatch(openModal({ type: "ADD_TRANSACTION" }))}
+            className="group bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95 flex items-center gap-2 h-12"
+          >
+            <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+            Add Transaction
+          </Button>
         </div>
       </motion.div>
 
@@ -547,7 +564,13 @@ export default function TransactionPage() {
                     </Button>
                   ) : (
                     <div className="scale-110">
-                      <AddTransaction />
+                      <Button
+                        onClick={() => dispatch(openModal({ type: "ADD_TRANSACTION" }))}
+                        className="group bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95 flex items-center gap-2"
+                      >
+                        <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+                        Add Transaction
+                      </Button>
                     </div>
                   )}
                 </div>
@@ -632,7 +655,7 @@ export default function TransactionPage() {
                               <span
                                 className={cn(
                                   "font-mono font-medium tracking-tight",
-                                  "text-text-primary"
+                                  isExpense ? "text-danger" : "text-success"
                                 )}
                               >
                                 {isExpense ? "-" : "+"}

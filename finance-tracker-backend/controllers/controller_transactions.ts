@@ -50,6 +50,7 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         // Invalidate cache after successful insert
         const cacheKey = `transactions:${client_id}`;
         await deleteCache(cacheKey);
+        await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(201).json({ message: "Transaction added", data: result.data });
     } catch (err) {
@@ -113,6 +114,7 @@ export const handleTransactionDelete = async (req: Request, res: Response) => {
 
         const cacheKey = `transactions:${client_id}`;
         await deleteCache(cacheKey);
+        await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({
             message: "Transaction deleted successfully",
@@ -120,6 +122,6 @@ export const handleTransactionDelete = async (req: Request, res: Response) => {
         });
     } catch (err) {
         console.error("Transaction deletion failed:", err);
-            res.status(500).json({ message: "Internal Server Error" });
-        }
+        res.status(500).json({ message: "Internal Server Error" });
+    }
 }

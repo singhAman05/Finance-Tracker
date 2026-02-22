@@ -94,9 +94,9 @@ export default function AccountsPage() {
   const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
 
-  const [showAddAccountModal, setShowAddAccountModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const { type: modalType } = useSelector((state: RootState) => state.modal);
   const [deleteAccountData, setDeleteAccountData] = useState<{
     id: string;
     name: string;
@@ -122,6 +122,15 @@ export default function AccountsPage() {
     },
     [dispatch]
   );
+
+  // --- Refresh on Modal Close ---
+  const [prevModalType, setPrevModalType] = useState<string | null>(null);
+  useEffect(() => {
+    if (prevModalType === "ADD_ACCOUNT" && modalType === null) {
+      loadAccounts(true);
+    }
+    setPrevModalType(modalType);
+  }, [modalType, prevModalType, loadAccounts]);
 
   useEffect(() => {
     if (accounts.length === 0) {
@@ -195,7 +204,7 @@ export default function AccountsPage() {
 
   if (loading && accounts.length === 0) {
     return (
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      <div className="p-6 space-y-8 w-full mx-auto">
         <LoadingSkeleton />
       </div>
     );
@@ -207,7 +216,7 @@ export default function AccountsPage() {
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
-          backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
           backgroundSize: "32px 32px",
         }}
       />
@@ -218,16 +227,6 @@ export default function AccountsPage() {
         animate="visible"
         className="relative w-full space-y-6 p-2 md:p-6 mx-auto"
       >
-        <AnimatePresence>
-          {showAddAccountModal && (
-            <AddAccount
-              onClose={() => {
-                setShowAddAccountModal(false);
-                loadAccounts(true);
-              }}
-            />
-          )}
-        </AnimatePresence>
 
         {/* Delete Confirmation Dialog */}
         <AlertDialog
@@ -254,7 +253,7 @@ export default function AccountsPage() {
               </AlertDialogCancel>
               <AlertDialogAction
                 onClick={confirmDelete}
-                className="rounded-full bg-red-600 hover:bg-red-700 text-white font-medium shadow-sm transition-colors"
+                className="rounded-full bg-danger hover:bg-danger/90 text-white font-medium shadow-sm transition-colors"
               >
                 Delete Account
               </AlertDialogAction>
@@ -290,8 +289,8 @@ export default function AccountsPage() {
               <RefreshCw className="h-5 w-5" />
             </Button>
             <Button
-              onClick={() => setShowAddAccountModal(true)}
-              className="rounded-full px-8 py-6 bg-primary text-white dark:text-black hover:opacity-90 transition-all font-medium text-base shadow-none dark:shadow-none"
+              onClick={() => dispatch(openModal({ type: "ADD_ACCOUNT" }))}
+              className="rounded-full px-8 py-6 bg-primary text-primary-foreground hover:opacity-90 transition-all font-medium text-base shadow-none dark:shadow-none"
             >
               <Plus className="mr-2 h-5 w-5" /> Add Account
             </Button>
@@ -409,7 +408,7 @@ export default function AccountsPage() {
                   </p>
                   {!searchQuery && (
                     <Button
-                      onClick={() => setShowAddAccountModal(true)}
+                      onClick={() => dispatch(openModal({ type: "ADD_ACCOUNT" }))}
                       variant="link"
                       className="mt-4 text-text-primary font-semibold underline-offset-4"
                     >
@@ -501,7 +500,7 @@ export default function AccountsPage() {
                               <div className="inline-flex items-center justify-center">
                                 {account.status === "active" ? (
                                   <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card text-[10px] font-medium text-text-primary">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                                     Active
                                   </span>
                                 ) : (
@@ -525,7 +524,7 @@ export default function AccountsPage() {
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
+                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-danger hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
                                   onClick={() =>
                                     setDeleteAccountData({
                                       id: account.id,

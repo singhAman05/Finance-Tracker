@@ -1,12 +1,35 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { Landmark } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
-import { RootState } from "@/app/store";
 import { format } from "date-fns";
+import { RootState } from "@/app/store";
+import { cn } from "@/lib/utils";
+
+// UI Components
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Plus,
   Minus,
@@ -20,37 +43,6 @@ import {
   AlignLeft,
 } from "lucide-react";
 
-// UI Components
-import {
-  Dialog,
-  DialogTrigger,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import {
-  Card,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectItem,
-} from "@/components/ui/select";
-import {
-  Popover,
-  PopoverTrigger,
-  PopoverContent,
-} from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils"; // Shadcn utility
-
 // Redux & Services
 import { setAccounts } from "../redux/slices/slice_accounts";
 import { setCategories } from "../redux/slices/slice_categories";
@@ -62,17 +54,17 @@ import {
 import { fetchAccounts } from "@/service/service_accounts";
 import { createTransaction } from "@/service/service_transactions";
 
-interface AddTransactionProps {}
+interface AddTransactionProps {
+  onClose?: () => void;
+}
 
-export default function AddTransaction({}: AddTransactionProps){
+export default function AddTransaction({ onClose }: AddTransactionProps) {
   const dispatch = useDispatch();
-  const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
 
-  const [open, setOpen] = useState(false);
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [type, setType] = useState<"expense" | "income">("expense");
   const [category, setCategory] = useState("");
@@ -84,8 +76,6 @@ export default function AddTransaction({}: AddTransactionProps){
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    if (!open) return;
-
     let isMounted = true;
 
     const loadInitialData = async () => {
@@ -130,16 +120,7 @@ export default function AddTransaction({}: AddTransactionProps){
     return () => {
       isMounted = false;
     };
-  }, [open, dispatch]);
-
-  useEffect(() => {
-    if (open) {
-      setDate(new Date());
-      setAmount("");
-      setCategory("");
-      setDescription("");
-    }
-  }, [open]);
+  }, [dispatch]);
 
   const filteredCategories = filterCategoriesByType(categories, type);
 
@@ -165,7 +146,7 @@ export default function AddTransaction({}: AddTransactionProps){
       const result = await createTransaction(payload);
       if (!result?.error) {
         dispatch(addTransaction(result.data));
-        setOpen(false);
+        if (onClose) onClose();
       }
     } catch (err) {
       console.error("Submission error", err);
@@ -175,271 +156,231 @@ export default function AddTransaction({}: AddTransactionProps){
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button className="group bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95">
-          <Plus className="mr-2 h-4 w-4 transition-transform group-hover:rotate-90" />
-          Add Transaction
-        </Button>
-      </DialogTrigger>
+    <div className="w-full max-w-2xl relative mx-auto">
+      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-3xl relative">
+        <div
+          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+          style={{
+            backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+            backgroundSize: "24px 24px",
+          }}
+        />
+        {/* Header Section */}
+        <div className="bg-muted/30 border-b border-border p-6 sm:p-8 relative z-10">
+          <div className="flex justify-between items-start">
+            <div className="flex gap-4">
+              <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10">
+                <Wallet className="h-6 w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <CardTitle className="text-2xl font-bold tracking-tight text-text-primary">
+                  New Transaction
+                </CardTitle>
+                <CardDescription className="text-text-secondary">
+                  Record your financial activity accurately.
+                </CardDescription>
+              </div>
+            </div>
+            {onClose && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onClose}
+                className="rounded-full hover:bg-muted text-text-secondary"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
 
-      <DialogContent className="max-w-2xl p-0 border-none bg-transparent overflow-visible [&>button]:hidden">
-        <DialogTitle>New Transaction</DialogTitle>
-        <AnimatePresence>
-          {open && (
+          {/* Enhanced Toggle */}
+          <div className="mt-8 flex p-1 bg-muted rounded-xl relative border border-border">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="relative"
+              layoutId="type-toggle"
+              className={cn(
+                "absolute inset-y-1 rounded-lg shadow-sm transition-all duration-300",
+                type === "expense"
+                  ? "left-1 right-1/2 bg-card border border-border"
+                  : "left-1/2 right-1 bg-success"
+              )}
+            />
+            <button
+              type="button"
+              onClick={() => setType("expense")}
+              className={cn(
+                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                type === "expense" ? "text-text-primary" : "text-text-secondary"
+              )}
             >
-              <Card className="border shadow-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-xl overflow-hidden">
-                {/* Header Section */}
-                <div className="bg-slate-50/50 dark:bg-slate-800/50 border-b p-6 sm:p-8">
-                  <div className="flex justify-between items-start">
-                    <div className="flex gap-4">
-                      <div className="h-12 w-12 bg-slate-900 dark:bg-slate-100 rounded-2xl flex items-center justify-center shadow-inner">
-                        <Wallet className="h-6 w-6 text-white dark:text-slate-900" />
-                      </div>
-                      <div>
-                        <CardTitle className="text-2xl font-bold tracking-tight">
-                          New Transaction
-                        </CardTitle>
-                        <CardDescription className="text-slate-500">
-                          Record your financial activity accurately.
-                        </CardDescription>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setOpen(false)}
-                      className="rounded-full hover:bg-slate-200/50"
-                    >
-                      <X className="h-5 w-5" />
-                    </Button>
-                  </div>
+              <Minus className="mr-2 h-4 w-4" /> Expense
+            </button>
+            <button
+              type="button"
+              onClick={() => setType("income")}
+              className={cn(
+                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                type === "income" ? "text-white" : "text-text-secondary"
+              )}
+            >
+              <Plus className="mr-2 h-4 w-4" /> Income
+            </button>
+          </div>
+        </div>
 
-                  {/* Enhanced Toggle */}
-                  <div className="mt-8 flex p-1 bg-slate-200/50 dark:bg-slate-800 rounded-xl relative">
-                    <motion.div
-                      className={cn(
-                        "absolute inset-y-1 rounded-lg shadow-sm transition-all duration-300",
-                        type === "expense"
-                          ? "left-1 right-1/2 bg-white dark:bg-slate-700"
-                          : "left-1/2 right-1 bg-emerald-500"
-                      )}
+        <CardContent className="p-6 sm:p-8">
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12 gap-4">
+              <Loader2 className="h-8 w-8 animate-spin text-text-secondary/20" />
+              <p className="text-sm text-text-secondary">
+                Fetching financial data...
+              </p>
+            </div>
+          ) : accounts.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="bg-muted p-4 rounded-full mb-4">
+                <Plus className="h-8 w-8 text-text-secondary" />
+              </div>
+              <h3 className="text-lg font-semibold text-text-primary">
+                No accounts found
+              </h3>
+              <p className="text-text-secondary text-sm max-w-[280px] mt-2">
+                You need to add at least one account before recording a transaction.
+              </p>
+            </div>
+          ) : (
+            <form onSubmit={onSubmit} className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
+                {/* Account Selection */}
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
+                    <CreditCard className="h-3 w-3" /> Source Account
+                  </Label>
+                  <Select value={accountId} onValueChange={setAccountId}>
+                    <SelectTrigger className="h-12 bg-muted border border-border rounded-xl font-medium text-text-primary focus:ring-1 focus:ring-ring">
+                      <SelectValue placeholder="Which account?" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border border-border rounded-xl">
+                      {accounts.map((a) => (
+                        <SelectItem key={a.id} value={a.id} className="py-3">
+                          <div className="flex justify-between w-full gap-2">
+                            <span className="font-semibold text-text-primary">
+                              {a.name}
+                            </span>
+                            <span className="text-text-secondary/60 text-xs">
+                              •••• {a.lastDigits}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Date Picker */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
+                    <CalendarIcon className="h-3 w-3" /> Date
+                  </Label>
+                  <Popover modal>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="h-12 w-full justify-start bg-muted border border-border rounded-xl font-medium text-text-primary hover:bg-muted/80 focus:ring-1 focus:ring-ring"
+                      >
+                        {date ? format(date, "PPP") : "Select date"}
+                        <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent
+                      align="start"
+                      className="w-auto p-0 border border-border shadow-xl rounded-2xl bg-card overflow-hidden"
+                    >
+                      <Calendar
+                        mode="single"
+                        selected={date}
+                        onSelect={(d) => {
+                          if (d) setDate(d);
+                        }}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                {/* Category */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
+                    <Tag className="h-3 w-3" /> Category
+                  </Label>
+                  <Select value={category} onValueChange={setCategory}>
+                    <SelectTrigger className="h-12 bg-muted border border-border rounded-xl font-medium text-text-primary focus:ring-1 focus:ring-ring">
+                      <SelectValue placeholder="Choose category" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-card border border-border rounded-xl">
+                      {filteredCategories.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>
+                          {c.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Amount */}
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary ml-1">
+                    Amount
+                  </Label>
+                  <div className="relative">
+                    <div className="absolute left-0 inset-y-0 flex items-center px-4 pointer-events-none text-text-secondary font-bold text-sm border-r border-border mr-4">
+                      {accounts.find((a) => a.id === accountId)?.currency || "INR"}
+                    </div>
+                    <Input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      className="h-14 pl-20 text-2xl font-bold tracking-tight bg-muted border border-border rounded-xl focus:ring-1 focus:ring-ring transition-all text-text-primary"
                     />
-                    <button
-                      type="button"
-                      onClick={() => setType("expense")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
-                        type === "expense"
-                          ? "text-slate-900 dark:text-white"
-                          : "text-slate-500"
-                      )}
-                    >
-                      <Minus className="mr-2 h-4 w-4" /> Expense
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setType("income")}
-                      className={cn(
-                        "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
-                        type === "income" ? "text-white" : "text-slate-500"
-                      )}
-                    >
-                      <Plus className="mr-2 h-4 w-4" /> Income
-                    </button>
                   </div>
                 </div>
 
-                <CardContent className="p-6 sm:p-8">
-                  {loading ? (
-                    <div className="flex flex-col items-center justify-center py-12 gap-4">
-                      <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                      <p className="text-sm text-slate-500">
-                        Fetching financial data...
-                      </p>
-                    </div>
-                  ) : accounts.length === 0 ? (
-                    /* --- NEW EMPTY STATE FOR NO ACCOUNTS --- */
-                    <div className="flex flex-col items-center justify-center py-12 text-center">
-                      <div className="bg-slate-100 dark:bg-slate-800 p-4 rounded-full mb-4">
-                        <Landmark className="h-8 w-8 text-muted-foreground" />
-                      </div>
-                      <h3 className="text-lg font-semibold">
-                        No accounts found
-                      </h3>
-                      <p className="text-muted-foreground text-sm max-w-[280px] mt-2">
-                        You need to add at least one bank account before you can
-                        record a transaction.
-                      </p>
-                      <Button
-                        onClick={() => {
-                          setOpen(false); // Close the current dialog
-                          router.push("/dashboard/accounts"); // Redirect or trigger modal
-                        }}
-                        variant="link"
-                        className="mt-4 text-primary font-semibold"
-                      >
-                        Create an account now
-                      </Button>
-                    </div>
-                  ) : (
-                    <form onSubmit={onSubmit} className="space-y-6">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                        {/* Account Selection */}
-                        <div className="md:col-span-2 space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <CreditCard className="h-3 w-3" /> Source Account
-                          </Label>
-                          <Select
-                            value={accountId}
-                            onValueChange={setAccountId}
-                          >
-                            <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200">
-                              <SelectValue placeholder="Which account?" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {accounts.map((a) => (
-                                <SelectItem
-                                  key={a.id}
-                                  value={a.id}
-                                  className="py-3"
-                                >
-                                  <div className="flex justify-between w-full gap-2">
-                                    <span className="font-medium">
-                                      {a.name}
-                                    </span>
-                                    <span className="text-slate-400">
-                                      •••• {a.lastDigits}
-                                    </span>
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
+                {/* Description */}
+                <div className="md:col-span-2 space-y-2">
+                  <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
+                    <AlignLeft className="h-3 w-3" /> Description
+                  </Label>
+                  <Input
+                    placeholder="Lunch at the cafe..."
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="h-12 bg-muted border border-border rounded-xl font-medium text-text-primary placeholder:text-text-secondary"
+                  />
+                </div>
+              </div>
 
-                        {/* Date Picker */}
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <CalendarIcon className="h-3 w-3" /> Date
-                          </Label>
-                          <Popover modal>
-                            <PopoverTrigger asChild>
-                              <Button
-                                type="button"
-                                variant="outline"
-                                className="h-12 w-full justify-start bg-slate-50/50 border-slate-200 font-normal"
-                              >
-                                {date ? format(date, "PPP") : "Select date"}
-                                <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
-                              </Button>
-                            </PopoverTrigger>
-
-                            <PopoverContent
-                              align="start"
-                              className="w-auto p-0 pointer-events-auto"
-                            >
-                              <Calendar
-                                mode="single"
-                                selected={date}
-                                onSelect={(d) => {
-                                  if (d) setDate(d);
-                                }}
-                              />
-                            </PopoverContent>
-                          </Popover>
-                        </div>
-
-                        {/* Category */}
-                        <div className="space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <Tag className="h-3 w-3" /> Category
-                          </Label>
-                          <Select value={category} onValueChange={setCategory}>
-                            <SelectTrigger className="h-12 bg-slate-50/50 border-slate-200">
-                              <SelectValue placeholder="Choose category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {filteredCategories.map((c) => (
-                                <SelectItem key={c.id} value={c.id}>
-                                  {c.name}
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        {/* Amount */}
-                        <div className="md:col-span-2 space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500">
-                            Amount
-                          </Label>
-
-                          <div className="relative">
-                            {/* Currency Prefix */}
-                            <div className="absolute left-0 inset-y-0 flex items-center px-4 pointer-events-none text-slate-400 font-semibold">
-                              {
-                                accounts.find((a) => a.id === accountId)
-                                  ?.currency
-                              }
-                            </div>
-
-                            <Input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              placeholder="0.00"
-                              value={amount}
-                              onChange={(e) => setAmount(e.target.value)}
-                              className="h-14 pl-20 text-xl font-semibold bg-slate-50/50 border-slate-200 focus:ring-2 focus:ring-slate-900 transition-all"
-                            />
-                          </div>
-                        </div>
-
-                        {/* Description */}
-                        <div className="md:col-span-2 space-y-2">
-                          <Label className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
-                            <AlignLeft className="h-3 w-3" /> Description
-                            (Optional)
-                          </Label>
-                          <Input
-                            placeholder="Lunch at the cafe..."
-                            value={description}
-                            onChange={(e) => setDescription(e.target.value)}
-                            className="h-12 bg-slate-50/50 border-slate-200"
-                          />
-                        </div>
-                      </div>
-
-                      <Button
-                        type="submit"
-                        disabled={submitting || !amount || !category}
-                        className={cn(
-                          "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98]",
-                          type === "expense"
-                            ? "bg-slate-900 hover:bg-slate-800"
-                            : "bg-emerald-600 hover:bg-emerald-700"
-                        )}
-                      >
-                        {submitting ? (
-                          <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        ) : (
-                          `Confirm ${type === "expense" ? "Expense" : "Income"}`
-                        )}
-                      </Button>
-                    </form>
-                  )}
-                </CardContent>
-              </Card>
-            </motion.div>
+              <Button
+                type="submit"
+                disabled={submitting || !amount || !category}
+                className={cn(
+                  "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98] mt-2",
+                  type === "expense"
+                    ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
+                    : "bg-success text-white hover:bg-success/90 shadow-success/20"
+                )}
+              >
+                {submitting ? (
+                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                ) : (
+                  `Confirm ${type === "expense" ? "Expense" : "Income"}`
+                )}
+              </Button>
+            </form>
           )}
-        </AnimatePresence>
-      </DialogContent>
-    </Dialog>
+        </CardContent>
+      </Card>
+    </div>
   );
 }

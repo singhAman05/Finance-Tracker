@@ -11,6 +11,13 @@
   --color-border: var(--border);
   --color-muted: var(--muted);
   --color-ring: var(--ring);
+  --color-primary-foreground: var(--primary-foreground);
+
+  /* New semantic colors */
+  --color-success: var(--success);
+  --color-danger: var(--danger);
+  --color-warning: var(--warning);
+  --color-info: var(--info);
 }
 
 /* ===============================
@@ -22,17 +29,17 @@
   --muted: hsl(0 0% 94%);
   --border: hsl(0 0% 91%);
   --ring: hsl(222 47% 20%);
-
-  /* Primary (CTA) */
   --primary: hsl(222 47% 11%);
-  /* Deep slate */
-
-  /* Text */
   --text-primary: hsl(220 15% 15%);
   --text-secondary: hsl(220 9% 46%);
-  /* Professional gray */
-}
+  --primary-foreground: hsl(0 0% 100%);
 
+  /* New */
+  --success: hsl(142 71% 45%);
+  --danger: hsl(0 84% 60%);
+  --warning: hsl(38 92% 50%);
+  --info: hsl(200 98% 39%);
+}
 
 /* ===============================
    DARK MODE
@@ -43,17 +50,17 @@
   --muted: hsl(0 0% 10%);
   --border: hsl(0 0% 18%);
   --ring: hsl(210 40% 70%);
-
-  /* Primary (CTA inverted feel) */
   --primary: hsl(210 40% 92%);
-  /* Soft light slate */
-
-  /* Text */
   --text-primary: hsl(0 0% 100%);
   --text-secondary: hsl(220 9% 60%);
-  /* Balanced gray */
-}
+  --primary-foreground: hsl(222 47% 11%);
 
+  /* New */
+  --success: hsl(142 70% 55%);
+  --danger: hsl(0 84% 65%);
+  --warning: hsl(38 92% 60%);
+  --info: hsl(200 98% 55%);
+}
 
 /* ===============================
    BASE LAYER & FONT
