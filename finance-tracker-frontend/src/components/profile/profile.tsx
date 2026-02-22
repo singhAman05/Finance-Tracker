@@ -10,6 +10,7 @@ import { Label } from "../ui/label";
 import { Button } from "../ui/button";
 import { profileRoute } from "@/routes/route_profile";
 import { Loader2, User, Mail, CheckCircle2 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 /* Custom input for phone component with refined styling to match your UI */
@@ -30,6 +31,7 @@ export default function ProfilePage() {
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState<string | undefined>("");
   const [isExistingPhone, setIsExistingPhone] = useState(false);
+  const [isExistingEmail, setIsExistingEmail] = useState(false);
   const [role, setRole] = useState<"student" | "professional">("student");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
@@ -39,7 +41,12 @@ export default function ProfilePage() {
     if (user) {
       const parsed = JSON.parse(user);
       setName(parsed.fullName || parsed.full_name || "");
-      setEmail(parsed.email || "");
+      
+      const existingEmail = parsed.email || "";
+      if (existingEmail) {
+        setEmail(existingEmail);
+        setIsExistingEmail(true);
+      }
 
       const existingPhone = parsed.phone || "";
       if (existingPhone && isValidPhoneNumber(existingPhone)) {
@@ -50,34 +57,48 @@ export default function ProfilePage() {
   }, []);
 
   // Updated Validation Logic
-  const isPhoneValid = phone ? isValidPhoneNumber(phone) : false;
   const isNameValid = name.trim().length > 0;
-  const canSubmit = isPhoneValid && isNameValid && !loading;
+  const isEmailValid = email.trim().length > 0 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  const isPhoneValid = phone ? isValidPhoneNumber(phone) : false;
+
+  // Phone is optional if Email already existed (Google login)
+  // Email is mandatory always
+  // Name is mandatory always
+  const canSubmit = 
+    isNameValid && 
+    isEmailValid && 
+    (isExistingEmail ? (phone ? isPhoneValid : true) : isPhoneValid) && 
+    !loading;
 
   const progress = useMemo(() => {
     let steps = 0;
     if (isNameValid) steps += 33;
-    if (isPhoneValid) steps += 33;
-    if (role) steps += 34;
-    return steps;
-  }, [isNameValid, isPhoneValid, role]);
+    if (isEmailValid) steps += 33;
+    if (isExistingEmail ? (phone ? isPhoneValid : true) : isPhoneValid) steps += 34;
+    return Math.min(steps, 100);
+  }, [isNameValid, isEmailValid, isExistingEmail, phone, isPhoneValid]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canSubmit) return;
+    if (!canSubmit) {
+      toast.error("Please fill in all required fields correctly.");
+      return;
+    }
 
     setLoading(true);
     try {
       await profileRoute({
         full_name: name.trim(),
-        email,
+        email: email.trim(),
         phone: phone || "", // This will now be in format +1234567890
         profession: role,
         profile_complete: true,
       });
+      toast.success("Profile setup complete!");
       router.push("/dashboard");
     } catch (err) {
       console.error("Profile update failed:", err);
+      toast.error("Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -145,33 +166,40 @@ export default function ProfilePage() {
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-5">
-                  {/* Email */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-slate-500">
-                      Email Address
-                    </Label>
-                    <div className="relative">
-                      <BaseInput
-                        value={email}
-                        disabled
-                        className="h-12 rounded-xl bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed opacity-70"
-                      />
-                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
-                    </div>
-                  </div>
-
-                  {/* Phone with Country Code */}
-                  <div className="space-y-2">
-                    <Label className="text-xs font-bold uppercase text-slate-500">
-                      Phone Number
-                    </Label>
-                    <div
+                {/* Email */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-slate-500">
+                    Email Address <span className="text-red-500">*</span>
+                  </Label>
+                  <div className="relative">
+                    <BaseInput
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isExistingEmail}
+                      placeholder="e.g. alex@example.com"
                       className={cn(
-                        "flex items-center px-3 h-12 rounded-xl border border-slate-200 dark:border-slate-800 focus-within:ring-2 focus-within:ring-slate-900 dark:focus-within:ring-white transition-all",
-                        isExistingPhone &&
-                          "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                        "h-12 rounded-xl",
+                        isExistingEmail && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed opacity-70"
                       )}
-                    >
+                    />
+                    {isExistingEmail && (
+                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                    )}
+                  </div>
+                </div>
+
+                {/* Phone with Country Code */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-bold uppercase text-slate-500">
+                    Phone Number {!isExistingEmail && <span className="text-red-500">*</span>}
+                  </Label>
+                  <div
+                    className={cn(
+                      "flex items-center px-3 h-12 rounded-xl border border-slate-200 dark:border-slate-800 focus-within:ring-2 focus-within:ring-slate-900 dark:focus-within:ring-white transition-all",
+                      isExistingPhone &&
+                        "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                    )}
+                  >
                       <PhoneInput
                         international
                         defaultCountry="IN"

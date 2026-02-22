@@ -160,7 +160,7 @@ export default function BillsInstanceList({
                             ? "bg-success/10"
                             : effectiveStatus === "overdue"
                             ? "bg-danger/10"
-                            : "bg-info/10"
+                            : "bg-primary/10"
                         }`}
                       >
                         <StatusIcon className={`h-5 w-5 ${status.color}`} />
@@ -203,7 +203,7 @@ export default function BillsInstanceList({
                             ? "text-success"
                             : effectiveStatus === "overdue"
                             ? "text-danger"
-                            : "text-info"
+                            : "text-text-primary"
                         }`}
                       >
                         {formatCurrency(instance.amount)}
@@ -217,7 +217,7 @@ export default function BillsInstanceList({
                           disabled={isPaying}
                           className={cn(
                             "rounded-full text-xs h-8 px-4 shrink-0 font-medium transition-all shadow-sm",
-                            effectiveStatus === "upcoming" && "bg-info text-white hover:bg-info/90",
+                            effectiveStatus === "upcoming" && "bg-primary text-primary-foreground hover:bg-primary/90",
                             effectiveStatus === "overdue" && "bg-danger text-white hover:bg-danger/90"
                           )}
                         >
