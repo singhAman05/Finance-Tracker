@@ -158,6 +158,7 @@ export const handleBillInstancePayment = async (
         // Invalidate caches
         await deleteCache(`bill_instances:${client_id}`);
         await deleteCache(`transactions:${client_id}`);
+        await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({
             message: "Bill marked as paid successfully",

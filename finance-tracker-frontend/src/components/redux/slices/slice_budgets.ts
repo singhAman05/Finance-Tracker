@@ -16,6 +16,7 @@ export interface Budget {
 export interface BudgetSummary {
     category_id: string;
     category_name: string;
+    category_color?: string;
     budget_id: string;
     budget_amount: number;
     spent_amount: number;

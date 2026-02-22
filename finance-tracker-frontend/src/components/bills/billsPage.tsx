@@ -6,8 +6,10 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
 import { setBills, setInstances, markInstancePaid } from "@/components/redux/slices/slice_bills";
+import { setTransactions } from "@/components/redux/slices/slice_transactions";
 import { payBillInstance } from "@/service/service_bills";
 import { fetchBillInstancesRoute, fetchBillsRoute } from "@/routes/route_bills";
+import { fetchTransactions } from "@/service/service_transactions";
 import { Skeleton } from "@/components/ui/skeleton";
 
 import BillsHeader from "@/components/bills/billsHeader";
@@ -107,8 +109,13 @@ export default function BillsPage() {
       if (result) {
         dispatch(markInstancePaid(instanceId));
         // Re-fetch instances to pick up next recurring instance from backend
-        const instancesRes = await fetchBillInstancesRoute();
+        // Also refresh transactions since paying a bill creates a transaction
+        const [instancesRes, txRes] = await Promise.all([
+          fetchBillInstancesRoute(),
+          fetchTransactions()
+        ]);
         if (instancesRes?.data) dispatch(setInstances(instancesRes.data));
+        if (txRes?.data) dispatch(setTransactions(txRes.data));
       }
     } catch (err) {
       console.error("Failed to pay bill:", err);

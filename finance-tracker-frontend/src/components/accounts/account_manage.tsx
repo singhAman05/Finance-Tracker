@@ -204,7 +204,7 @@ export default function AccountsPage() {
 
   if (loading && accounts.length === 0) {
     return (
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
+      <div className="p-6 space-y-8 w-full mx-auto">
         <LoadingSkeleton />
       </div>
     );
