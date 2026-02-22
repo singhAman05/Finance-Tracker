@@ -1,4 +1,4 @@
-import { apiClient } from "@/utils/Error_handler";
+import { apiClient, baseUrl } from "@/utils/Error_handler";
 
 export const createAccountRoute = async (payload: object) => {
   const token = localStorage.getItem('jwt');
@@ -6,7 +6,7 @@ export const createAccountRoute = async (payload: object) => {
     throw new Error('Not authenticated');
   }
   console.log("Payload for createAccountRoute:", payload);
-  const res = await fetch('http://localhost:8000/api/accounts/creating-account', {
+  const res = await fetch(`${baseUrl}/api/accounts/creating-account`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -24,22 +24,22 @@ export const createAccountRoute = async (payload: object) => {
   return result; // { account: { ... } }
 };
 
-export const fetchAccountsRoute = async()=>{
+export const fetchAccountsRoute = async () => {
   const data = await apiClient<any>(
-        `/api/accounts/fetch-accounts`,
-        {
-            method: "GET",
-        }
-    )
-    console.log("Fetched accounts data:", data);
-    return data.result
+    `/api/accounts/fetch-accounts`,
+    {
+      method: "GET",
+    }
+  )
+  console.log("Fetched accounts data:", data);
+  return data.result
 }
 
-export const deleteAccountRoute = async(accountId: string)=>{
+export const deleteAccountRoute = async (accountId: string) => {
   const data = await apiClient<any>(
     `/api/accounts/delete-account/${accountId}`,
     {
-        method: "DELETE",
+      method: "DELETE",
     }
   )
   return data.result

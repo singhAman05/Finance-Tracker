@@ -1,6 +1,8 @@
+import { baseUrl } from "@/utils/Error_handler";
+
 export const phoneLoginRoute = async (phone: string) => {
   try {
-    const response = await fetch("http://localhost:8000/api/auth/phone", {
+    const response = await fetch(`${baseUrl}/api/auth/phone`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -23,9 +25,9 @@ export const phoneLoginRoute = async (phone: string) => {
   }
 };
 
-export const loginGoogleRoute = async(email : string, name : string) => {
+export const loginGoogleRoute = async (email: string, name: string) => {
   try {
-    const response = await fetch("http://localhost:8000/api/auth/google-login", {
+    const response = await fetch(`${baseUrl}/api/auth/google-login`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
