@@ -106,7 +106,7 @@ export default function Home() {
               </span>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-6xl md:text-8xl font-bold mb-8 leading-[0.95] tracking-tighter">
+            <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl md:text-8xl font-bold mb-8 leading-[0.95] tracking-tighter">
               Master your <br />
               <span className="text-text-secondary">money flow.</span>
             </motion.h1>

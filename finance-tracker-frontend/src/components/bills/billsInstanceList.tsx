@@ -198,7 +198,7 @@ export default function BillsInstanceList({
                     {/* Right: amount + action */}
                     <div className="flex items-center gap-3 sm:flex-col sm:items-end sm:gap-2">
                       <span
-                        className={`text-xl font-bold tracking-tighter ${
+                        className={`text-lg sm:text-xl font-bold tracking-tighter ${
                           effectiveStatus === "paid"
                             ? "text-success"
                             : effectiveStatus === "overdue"

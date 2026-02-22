@@ -136,7 +136,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
 
   return (
     <div className="w-full max-w-2xl relative mx-auto">
-      <div className="rounded-3xl border border-border bg-card overflow-hidden shadow-2xl transition-all duration-300 relative">
+      <div className="rounded-[2.5rem] sm:rounded-3xl border border-border bg-card overflow-hidden shadow-2xl transition-all duration-300 relative">
         {/* Background pattern matching page.tsx */}
         <div
           className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -156,25 +156,25 @@ export function AddAccount({ onClose }: AddAccountProps) {
           />
         </div>
 
-        <div className="relative p-8 md:p-10">
+        <div className="relative p-5 sm:p-8 md:p-10">
           {/* Close button */}
           <button
-            className="absolute top-6 right-6 w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors z-20"
+            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors z-20"
             onClick={onClose}
           >
             <X className="h-4 w-4 text-text-secondary" />
           </button>
 
           {/* Header */}
-          <div className="mb-10 flex items-start gap-5">
-            <div className="w-14 h-14 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
-              <Landmark className="h-6 w-6 text-primary-foreground" />
+          <div className="mb-8 sm:mb-10 flex items-start gap-4 sm:gap-5">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
+              <Landmark className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
             </div>
             <div>
-              <h2 className="text-2xl font-bold tracking-tighter text-text-primary">
+              <h2 className="text-xl sm:text-2xl font-bold tracking-tighter text-text-primary">
                 Link New Account
               </h2>
-              <p className="text-text-secondary mt-1 max-w-sm leading-relaxed">
+              <p className="text-xs sm:text-sm text-text-secondary mt-1 max-w-sm leading-relaxed">
                 Connect your financial institution to start tracking transparently.
               </p>
             </div>

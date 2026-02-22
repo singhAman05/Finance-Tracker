@@ -27,7 +27,7 @@ export default function BudgetsHeader({ onAddBudget, onRefresh, isRefreshing }: 
       className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center"
     >
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
           Budget Management
         </h1>
         <p className="mt-2 text-base text-text-secondary">

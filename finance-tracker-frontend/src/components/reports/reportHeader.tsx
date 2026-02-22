@@ -27,7 +27,7 @@ export default function ReportHeader({
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div>
-          <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
+          <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
             {title}
           </h1>
           <p className="text-base text-text-secondary mt-1">

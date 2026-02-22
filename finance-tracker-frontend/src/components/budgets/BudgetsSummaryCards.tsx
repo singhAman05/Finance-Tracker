@@ -67,27 +67,33 @@ export default function BudgetsSummaryCards({
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
     >
       {/* Overall Utilization */}
-      <Card className="bg-primary text-primary-foreground shadow-xl shadow-primary/20 border-none rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02]">
+      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl shadow-primary/20 border-border dark:border-white/10 rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
+        <div 
+          className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
+          style={{ 
+            background: "linear-gradient(135deg, var(--primary) 0%, #4F46E5 50%, #7C3AED 100%)" 
+          }}
+        />
         <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
             <Target className="w-24 h-24" />
         </div>
-        <CardContent className="p-8">
+        <CardContent className="p-6 sm:p-8 relative z-10">
             <p className="text-[10px] font-black uppercase tracking-widest opacity-70 mb-2">Overall Utilization</p>
             <div className="flex items-baseline gap-2 mb-4">
-                <h2 className="text-4xl font-black tracking-tighter">
+                <h2 className="text-3xl sm:text-4xl font-black tracking-tighter">
                     <AnimatedCounter target={overallPercentage} />%
                 </h2>
                 <span className="text-xs font-bold opacity-60 uppercase">used</span>
             </div>
-            <div className="w-full h-3 bg-white/20 rounded-full overflow-hidden mb-4">
+            <div className="w-full h-3 bg-white/10 dark:bg-white/5 rounded-full overflow-hidden mb-4 border border-white/5">
                 <motion.div 
                    initial={{ width: 0 }}
                    animate={{ width: `${Math.min(overallPercentage, 100)}%` }}
                    transition={{ duration: 1.2, ease: "easeOut" }}
-                   className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.6)]"
+                   className="h-full bg-white shadow-[0_0_20px_rgba(255,255,255,0.8)]"
                 />
             </div>
-            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider opacity-80">
+            <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider opacity-80">
                  <span>Spent: ₹{totalSpent.toLocaleString()}</span>
                  <span>Limit: ₹{totalBudget.toLocaleString()}</span>
             </div>

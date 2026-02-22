@@ -250,7 +250,7 @@ export default function DashboardPage() {
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
           <div>
-            <h1 className="text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
               Financial Dashboard
             </h1>
             <div className="mt-2">
@@ -288,7 +288,7 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tighter">
+              <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
                 <AnimatedCounter target={financialHealth.netWorth} prefix="₹" />
               </div>
               <p className="text-xs text-text-secondary flex items-center mt-2 font-medium">
@@ -309,7 +309,7 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-3xl font-bold tracking-tighter ${financialHealth.cashFlow >= 0 ? "text-success" : "text-danger"}`}>
+              <div className={`text-2xl sm:text-3xl font-bold tracking-tighter ${financialHealth.cashFlow >= 0 ? "text-success" : "text-danger"}`}>
                 <AnimatedCounter target={Math.abs(financialHealth.cashFlow)} prefix={financialHealth.cashFlow < 0 ? "-₹" : "₹"} />
               </div>
               <p className="text-xs text-text-secondary mt-2 font-medium">
@@ -327,7 +327,7 @@ export default function DashboardPage() {
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold tracking-tighter">
+              <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
                 <AnimatedCounter target={Math.min(100, Math.round(budgetStats.overallPercentage))} />
                 <span>%</span>
               </div>

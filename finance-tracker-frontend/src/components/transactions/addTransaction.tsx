@@ -157,7 +157,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
 
   return (
     <div className="w-full max-w-2xl relative mx-auto">
-      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-3xl relative">
+      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-[2rem] sm:rounded-3xl relative">
         <div
           className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
           style={{
@@ -166,17 +166,17 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
           }}
         />
         {/* Header Section */}
-        <div className="bg-muted/30 border-b border-border p-6 sm:p-8 relative z-10">
+        <div className="bg-muted/30 border-b border-border p-5 sm:p-8 relative z-10">
           <div className="flex justify-between items-start">
             <div className="flex gap-4">
               <div className="h-12 w-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10">
                 <Wallet className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <CardTitle className="text-2xl font-bold tracking-tight text-text-primary">
+                <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
                   New Transaction
                 </CardTitle>
-                <CardDescription className="text-text-secondary">
+                <CardDescription className="text-xs sm:text-sm text-text-secondary">
                   Record your financial activity accurately.
                 </CardDescription>
               </div>
@@ -227,7 +227,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
           </div>
         </div>
 
-        <CardContent className="p-6 sm:p-8">
+        <CardContent className="p-5 sm:p-8">
           {loading ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-text-secondary/20" />

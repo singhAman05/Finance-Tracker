@@ -358,7 +358,7 @@ export default function TransactionPage() {
       {/* Header */}
       <motion.div variants={fadeUp} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-text-primary">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
             Transactions
           </h1>
           <p className="text-text-secondary mt-1">
@@ -436,7 +436,7 @@ export default function TransactionPage() {
                 </div>
               </div>
 
-              <div className="text-3xl font-bold tracking-tighter text-text-primary mb-2">
+              <div className="text-2xl sm:text-3xl font-bold tracking-tighter text-text-primary mb-2">
                 ₹<AnimatedCounter target={Math.abs(stat.value)} />
               </div>
 

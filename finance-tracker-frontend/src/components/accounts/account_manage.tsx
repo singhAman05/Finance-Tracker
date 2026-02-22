@@ -267,7 +267,7 @@ export default function AccountsPage() {
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
         >
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-text-primary">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
               Financial Assets
             </h1>
             <p className="text-text-secondary mt-1">
@@ -335,7 +335,7 @@ export default function AccountsPage() {
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-3xl font-bold tracking-tighter text-text-primary">
+                  <span className="text-2xl sm:text-3xl font-bold tracking-tighter text-text-primary">
                     {item.isCount ? (
                       <AnimatedCounter target={item.val as number} />
                     ) : (

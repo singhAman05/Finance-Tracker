@@ -105,7 +105,7 @@ export default function SummaryCards({
           </CardHeader>
           <CardContent className="relative z-10">
             <div className={cn(
-              "text-3xl font-black tracking-tighter",
+              "text-2xl sm:text-3xl font-black tracking-tighter",
               stat.isHero ? "text-white" : "text-text-primary"
             )}>
               {stat.label === "Net Cash Flow" && (stat.value >= 0 ? "+" : "-")}

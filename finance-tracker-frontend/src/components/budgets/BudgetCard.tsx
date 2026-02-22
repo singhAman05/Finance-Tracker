@@ -51,8 +51,8 @@ export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
             onClick={onClick}
             className="group cursor-pointer"
         >
-            <Card className="overflow-hidden border border-border bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/20 transition-all duration-300 shadow-sm hover:shadow-xl rounded-[2rem]">
-                <CardContent className="p-7">
+            <Card className="overflow-hidden border border-border bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/20 transition-all duration-300 shadow-sm hover:shadow-xl rounded-[1.5rem] sm:rounded-[2rem]">
+                <CardContent className="p-5 sm:p-7">
                     <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-4">
                             <div 
@@ -69,9 +69,9 @@ export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
                                     style={{ color: summary.category_color || undefined }}
                                 />
                             </div>
-                            <div>
-                                <h3 className="text-lg font-black text-text-primary tracking-tight">{category_name}</h3>
-                                <p className="text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70">Monthly Limit</p>
+                             <div>
+                                <h3 className="text-base sm:text-lg font-black text-text-primary tracking-tight">{category_name}</h3>
+                                <p className="text-[9px] sm:text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70">Monthly Limit</p>
                             </div>
                         </div>
                         <div className={cn(
@@ -84,9 +84,9 @@ export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
 
                     <div className="space-y-6">
                         <div className="flex justify-between items-end">
-                            <div className="space-y-1">
-                                <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Spent So Far</p>
-                                <p className="text-2xl font-black text-text-primary tracking-tighter">{formatCurrency(spent_amount)}</p>
+                             <div className="space-y-1">
+                                <p className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Spent So Far</p>
+                                <p className="text-xl sm:text-2xl font-black text-text-primary tracking-tighter">{formatCurrency(spent_amount)}</p>
                             </div>
                             <div className="text-right space-y-1">
                                 <p className="text-[10px] font-black uppercase tracking-widest text-text-secondary opacity-60">Total Budget</p>

@@ -209,27 +209,27 @@ export default function OverviewTab({
           <Table>
             <TableHeader>
             <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
-                <TableHead className="pl-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Category</TableHead>
+                <TableHead className="pl-6 sm:pl-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary">Category</TableHead>
                 <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Amount</TableHead>
-                <TableHead className="text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-center">Percentage</TableHead>
-                <TableHead className="pr-8 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Transactions</TableHead>
+                <TableHead className="hidden sm:table-cell text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-center">Percentage</TableHead>
+                <TableHead className="pr-6 sm:pr-8 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Transactions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {topSpendingCategories.map((category) => (
                 <TableRow key={category.id} className="group hover:bg-muted transition-colors border-b border-border last:border-0">
-                  <TableCell className="pl-8 py-5">
+                  <TableCell className="pl-6 sm:pl-8 py-5">
                     <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color || "var(--primary)" }} />
-                      <span className="font-bold text-sm tracking-tight text-text-primary">{category.name}</span>
+                      <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: category.color || "var(--primary)" }} />
+                      <span className="font-bold text-sm tracking-tight text-text-primary truncate max-w-[80px] sm:max-w-none">{category.name}</span>
                     </div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className="font-mono font-bold text-danger">
+                    <span className="font-mono font-bold text-danger text-xs sm:text-sm">
                       {formatCurrency(category.expenses)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-center">
+                  <TableCell className="hidden sm:table-cell text-center">
                     <div className="flex items-center justify-center gap-3">
                       <div className="w-24 h-1.5 bg-muted rounded-full overflow-hidden flex-shrink-0">
                         <div 
@@ -242,7 +242,7 @@ export default function OverviewTab({
                       </span>
                     </div>
                   </TableCell>
-                  <TableCell className="text-right pr-8">
+                  <TableCell className="text-right pr-6 sm:pr-8">
                     <span className="text-xs font-bold text-text-secondary">
                       {category.count} <span className="font-normal opacity-60 ml-0.5 text-[10px] uppercase tracking-wider">txns</span>
                     </span>

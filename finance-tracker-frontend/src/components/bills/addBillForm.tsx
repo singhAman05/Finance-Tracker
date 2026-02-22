@@ -89,7 +89,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
   const expenseCategories = categories.filter((c: any) => c.type === "expense" || !c.type);
 
   return (
-    <Card className="w-full max-w-2xl shadow-2xl border border-border bg-card overflow-hidden rounded-3xl relative">
+    <Card className="w-full max-w-2xl shadow-2xl border border-border bg-card overflow-hidden rounded-[2rem] sm:rounded-3xl relative">
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
@@ -98,14 +98,14 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
         }}
       />
       
-      <CardHeader className="flex flex-row items-center justify-between pb-4 border-b border-border/40 relative z-10">
+      <CardHeader className="flex flex-row items-center justify-between p-5 pb-3 sm:p-6 sm:pb-4 border-b border-border/40 relative z-10">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
              <X className="h-6 w-6 text-primary-foreground rotate-45" />
           </div>
           <div>
-            <CardTitle className="text-xl font-bold tracking-tight text-text-primary">Add New Bill</CardTitle>
-            <p className="text-xs text-text-secondary mt-0.5">Set up your recurring obligations</p>
+            <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-text-primary">Add New Bill</CardTitle>
+            <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5">Set up your recurring obligations</p>
           </div>
         </div>
         <button
@@ -116,7 +116,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
         </button>
       </CardHeader>
 
-      <CardContent className="pt-6">
+      <CardContent className="p-5 sm:pt-6">
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Name + Amount */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
