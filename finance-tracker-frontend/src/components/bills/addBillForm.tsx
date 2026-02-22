@@ -18,6 +18,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { createBill, CreateBillPayload } from "@/service/service_bills";
 import { X } from "lucide-react";
+import { toast } from "sonner";
 
 interface AddBillFormProps {
   onClose: () => void;
@@ -51,7 +52,8 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!form.name || !form.amount || !form.system_category_id || !form.start_date) {
+    if (!form.name || !form.amount || !form.system_category_id || !form.start_date || !form.account_id) {
+      toast.error("Please fill in all mandatory fields, including the account.");
       return;
     }
 
@@ -59,7 +61,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
       name: form.name.trim(),
       amount: parseFloat(form.amount),
       system_category_id: form.system_category_id,
-      account_id: form.account_id || undefined,
+      account_id: form.account_id,
       start_date: form.start_date,
       is_recurring: isRecurring,
       recurrence_type: isRecurring ? form.recurrence_type : undefined,
@@ -73,10 +75,12 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
       setLoading(true);
       const result = await createBill(payload);
       if (result) {
+        toast.success("Bill created successfully!");
         onClose(); // parent's onClose calls loadData(true) to refresh
       }
     } catch (err) {
       console.error("Failed to create bill:", err);
+      toast.error("Failed to create bill. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -164,16 +168,15 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Account (optional)</Label>
+              <Label className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Account *</Label>
               <Select
-                onValueChange={(v) => handleChange("account_id", v === "__none__" ? "" : v)}
-                value={form.account_id || "__none__"}
+                onValueChange={(v) => handleChange("account_id", v)}
+                value={form.account_id}
               >
                 <SelectTrigger className="bg-muted border border-border h-12 rounded-xl focus-visible:ring-1 focus-visible:ring-ring transition-all font-medium text-sm text-text-primary">
-                  <SelectValue placeholder="No account" />
+                  <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border border-border rounded-xl">
-                  <SelectItem value="__none__">No account</SelectItem>
                   {accounts.map((acc: any) => (
                     <SelectItem key={acc.id} value={acc.id}>
                       {acc.name}
