@@ -45,10 +45,10 @@
    DARK MODE
 ================================ */
 .dark {
-  --background: hsl(0 0% 7.5%);
-  --card: hsl(0 0% 12%);
-  --muted: hsl(0 0% 10%);
-  --border: hsl(0 0% 18%);
+  --background: hsl(0 0% 0%);
+  --card: hsl(0 0% 5%);
+  --muted: hsl(0 0% 9%);
+  --border: hsl(0 0% 15%);
   --ring: hsl(210 40% 70%);
   --primary: hsl(210 40% 92%);
   --text-primary: hsl(0 0% 100%);

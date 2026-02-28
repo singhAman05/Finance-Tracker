@@ -40,7 +40,7 @@ export default function SummaryCards({
       value: totalBalance,
       icon: Wallet,
       pattern: Target,
-      color: "text-white",
+      color: "text-primary-foreground",
       bgColor: "bg-primary shadow-xl shadow-primary/20",
       description: "Across all accounts",
       isHero: true
@@ -90,7 +90,7 @@ export default function SummaryCards({
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative z-10">
             <CardTitle className={cn(
               "text-[10px] font-black uppercase tracking-widest",
-              stat.isHero ? "text-white/70" : "text-text-secondary",
+              stat.isHero ? "text-primary-foreground/70" : "text-text-secondary",
               stat.label === "Total Income" && "text-emerald-500",
               stat.label === "Total Expenses" && "text-amber-500"
             )}>
@@ -98,22 +98,22 @@ export default function SummaryCards({
             </CardTitle>
             <div className={cn(
               "p-2 rounded-xl", 
-              stat.isHero ? "bg-white/10" : "bg-card border border-border"
+              stat.isHero ? "bg-primary-foreground/10" : "bg-card border border-border"
             )}>
-              <stat.icon className={cn("h-4 w-4", stat.isHero ? "text-white" : stat.color)} />
+              <stat.icon className={cn("h-4 w-4", stat.isHero ? "text-primary-foreground" : stat.color)} />
             </div>
           </CardHeader>
           <CardContent className="relative z-10">
             <div className={cn(
               "text-2xl sm:text-3xl font-black tracking-tighter",
-              stat.isHero ? "text-white" : "text-text-primary"
+              stat.isHero ? "text-primary-foreground" : "text-text-primary"
             )}>
               {stat.label === "Net Cash Flow" && (stat.value >= 0 ? "+" : "-")}
               ₹<AnimatedCounter target={Math.abs(stat.value)} />
             </div>
             <p className={cn(
               "text-xs mt-2 font-medium",
-              stat.isHero ? "text-white/60" : "text-text-secondary"
+              stat.isHero ? "text-primary-foreground/60" : "text-text-secondary"
             )}>
               {stat.description}
             </p>

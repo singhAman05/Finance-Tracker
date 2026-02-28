@@ -242,7 +242,7 @@ export default function TransactionPage() {
         categoryFilter === "all" || tx.category_id === categoryFilter;
 
       return matchText && matchAccount && matchCategory;
-    });
+    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [
     transactions,
     accountMap,

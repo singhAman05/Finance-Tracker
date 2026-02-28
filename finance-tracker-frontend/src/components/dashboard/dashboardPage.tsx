@@ -52,13 +52,13 @@ import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
 import { getCategoryData, aggregateTransactions, getMonthlyData } from "@/service/service_reports"; 
 import { fetchCategories } from "@/service/service_categories";
 import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
-import { fetchBillInstances } from "@/service/service_bills";
+import { fetchBillInstances, fetchBills } from "@/service/service_bills";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setAccounts } from "../redux/slices/slice_accounts";
 import { setCategories } from "../redux/slices/slice_categories";
 
 // Types
-import { BillInstance } from "@/types/interfaces";
+import { BillInstance, Bill } from "@/types/interfaces";
 
 const staggerContainer = {
   hidden: {},
@@ -123,6 +123,7 @@ export default function DashboardPage() {
 
   const [isClient, setIsClient] = useState(false);
   const [budgetSummary, setBudgetSummary] = useState<any[]>([]);
+  const [bills, setBills] = useState<Bill[]>([]);
   const [upcomingBills, setUpcomingBills] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -144,6 +145,8 @@ export default function DashboardPage() {
             
             // Always fetch fresh summaries for dashboard
             promises.push(fetchBudgetSummary().then(res => setBudgetSummary(res?.data || [])));
+            // We need both bills to map names and instances for the schedule
+            promises.push(fetchBills().then(res => setBills(res?.data || [])));
             promises.push(fetchBillInstances().then(res => {
                 const instances = res?.data || [];
                 // Filter for upcoming/unpaid bills in the next 15 days
@@ -280,7 +283,7 @@ export default function DashboardPage() {
         {/* Summary Cards */}
         <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Net Worth */}
-          <Card className="bg-primary/5 border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
+          <Card className="bg-card border-border shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-primary">Net Worth</CardTitle>
               <div className="p-2 bg-primary/10 rounded-full">
@@ -569,13 +572,15 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {upcomingBills.map((bill) => (
+                  {upcomingBills.map((bill) => {
+                    const billName = bills.find(b => b.id === bill.bill_id)?.name || "Bill Due";
+                    return (
                     <div
                       key={bill.id}
                       className="flex items-center justify-between"
                     >
                       <div className="max-w-[120px]">
-                        <div className="font-semibold tracking-tight text-primary-foreground truncate">Bill Due</div>
+                        <div className="font-semibold tracking-tight text-primary-foreground truncate">{billName}</div>
                         <div className="text-xs text-primary-foreground/60 mt-0.5">
                           {new Date(bill.due_date).toLocaleDateString()}
                         </div>
@@ -584,7 +589,7 @@ export default function DashboardPage() {
                         {formatCurrency(bill.amount)}
                       </div>
                     </div>
-                  ))}
+                  )})}
                   {upcomingBills.length === 0 && (
                       <p className="text-sm text-center text-primary-foreground/60 py-4">No upcoming bills.</p>
                   )}
