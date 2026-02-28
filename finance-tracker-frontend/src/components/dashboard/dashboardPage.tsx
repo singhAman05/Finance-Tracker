@@ -304,10 +304,10 @@ export default function DashboardPage() {
           </Card>
 
           {/* Cash Flow (Current Month) */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300">
+          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Cash Flow (This Month)</CardTitle>
-              <div className="p-2 bg-secondary rounded-full">
+              <div className="p-2 bg-secondary rounded-full border border-border">
                 <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
@@ -322,10 +322,10 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300">
+          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Budget Health</CardTitle>
-              <div className="p-2 bg-secondary rounded-full">
+              <div className="p-2 bg-secondary rounded-full border border-border">
                 <PiggyBank className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
@@ -346,7 +346,7 @@ export default function DashboardPage() {
         <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Monthly Cash Flow - Placeholder/Future Feature */}
           <div className="lg:col-span-8">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                    <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
@@ -393,7 +393,7 @@ export default function DashboardPage() {
 
           {/* Spending Distribution - DYNAMIC */}
           <div className="lg:col-span-4">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Spending Distribution</CardTitle>
                 <CardDescription>Top Categories</CardDescription>
@@ -428,7 +428,7 @@ export default function DashboardPage() {
         <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Net Worth Trend - Placeholder */}
           <div className="lg:col-span-5">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Net Worth Trend</CardTitle>
                 <CardDescription>Monthly progression</CardDescription>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="lg:col-span-7">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
                 <CardTitle className="text-lg">Budget Progress</CardTitle>
                 <CardDescription>Monthly spending by category</CardDescription>
@@ -505,7 +505,7 @@ export default function DashboardPage() {
         <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Recent Transactions - DYNAMIC */}
           <div className="lg:col-span-5">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="flex flex-row items-center justify-between pb-6">
                 <CardTitle className="text-lg">Recent Transactions</CardTitle>
                 <Button 
@@ -565,10 +565,10 @@ export default function DashboardPage() {
           </div>
 
           <div className="lg:col-span-3">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full bg-primary text-primary-foreground border-primary/20">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="pb-6">
-                <CardTitle className="text-lg text-primary-foreground">Upcoming Bills</CardTitle>
-                <CardDescription className="text-primary-foreground/60">Next 15 days</CardDescription>
+                <CardTitle className="text-lg text-primary">Upcoming Bills</CardTitle>
+                <CardDescription className="text-muted-foreground">Next 15 days</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -580,18 +580,18 @@ export default function DashboardPage() {
                       className="flex items-center justify-between"
                     >
                       <div className="max-w-[120px]">
-                        <div className="font-semibold tracking-tight text-primary-foreground truncate">{billName}</div>
-                        <div className="text-xs text-primary-foreground/60 mt-0.5">
+                        <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
+                        <div className="text-xs text-muted-foreground mt-0.5">
                           {new Date(bill.due_date).toLocaleDateString()}
                         </div>
                       </div>
-                      <div className="font-semibold text-danger bg-white/10 px-2 py-1 rounded-lg">
+                      <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">
                         {formatCurrency(bill.amount)}
                       </div>
                     </div>
                   )})}
                   {upcomingBills.length === 0 && (
-                      <p className="text-sm text-center text-primary-foreground/60 py-4">No upcoming bills.</p>
+                      <p className="text-sm text-center text-muted-foreground py-4">No upcoming bills.</p>
                   )}
                 </div>
               </CardContent>
