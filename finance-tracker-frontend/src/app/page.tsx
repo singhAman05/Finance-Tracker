@@ -223,7 +223,7 @@ export default function Home() {
               initial={{ opacity: 0, x: 20, y: 20 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
               transition={{ delay: 1.5, duration: 0.5 }}
-              className="absolute -right-4 top-16 bg-card border border-border rounded-xl p-3 shadow-lg max-w-[180px]"
+              className="absolute right-0 sm:-right-4 top-16 bg-card border border-border rounded-xl p-3 shadow-lg max-w-[180px]"
             >
               <div className="flex items-center gap-2">
                 <div className="w-6 h-6 rounded-full bg-muted flex items-center justify-center flex-shrink-0">
@@ -245,7 +245,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="flex justify-center gap-16 md:gap-24 items-center"
+          className="grid grid-cols-2 md:grid-cols-4 gap-6 px-6 max-w-3xl mx-auto"
         >
           {[
             { value: "50K+", label: "Transactions Tracked" },
@@ -253,7 +253,7 @@ export default function Home() {
             { value: "2.4K", label: "Active Users" },
             { value: "4.9★", label: "User Rating" },
           ].map((stat) => (
-            <div key={stat.label} className="text-center flex-shrink-0">
+            <div key={stat.label} className="text-center">
               <p className="text-2xl md:text-3xl font-bold tracking-tight">{stat.value}</p>
               <p className="text-xs text-text-secondary mt-1">{stat.label}</p>
             </div>

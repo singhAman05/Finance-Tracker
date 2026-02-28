@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Sidebar } from "@/components/common/sidebar";
 import { MobileSidebar } from "@/components/common/mobileSidebar";
-import { Menu } from "lucide-react";
+import { Menu, Wallet } from "lucide-react";
 
 export default function DashboardLayout({
   children,
@@ -19,13 +19,22 @@ export default function DashboardLayout({
         <Sidebar />
       </div>
 
-      {/* Mobile Sidebar Toggle */}
-      <button
-        className="md:hidden fixed top-4 left-4 z-30 p-2 rounded-lg bg-primary text-white shadow-lg"
-        onClick={() => setMobileOpen(true)}
-      >
-        <Menu className="h-6 w-6" />
-      </button>
+      {/* Mobile Top Header Bar */}
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-card/90 backdrop-blur-md border-b border-border flex items-center px-4 gap-3">
+        <button
+          className="p-2 rounded-lg hover:bg-muted transition-colors"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open menu"
+        >
+          <Menu className="h-5 w-5 text-text-primary" />
+        </button>
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 bg-primary text-primary-foreground rounded-lg flex items-center justify-center">
+            <Wallet className="w-4 h-4" />
+          </div>
+          <span className="text-base font-bold tracking-tight text-text-primary">Finance</span>
+        </div>
+      </header>
 
       {/* Mobile Sidebar Overlay */}
       {isMobileOpen && (
@@ -35,7 +44,7 @@ export default function DashboardLayout({
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 h-full overflow-y-auto p-4 md:p-6 transition-all scroll-smooth">
+      <main className="flex-1 h-full overflow-y-auto pt-14 md:pt-0 transition-all scroll-smooth">
         {children}
       </main>
     </div>

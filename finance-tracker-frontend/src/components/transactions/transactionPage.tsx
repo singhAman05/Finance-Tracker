@@ -355,8 +355,7 @@ export default function TransactionPage() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Header */}
-      <motion.div variants={fadeUp} className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+      <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
             Transactions
@@ -365,7 +364,7 @@ export default function TransactionPage() {
             Track your cash flow and spending habits.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="icon"
@@ -387,7 +386,7 @@ export default function TransactionPage() {
           </Button>
           <Button
             onClick={() => dispatch(openModal({ type: "ADD_TRANSACTION" }))}
-            className="group bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95 flex items-center gap-2 h-12"
+            className="group bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95 flex items-center gap-2 h-10"
           >
             <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
             Add Transaction
@@ -527,164 +526,170 @@ export default function TransactionPage() {
             {filteredTransactions.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <div className="bg-muted p-4 rounded-full mb-4">
-                  {search ||
-                  accountFilter !== "all" ||
-                  categoryFilter !== "all" ? (
+                  {search || accountFilter !== "all" || categoryFilter !== "all" ? (
                     <Search className="h-8 w-8 text-text-secondary" />
                   ) : (
                     <ArrowRightLeft className="h-8 w-8 text-text-secondary" />
                   )}
                 </div>
-
                 <h3 className="text-lg font-semibold text-text-primary">
-                  {search || accountFilter !== "all" || categoryFilter !== "all"
-                    ? "No results found"
-                    : "No transactions yet"}
+                  {search || accountFilter !== "all" || categoryFilter !== "all" ? "No results found" : "No transactions yet"}
                 </h3>
-
                 <p className="text-text-secondary text-sm max-w-xs mt-2 px-4">
                   {search || accountFilter !== "all" || categoryFilter !== "all"
                     ? `We couldn't find any transactions matching your current filters.`
                     : "Start tracking your expenses and income by adding your first transaction."}
                 </p>
                 <div className="mt-6">
-                  {search ||
-                  accountFilter !== "all" ||
-                  categoryFilter !== "all" ? (
+                  {search || accountFilter !== "all" || categoryFilter !== "all" ? (
                     <Button
                       variant="outline"
-                      onClick={() => {
-                        setSearch("");
-                        setAccountFilter("all");
-                        setCategoryFilter("all");
-                      }}
+                      onClick={() => { setSearch(""); setAccountFilter("all"); setCategoryFilter("all"); }}
                       className="rounded-full border-border bg-card text-text-primary hover:bg-muted"
                     >
                       Clear all filters
                     </Button>
                   ) : (
-                    <div className="scale-110">
-                      <Button
-                        onClick={() => dispatch(openModal({ type: "ADD_TRANSACTION" }))}
-                        className="group bg-slate-900 hover:bg-slate-800 text-white rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95 flex items-center gap-2"
-                      >
-                        <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
-                        Add Transaction
-                      </Button>
-                    </div>
+                    <Button
+                      onClick={() => dispatch(openModal({ type: "ADD_TRANSACTION" }))}
+                      className="group bg-primary hover:bg-primary/90 text-primary-foreground rounded-full px-6 shadow-md transition-all hover:shadow-xl active:scale-95 flex items-center gap-2"
+                    >
+                      <Plus className="h-4 w-4 transition-transform group-hover:rotate-90" />
+                      Add Transaction
+                    </Button>
                   )}
                 </div>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
-                      <TableHead className="w-[150px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-text-secondary">Date</TableHead>
-                      <TableHead className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Description</TableHead>
-                      <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Category</TableHead>
-                      <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Account</TableHead>
-                      <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">Amount</TableHead>
-                      <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                        Actions
-                      </TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    <AnimatePresence mode="popLayout">
-                      {filteredTransactions.map((tx) => {
-                        const account = accountMap[tx.account_id];
-                        const category = categoryMap[tx.category_id];
-                        const isExpense = tx.type === "expense" ? true : false;
-                        console.log(
-                          "Transaction Type:",
-                          tx.type,
-                          "isExpense:",
-                          isExpense
-                        );
-                        const displayAmount = Math.abs(tx.amount);
+              <>
+                {/* Mobile card list (< md) */}
+                <div className="md:hidden divide-y divide-border">
+                  <AnimatePresence mode="popLayout">
+                    {filteredTransactions.map((tx) => {
+                      const account = accountMap[tx.account_id];
+                      const category = categoryMap[tx.category_id];
+                      const isExpense = tx.type === "expense";
+                      const displayAmount = Math.abs(tx.amount);
+                      return (
+                        <motion.div
+                          key={tx.id}
+                          layout
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          className="flex items-center gap-3 px-4 py-3.5"
+                        >
+                          <div className={cn(
+                            "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                            isExpense ? "bg-danger/10" : "bg-success/10"
+                          )}>
+                            {isExpense
+                              ? <ArrowUpRight className="h-4 w-4 text-danger" />
+                              : <ArrowDownLeft className="h-4 w-4 text-success" />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-sm text-text-primary truncate">
+                              {tx.description || category?.name || "Transaction"}
+                            </p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] text-text-secondary">{format(new Date(tx.date), "MMM dd")}</span>
+                              <span className="text-text-secondary/40">·</span>
+                              <span className="text-[11px] text-text-secondary truncate">{category?.name || "Uncategorized"}</span>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={cn("font-mono font-bold text-sm", isExpense ? "text-danger" : "text-success")}>
+                              {isExpense ? "-" : "+"}{formatCurrency(displayAmount)}
+                            </span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-full text-text-secondary hover:text-danger hover:bg-danger/5"
+                              onClick={() => setDeleteData({ id: tx.id, description: tx?.description || category?.name })}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </AnimatePresence>
+                </div>
 
-                        return (
-                          <motion.tr
-                            key={tx.id}
-                            layout
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            className="group hover:bg-muted transition-colors border-b border-border last:border-0"
-                          >
-                            <TableCell className="pl-6 py-4">
-                              <div className="flex items-center text-sm text-text-secondary">
-                                <Calendar className="mr-2 h-3.5 w-3.5 text-text-secondary" />
-                                {format(new Date(tx.date), "MMM dd, yyyy")}
-                              </div>
-                            </TableCell>
-
-                            <TableCell>
-                              <span className="font-medium text-sm text-text-primary">
-                                {tx.description ||
-                                  `${category?.name} side income/expense`}
-                              </span>
-                            </TableCell>
-
-                            <TableCell>
-                              <Badge
-                                variant="secondary"
-                                className="font-normal text-xs bg-muted text-text-secondary hover:bg-muted/80 border-0"
-                              >
-                                {category?.name || "Uncategorized"}
-                              </Badge>
-                            </TableCell>
-
-                            <TableCell>
-                              <div className="flex items-center gap-2">
-                                <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shadow-sm">
-                                  <img
-                                    src={getBankLogoUrl(account?.bank)}
-                                    alt="Bank"
-                                    className="h-full w-full object-contain"
-                                  />
+                {/* Desktop table (>= md) */}
+                <div className="hidden md:block overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
+                        <TableHead className="w-[150px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-text-secondary">Date</TableHead>
+                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Description</TableHead>
+                        <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Category</TableHead>
+                        <TableHead className="text-left text-xs font-semibold uppercase tracking-wider text-text-secondary">Account</TableHead>
+                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">Amount</TableHead>
+                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <AnimatePresence mode="popLayout">
+                        {filteredTransactions.map((tx) => {
+                          const account = accountMap[tx.account_id];
+                          const category = categoryMap[tx.category_id];
+                          const isExpense = tx.type === "expense";
+                          const displayAmount = Math.abs(tx.amount);
+                          return (
+                            <motion.tr
+                              key={tx.id}
+                              layout
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0, x: -20 }}
+                              className="group hover:bg-muted transition-colors border-b border-border last:border-0"
+                            >
+                              <TableCell className="pl-6 py-4">
+                                <div className="flex items-center text-sm text-text-secondary">
+                                  <Calendar className="mr-2 h-3.5 w-3.5 text-text-secondary" />
+                                  {format(new Date(tx.date), "MMM dd, yyyy")}
                                 </div>
-                                <span className="text-sm text-text-secondary truncate max-w-[120px]">
-                                  {account?.name || "account not found"}
+                              </TableCell>
+                              <TableCell>
+                                <span className="font-medium text-sm text-text-primary">{tx.description || `${category?.name} side income/expense`}</span>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="font-normal text-xs bg-muted text-text-secondary hover:bg-muted/80 border-0">
+                                  {category?.name || "Uncategorized"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <div className="flex items-center gap-2">
+                                  <div className="h-6 w-6 rounded-md bg-card border border-border p-0.5 flex items-center justify-center shadow-sm">
+                                    <img src={getBankLogoUrl(account?.bank)} alt="Bank" className="h-full w-full object-contain" />
+                                  </div>
+                                  <span className="text-sm text-text-secondary truncate max-w-[120px]">{account?.name || "account not found"}</span>
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right pr-8">
+                                <span className={cn("font-mono font-medium tracking-tight", isExpense ? "text-danger" : "text-success")}>
+                                  {isExpense ? "-" : "+"}{formatCurrency(displayAmount)}
                                 </span>
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="text-right pr-8">
-                              <span
-                                className={cn(
-                                  "font-mono font-medium tracking-tight",
-                                  isExpense ? "text-danger" : "text-success"
-                                )}
-                              >
-                                {isExpense ? "-" : "+"}
-                                {formatCurrency(displayAmount)}
-                              </span>
-                            </TableCell>
-
-                            <TableCell className="text-right pr-8">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-9 w-9 rounded-full text-text-secondary hover:text-red-600 dark:hover:text-red-400 hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-red-100 dark:hover:border-red-900/30"
-                                onClick={() =>
-                                  setDeleteData({
-                                    id: tx.id,
-                                    description: tx?.description || category?.name,
-                                  })
-                                }
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </TableCell>
-                          </motion.tr>
-                        );
-                      })}
-                    </AnimatePresence>
-                  </TableBody>
-                </Table>
-              </div>
+                              </TableCell>
+                              <TableCell className="text-right pr-8">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-danger hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-danger/20"
+                                  onClick={() => setDeleteData({ id: tx.id, description: tx?.description || category?.name })}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
+                            </motion.tr>
+                          );
+                        })}
+                      </AnimatePresence>
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

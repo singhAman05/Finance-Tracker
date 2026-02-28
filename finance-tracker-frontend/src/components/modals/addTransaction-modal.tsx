@@ -13,7 +13,7 @@ export function AddTransactionModal() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[150] flex items-center justify-center bg-background/40 backdrop-blur-md p-4"
+      className="fixed inset-0 z-[150] flex items-start justify-center bg-background/40 backdrop-blur-md p-4 overflow-y-auto"
       onClick={() => dispatch(closeModal())}
     >
       <motion.div
@@ -22,7 +22,7 @@ export function AddTransactionModal() {
         exit={{ scale: 0.95, y: 20, opacity: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-3xl"
+        className="w-full max-w-3xl my-auto"
       >
         <AddTransaction onClose={() => dispatch(closeModal())} />
       </motion.div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useDispatch } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { closeModal } from "@/components/redux/slices/slice_modal";
 import AddBudgetForm from "@/components/budgets/AddBudgetForm";
 
@@ -17,7 +17,7 @@ export const AddBudgetModal = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[150] flex items-center justify-center bg-background/40 backdrop-blur-md p-4 overflow-y-auto"
+            className="fixed inset-0 z-[150] flex items-start justify-center bg-background/40 backdrop-blur-md p-4 overflow-y-auto"
             onClick={handleClose}
         >
             <motion.div
@@ -33,7 +33,7 @@ export const AddBudgetModal = () => {
                     },
                 }}
                 exit={{ scale: 0.95, y: 20, opacity: 0 }}
-                className="w-full max-w-2xl"
+                className="w-full max-w-2xl my-auto"
                 onClick={(e) => e.stopPropagation()}
             >
                 <AddBudgetForm onClose={handleClose} />

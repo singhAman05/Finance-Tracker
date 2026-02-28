@@ -417,131 +417,129 @@ export default function AccountsPage() {
                   )}
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
-                        <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                          Account Details
-                        </TableHead>
-                        <TableHead className="text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                          Type
-                        </TableHead>
-                        <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                          Balance
-                        </TableHead>
-                        <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                          Status
-                        </TableHead>
-                        <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">
-                          Actions
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      <AnimatePresence mode="popLayout">
-                        {filteredAccounts.map((account) => (
-                          <motion.tr
-                            key={account.id}
-                            layout
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0, x: -20 }}
-                            transition={{ duration: 0.2 }}
-                            className="group hover:bg-muted transition-colors border-b border-border last:border-0"
-                          >
-                            <TableCell className="pl-8 py-5">
-                              <div className="flex items-center gap-4">
-                                <div className="h-12 w-12 rounded-xl bg-card p-2 border border-border flex items-center justify-center shrink-0">
-                                  <img
-                                    src={getBankLogoUrl(account.bank)}
-                                    alt={account.bank}
-                                    className="h-full w-full object-contain"
-                                  />
-                                </div>
-                                <div className="flex flex-col min-w-0">
-                                  <span className="font-bold text-sm tracking-tight text-text-primary truncate">
-                                    {account.name}
-                                  </span>
-                                  <span className="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
-                                    {account.bank}
-                                    <span className="w-1 h-1 rounded-full bg-muted" />
-                                    <span className="font-mono text-[10px]">
-                                      •••• {account.lastDigits}
-                                    </span>
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-
-                            <TableCell>
-                              <Badge
-                                variant="secondary"
-                                className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-text-secondary border border-border hover:bg-muted/80"
-                              >
+                <>
+                  {/* Mobile card list (< md) */}
+                  <div className="md:hidden divide-y divide-border">
+                    <AnimatePresence mode="popLayout">
+                      {filteredAccounts.map((account) => (
+                        <motion.div
+                          key={account.id}
+                          layout
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0, x: -20 }}
+                          transition={{ duration: 0.2 }}
+                          className="flex items-center gap-3 px-4 py-4"
+                        >
+                          <div className="h-11 w-11 rounded-xl bg-card p-1.5 border border-border flex items-center justify-center shrink-0">
+                            <img src={getBankLogoUrl(account.bank)} alt={account.bank} className="h-full w-full object-contain" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm text-text-primary truncate">{account.name}</p>
+                            <div className="flex items-center gap-1.5 mt-0.5">
+                              <span className="text-[11px] text-text-secondary truncate">{account.bank}</span>
+                              <span className="text-text-secondary/40">·</span>
+                              <Badge variant="secondary" className="rounded-full font-medium capitalize text-[9px] tracking-wide bg-muted text-text-secondary border border-border px-1.5 py-0">
                                 {account.type}
                               </Badge>
-                            </TableCell>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className="font-mono font-bold text-sm text-text-primary">{formatCurrency(account.balance)}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 rounded-full text-text-secondary hover:text-danger hover:bg-danger/5 border border-transparent hover:border-border"
+                              onClick={() => setDeleteAccountData({ id: account.id, name: account.name })}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
 
-                            <TableCell className="text-right">
-                              <span
-                                className={cn(
-                                  "font-mono font-bold tracking-tight text-base",
-                                  account.balance < 0
-                                    ? "text-text-primary"
-                                    : "text-text-primary"
-                                )}
-                              >
-                                {formatCurrency(account.balance)}
-                              </span>
-                            </TableCell>
-
-                            <TableCell className="text-center">
-                              <div className="inline-flex items-center justify-center">
-                                {account.status === "active" ? (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card text-[10px] font-medium text-text-primary">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-                                    Active
-                                  </span>
-                                ) : (
-                                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted text-[10px] font-medium text-text-secondary">
-                                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" />
-                                    Inactive
-                                  </span>
-                                )}
-                              </div>
-                            </TableCell>
-
-                            <TableCell className="text-right pr-8">
-                              <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-text-primary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
-                                >
-                                  <Pencil className="h-4 w-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-9 w-9 rounded-full text-text-secondary hover:text-danger hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
-                                  onClick={() =>
-                                    setDeleteAccountData({
-                                      id: account.id,
-                                      name: account.name,
-                                    })
-                                  }
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </motion.tr>
-                        ))}
-                      </AnimatePresence>
-                    </TableBody>
-                  </Table>
-                </div>
+                  {/* Desktop table (>= md) */}
+                  <div className="hidden md:block overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
+                          <TableHead className="w-[350px] pl-8 py-5 text-xs font-semibold uppercase tracking-wider text-text-secondary">Account Details</TableHead>
+                          <TableHead className="text-xs font-semibold uppercase tracking-wider text-text-secondary">Type</TableHead>
+                          <TableHead className="text-right text-xs font-semibold uppercase tracking-wider text-text-secondary">Balance</TableHead>
+                          <TableHead className="text-center text-xs font-semibold uppercase tracking-wider text-text-secondary">Status</TableHead>
+                          <TableHead className="text-right pr-8 text-xs font-semibold uppercase tracking-wider text-text-secondary">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        <AnimatePresence mode="popLayout">
+                          {filteredAccounts.map((account) => (
+                            <motion.tr
+                              key={account.id}
+                              layout
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0, x: -20 }}
+                              transition={{ duration: 0.2 }}
+                              className="group hover:bg-muted transition-colors border-b border-border last:border-0"
+                            >
+                              <TableCell className="pl-8 py-5">
+                                <div className="flex items-center gap-4">
+                                  <div className="h-12 w-12 rounded-xl bg-card p-2 border border-border flex items-center justify-center shrink-0">
+                                    <img src={getBankLogoUrl(account.bank)} alt={account.bank} className="h-full w-full object-contain" />
+                                  </div>
+                                  <div className="flex flex-col min-w-0">
+                                    <span className="font-bold text-sm tracking-tight text-text-primary truncate">{account.name}</span>
+                                    <span className="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
+                                      {account.bank}
+                                      <span className="w-1 h-1 rounded-full bg-muted" />
+                                      <span className="font-mono text-[10px]">•••• {account.lastDigits}</span>
+                                    </span>
+                                  </div>
+                                </div>
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="secondary" className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-text-secondary border border-border hover:bg-muted/80">{account.type}</Badge>
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <span className="font-mono font-bold tracking-tight text-base text-text-primary">{formatCurrency(account.balance)}</span>
+                              </TableCell>
+                              <TableCell className="text-center">
+                                <div className="inline-flex items-center justify-center">
+                                  {account.status === "active" ? (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card text-[10px] font-medium text-text-primary">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" /> Active
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-muted text-[10px] font-medium text-text-secondary">
+                                      <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground" /> Inactive
+                                    </span>
+                                  )}
+                                </div>
+                              </TableCell>
+                              <TableCell className="text-right pr-8">
+                                <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-text-secondary hover:text-text-primary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border">
+                                    <Pencil className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-9 w-9 rounded-full text-text-secondary hover:text-danger hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border"
+                                    onClick={() => setDeleteAccountData({ id: account.id, name: account.name })}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            </motion.tr>
+                          ))}
+                        </AnimatePresence>
+                      </TableBody>
+                    </Table>
+                  </div>
+                </>
               )}
             </div>
           </div>
