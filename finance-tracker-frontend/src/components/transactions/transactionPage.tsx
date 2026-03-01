@@ -242,7 +242,12 @@ export default function TransactionPage() {
         categoryFilter === "all" || tx.category_id === categoryFilter;
 
       return matchText && matchAccount && matchCategory;
-    }).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    }).sort((a, b) => {
+      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      // Secondary sort: higher ID (newer insert) first
+      return b.id.localeCompare(a.id);
+    });
   }, [
     transactions,
     accountMap,
@@ -454,6 +459,11 @@ export default function TransactionPage() {
                  </span>
                  <span className="text-text-secondary">{stat.trendLabel}</span>
                </div>
+              )}
+              {stat.trend === null && stat.trendLabel && (
+                <div className="flex items-center text-xs">
+                  <span className="text-text-secondary">No data for prev. month</span>
+                </div>
               )}
             </div>
           </motion.div>

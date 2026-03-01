@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { creatingAccount, fetchAllaccounts, deleteAccount } from "../services/service_accounts";
+import { creatingAccount, fetchAllaccounts, deleteAccount, processRecurringAccounts, fetchRecurringAccounts } from "../services/service_accounts";
 import { validateAccount } from "../utils/validationUtils";
 import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
 
@@ -110,6 +110,40 @@ export const handleAccountDeletion = async (req: Request, res: Response) => {
         });
     } catch (err) {
         console.error("Account deletion failed:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+export const handleProcessRecurring = async (req: Request, res: Response) => {
+    const user = (req as any).user.payload;
+    const client_id = user.id;
+    try {
+        const result = await processRecurringAccounts(client_id);
+        // Invalidate accounts cache so updated balances are served fresh
+        const { deleteCache } = await import("../utils/cacheUtils");
+        await deleteCache(`accounts:${client_id}`);
+        res.status(200).json({
+            message: `Recurring accounts processed`,
+            processed: result.processed,
+        });
+    } catch (err) {
+        console.error("processRecurringAccounts error:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
+export const handleFetchRecurring = async (req: Request, res: Response) => {
+    const user = (req as any).user.payload;
+    const client_id = user.id;
+    try {
+        const result = await fetchRecurringAccounts(client_id);
+        if (result.error) {
+            res.status(500).json({ message: result.error.message });
+            return;
+        }
+        res.status(200).json({ message: "Recurring accounts fetched", data: result.data });
+    } catch (err) {
+        console.error("fetchRecurringAccounts error:", err);
         res.status(500).json({ message: "Internal Server Error" });
     }
 };

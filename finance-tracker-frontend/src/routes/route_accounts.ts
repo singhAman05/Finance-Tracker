@@ -5,7 +5,6 @@ export const createAccountRoute = async (payload: object) => {
   if (!token) {
     throw new Error('Not authenticated');
   }
-  console.log("Payload for createAccountRoute:", payload);
   const res = await fetch(`${baseUrl}/api/accounts/creating-account`, {
     method: 'POST',
     headers: {
@@ -20,8 +19,7 @@ export const createAccountRoute = async (payload: object) => {
     throw new Error(err.message || `HTTP ${res.status}`);
   }
   const result = await res.json();
-  // console.log("Response from createAccountRoute:", result);
-  return result; // { account: { ... } }
+  return result;
 };
 
 export const fetchAccountsRoute = async () => {
@@ -31,7 +29,6 @@ export const fetchAccountsRoute = async () => {
       method: "GET",
     }
   )
-  console.log("Fetched accounts data:", data);
   return data.result
 }
 
@@ -40,6 +37,16 @@ export const deleteAccountRoute = async (accountId: string) => {
     `/api/accounts/delete-account/${accountId}`,
     {
       method: "DELETE",
+    }
+  )
+  return data.result
+}
+
+export const processRecurringRoute = async () => {
+  const data = await apiClient<any>(
+    `/api/accounts/process-recurring`,
+    {
+      method: "POST",
     }
   )
   return data.result

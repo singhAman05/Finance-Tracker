@@ -103,16 +103,19 @@ export function getTransactionStats(
 }
 
 export function getFinancialHealth(transactions: Transaction[], accounts: Account[]) {
-    // Helper to get month key (YYYY-MM)
-    const getMonthKey = (date: any) => {
+    // Helper to get local month key (YYYY-MM) using local time, NOT UTC
+    // Using toISOString() causes UTC conversion which shifts dates in timezones like IST (+5:30)
+    const getMonthKey = (date: any): string => {
         const d = date instanceof Date ? date : new Date(date);
-        return d.toISOString().substring(0, 7);
+        const year = d.getFullYear();
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        return `${year}-${month}`;
     };
 
     const now = new Date();
     const currentMonthKey = getMonthKey(now);
 
-    // Calculate previous month key
+    // Calculate previous month key using local date
     const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const prevMonthKey = getMonthKey(prevDate);
 
@@ -136,19 +139,22 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
     const netWorth = totalBalances + currentIncome - currentExpense;
     const cashFlow = currentIncome - currentExpense;
 
-    // Percent changes
+    // Percent changes — use null check (not truthy) so 0% growth is preserved
     const incomeGrowth = percentageChange(currentIncome, prevIncome);
     const expenseGrowth = percentageChange(currentExpense, prevExpense);
-    const netWorthGrowth = 0; // Placeholder as we don't have historical account balances easily available without more logic
+
+    // Net worth growth: approximate using cash flow vs previous cash flow
+    const prevCashFlow = prevIncome - prevExpense;
+    const netWorthGrowth = percentageChange(cashFlow, prevCashFlow);
 
     return {
         netWorth,
         cashFlow,
         currentIncome,
         currentExpense,
-        incomeGrowth: incomeGrowth ? Number(incomeGrowth.toFixed(1)) : 0,
-        expenseGrowth: expenseGrowth ? Number(expenseGrowth.toFixed(1)) : 0,
-        netWorthGrowth,
+        incomeGrowth: incomeGrowth !== null ? Number(incomeGrowth.toFixed(1)) : null,
+        expenseGrowth: expenseGrowth !== null ? Number(expenseGrowth.toFixed(1)) : null,
+        netWorthGrowth: netWorthGrowth !== null ? Number(netWorthGrowth.toFixed(1)) : null,
         prevIncome,
         prevExpense
     };

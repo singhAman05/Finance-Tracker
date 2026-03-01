@@ -15,7 +15,10 @@ import {
   fetchAccounts,
   getBankLogoUrl,
   deleteAccount,
+  processRecurringAccounts,
 } from "@/service/service_accounts";
+import { getFinancialHealth } from "@/service/service_transactions";
+import { RootState as TxRootState } from "@/app/store";
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -93,6 +96,7 @@ export default function AccountsPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
+  const transactions = useSelector((state: TxRootState) => state.transactions.transactions);
 
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -131,6 +135,13 @@ export default function AccountsPage() {
     }
     setPrevModalType(modalType);
   }, [modalType, prevModalType, loadAccounts]);
+
+  // Auto-process recurring accounts on page load
+  useEffect(() => {
+    processRecurringAccounts().catch((err) =>
+      console.error("Recurring accounts processing failed:", err)
+    );
+  }, []);
 
   useEffect(() => {
     if (accounts.length === 0) {
@@ -176,6 +187,14 @@ export default function AccountsPage() {
     }),
     [accounts]
   );
+
+  const financialHealth = useMemo(
+    () => getFinancialHealth(transactions, accounts),
+    [transactions, accounts]
+  );
+
+  // Net worth growth from cash flow month-over-month
+  const netWorthTrend = financialHealth.netWorthGrowth;
 
   const formatCurrency = (value: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -304,7 +323,7 @@ export default function AccountsPage() {
               label: "Net Worth",
               val: stats.total,
               icon: Wallet,
-              trend: "+2.4%",
+              trend: netWorthTrend,
             },
             {
               label: "Total Liabilities",
@@ -344,12 +363,26 @@ export default function AccountsPage() {
                       </>
                     )}
                   </span>
-                  {item.trend && (
-                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
-                      <ArrowUpRight className="h-3 w-3 text-text-primary" />
-                      <span className="text-[10px] font-bold text-text-primary">
-                        {item.trend}
+                  {item.trend !== undefined && item.trend !== null && (
+                    <div className={cn(
+                      "flex items-center gap-1 px-2 py-0.5 rounded-full",
+                      (item.trend as number) >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"
+                    )}>
+                      <TrendingUp className={cn(
+                        "h-3 w-3",
+                        (item.trend as number) >= 0 ? "text-emerald-500" : "text-red-500 rotate-180"
+                      )} />
+                      <span className={cn(
+                        "text-[10px] font-bold",
+                        (item.trend as number) >= 0 ? "text-emerald-500" : "text-red-500"
+                      )}>
+                        {(item.trend as number) > 0 ? "+" : ""}{item.trend}% vs last month
                       </span>
+                    </div>
+                  )}
+                  {item.trend === null && item.label === "Net Worth" && (
+                    <div className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
+                      <span className="text-[10px] text-text-secondary">No prior month data</span>
                     </div>
                   )}
                 </div>
@@ -436,12 +469,17 @@ export default function AccountsPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="font-bold text-sm text-text-primary truncate">{account.name}</p>
-                            <div className="flex items-center gap-1.5 mt-0.5">
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                               <span className="text-[11px] text-text-secondary truncate">{account.bank}</span>
                               <span className="text-text-secondary/40">·</span>
                               <Badge variant="secondary" className="rounded-full font-medium capitalize text-[9px] tracking-wide bg-muted text-text-secondary border border-border px-1.5 py-0">
                                 {account.type}
                               </Badge>
+                              {account.is_recurring && (
+                                <Badge variant="outline" className="rounded-full font-bold text-[8px] tracking-tight bg-primary/5 text-primary border-primary/20 flex items-center gap-0.5 px-1.5 py-0">
+                                  <RefreshCw className="h-2 w-2" /> RECURRING
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
@@ -490,7 +528,14 @@ export default function AccountsPage() {
                                     <img src={getBankLogoUrl(account.bank)} alt={account.bank} className="h-full w-full object-contain" />
                                   </div>
                                   <div className="flex flex-col min-w-0">
-                                    <span className="font-bold text-sm tracking-tight text-text-primary truncate">{account.name}</span>
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-bold text-sm tracking-tight text-text-primary truncate">{account.name}</span>
+                                      {account.is_recurring && (
+                                        <Badge variant="outline" className="rounded-full font-bold text-[9px] tracking-wider bg-primary/5 text-primary border-primary/20 flex items-center gap-1 px-2 py-0">
+                                          <RefreshCw className="h-2.5 w-2.5" /> RECURRING
+                                        </Badge>
+                                      )}
+                                    </div>
                                     <span className="text-xs text-text-secondary flex items-center gap-1.5 mt-0.5">
                                       {account.bank}
                                       <span className="w-1 h-1 rounded-full bg-muted" />
