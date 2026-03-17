@@ -9,6 +9,7 @@ import profileRoute from "./routes/route_profile"
 import accountsRoute from "./routes/route_accounts"
 import categoryRoute from "./routes/route_categories"
 import transactionRoute from "./routes/route_transactions";
+import settingsRoute from "./routes/route_settings";
 
 dotenv.config();
 
@@ -28,6 +29,7 @@ app.use(`/api/category`, categoryRoute);
 app.use(`/api/transactions`, transactionRoute)
 app.use(`/api/budgets`, budgetRoute)
 app.use(`/api/bills`, billRoute)
+app.use(`/api/settings`, settingsRoute)
 
 const PORT = process.env.PORT || 8000;
 server.listen(PORT, () => {

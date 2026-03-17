@@ -272,3 +272,113 @@ export const exportCategoryDataToCSV = (categoryData: CategoryAnalysis[], filena
   link.click();
   document.body.removeChild(link);
 };
+
+// --- Cash Flow Functions ---
+
+// Calculate daily cumulative cash flow for a specific month
+export const getDailyCumulativeFlow = (
+  transactions: Transaction[],
+  targetDate: Date = new Date()
+) => {
+  const targetYear = targetDate.getFullYear();
+  const targetMonth = targetDate.getMonth();
+  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  
+  // Filter transactions for the target month
+  const monthTransactions = transactions.filter(tx => {
+    const d = tx.date instanceof Date ? tx.date : new Date(tx.date);
+    return d.getFullYear() === targetYear && d.getMonth() === targetMonth;
+  });
+
+  // Initialize array for all days in the month
+  const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({
+    day: i + 1,
+    date: new Date(targetYear, targetMonth, i + 1).toLocaleDateString("default", { day: "numeric", month: "short" }),
+    income: 0,
+    expenses: 0,
+    cumulative: 0
+  }));
+
+  // Aggregate by day
+  monthTransactions.forEach(tx => {
+    const d = tx.date instanceof Date ? tx.date : new Date(tx.date);
+    const dayIndex = d.getDate() - 1; // 0-indexed for array
+    const isIncome = tx.type === 'income' || tx.amount < 0;
+    const absAmount = Math.abs(tx.amount);
+    
+    if (dayIndex >= 0 && dayIndex < daysInMonth) {
+      if (isIncome) dailyData[dayIndex].income += absAmount;
+      else dailyData[dayIndex].expenses += absAmount;
+    }
+  });
+
+  // Calculate cumulative running total
+  let runningTotal = 0;
+  dailyData.forEach(day => {
+    runningTotal += (day.income - day.expenses);
+    day.cumulative = runningTotal;
+  });
+
+  return dailyData;
+};
+
+// Simple forecast based on historical monthly averages
+export const getCashFlowForecast = (
+  monthlyData: MonthlyData[],
+  monthsToForecast = 3
+) => {
+  if (monthlyData.length === 0) return [];
+  
+  // Calculate historical averages
+  const totalHistoricalIncome = monthlyData.reduce((sum, d) => sum + d.income, 0);
+  const totalHistoricalExpenses = monthlyData.reduce((sum, d) => sum + d.expenses, 0);
+  const avgIncome = totalHistoricalIncome / monthlyData.length;
+  const avgExpenses = totalHistoricalExpenses / monthlyData.length;
+  
+  // Start from the month after the latest data point, or current month if no data
+  const latestDataPoint = monthlyData[monthlyData.length - 1];
+  let startYear, startMonth;
+  
+  if (latestDataPoint && latestDataPoint.month) {
+    // Parse the "MMM YYYY" format (e.g. "Mar 2026")
+    const [monthName, yearStr] = latestDataPoint.month.split(' ');
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    startMonth = months.indexOf(monthName) + 1; // Start from next month
+    startYear = parseInt(yearStr);
+    
+    if (startMonth > 11) {
+      startMonth = 0;
+      startYear += 1;
+    }
+  } else {
+    const now = new Date();
+    startYear = now.getFullYear();
+    startMonth = now.getMonth() + 1; // Next month
+  }
+  
+  const forecastData = [];
+  
+  for (let i = 0; i < monthsToForecast; i++) {
+    let m = startMonth + i;
+    let y = startYear;
+    
+    if (m > 11) {
+      m = m % 12;
+      y += 1;
+    }
+    
+    const d = new Date(y, m);
+    // Add some slight randomization to make the forecast look more realistic (±5%)
+    const randomFactor1 = 0.95 + (Math.random() * 0.1);
+    const randomFactor2 = 0.95 + (Math.random() * 0.1);
+    
+    forecastData.push({
+      month: d.toLocaleString("default", { month: "short", year: "numeric" }),
+      income: Math.round(avgIncome * randomFactor1),
+      expenses: Math.round(avgExpenses * randomFactor2),
+      isForecast: true
+    });
+  }
+  
+  return forecastData;
+};

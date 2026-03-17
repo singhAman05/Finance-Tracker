@@ -22,6 +22,7 @@ import CategoriesTab from "@/components/reports/categoryTab";
 import AccountsTab from "@/components/reports/accountsTab";
 import TrendsTab from "@/components/reports/trendsTab";
 import TransactionsTab from "@/components/reports/transactionTab";
+import CashFlowTab from "@/components/reports/cashFlowTab";
 import {
   aggregateTransactions,
   getCategoryData,
@@ -189,6 +190,7 @@ export default function ReportPage() {
                 <TabsList className="flex items-center justify-start p-1 bg-muted/50 backdrop-blur-md rounded-2xl border border-border w-fit mb-6 overflow-x-auto max-w-full no-scrollbar">
                   {[
                     { value: "overview", label: "Overview" },
+                    { value: "cashflow", label: "Cash Flow" },
                     { value: "categories", label: "By Category" },
                     { value: "accounts", label: "By Account" },
                     { value: "trends", label: "Trends" },
@@ -209,6 +211,13 @@ export default function ReportPage() {
                     monthlyData={monthlyData}
                     categoryData={categoryData}
                     totalExpenses={summary.totalExpenses}
+                  />
+                </TabsContent>
+
+                <TabsContent value="cashflow" className="mt-0 focus-visible:outline-none">
+                  <CashFlowTab 
+                    transactions={transactions} 
+                    monthlyData={monthlyData} 
                   />
                 </TabsContent>
 

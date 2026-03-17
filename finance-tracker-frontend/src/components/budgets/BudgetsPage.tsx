@@ -81,27 +81,71 @@ export default function BudgetsPage() {
   const categories = useSelector((state: RootState) => state.categories.categories);
   const stats = useMemo(() => calculateBudgetSummaryStats(summary), [summary]);
 
-  const enrichedSummary = useMemo(() => {
-    if (!Array.isArray(summary) || !Array.isArray(categories)) return summary;
-    return summary.map((s) => {
-      const category = categories.find((c) => c.id === s.category_id);
-      return {
-        ...s,
-        category_name: category?.name || "Uncategorized",
-        category_color: category?.color || "#94a3b8",
-      };
+  const budgets = useSelector((state: RootState) => state.budgets.budgets);
+
+const enrichedSummary = useMemo(() => {
+  if (!Array.isArray(summary) || !Array.isArray(categories) || !Array.isArray(budgets)) return [];
+
+  const categoryMap = new Map(
+    categories.map((c) => [String(c.id), c])
+  );
+
+  const budgetMap = new Map(
+    budgets.map((b) => [String(b.id), b])
+  );
+
+  return summary.map((s) => {
+    const category = categoryMap.get(String(s.category_id));
+    const fullBudget = budgetMap.get(String(s.budget_id));
+
+    return {
+      ...s,
+
+      // ✅ category enrichment
+      category_name: category?.name ?? "Uncategorized",
+      category_color: category?.color ?? "#94a3b8",
+
+      // ✅ NEW (CRITICAL)
+      name: fullBudget?.name ?? null,
+      period_type: fullBudget?.period_type ?? "monthly",
+    };
+  });
+}, [summary, categories, budgets]);
+  const { activeBudgets, expiredBudgets } = useMemo(() => {
+    if (!Array.isArray(enrichedSummary)) return { activeBudgets: [], expiredBudgets: [] };
+    
+    const active: any[] = [];
+    const expired: any[] = [];
+    
+    enrichedSummary.forEach(s => {
+       if (!s.end_date) {
+           active.push(s);
+           return;
+       }
+       const today = new Date();
+       today.setHours(0, 0, 0, 0);
+       const endDate = new Date(s.end_date);
+       endDate.setHours(0, 0, 0, 0);
+       
+       if (s.is_active) {
+          active.push(s);
+       } else {
+          expired.push(s);
+       }
     });
-  }, [summary, categories]);
+    
+    return { activeBudgets: active, expiredBudgets: expired };
+  }, [enrichedSummary]);
 
   const chartData = useMemo(() => {
-    if (!Array.isArray(enrichedSummary)) return [];
-    return enrichedSummary.map((s) => ({
+    if (!Array.isArray(activeBudgets)) return [];
+    return activeBudgets.map((s) => ({
       name: s.category_name,
-      spent: s.spent_amount,
+      spent: s.total_spent,
       budget: s.budget_amount,
       percentage: s.percentage_used,
     })).sort((a, b) => b.percentage - a.percentage);
-  }, [enrichedSummary]);
+  }, [activeBudgets]);
 
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-IN", {
@@ -231,11 +275,6 @@ export default function BudgetsPage() {
 
         {/* Budgets Grid */}
         <div className="space-y-8 mt-4">
-          <div className="flex items-center gap-6">
-             <h2 className="text-sm font-black uppercase tracking-[0.2em] text-text-primary whitespace-nowrap">Category Breakdown</h2>
-             <div className="h-px bg-border flex-1 opacity-50" />
-          </div>
-
           <AnimatePresence mode="popLayout">
             {(!Array.isArray(enrichedSummary) || enrichedSummary.length === 0) ? (
                <motion.div 
@@ -256,14 +295,43 @@ export default function BudgetsPage() {
                  </Button>
                </motion.div>
             ) : (
-              <motion.div 
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-                layout
-              >
-                {enrichedSummary.map((s) => (
-                  <BudgetCard key={s.budget_id} summary={s} />
-                ))}
-              </motion.div>
+                <div className="space-y-12">
+                     {activeBudgets.length > 0 && (
+                         <div className="space-y-6">
+                            <div className="flex items-center gap-6">
+                                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-text-primary whitespace-nowrap">Active Budgets</h2>
+                                <div className="h-px bg-border flex-1 opacity-50" />
+                            </div>
+                            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" layout>
+                                {activeBudgets.map((s: any) => (
+                                <BudgetCard 
+                                    key={s.budget_id} 
+                                    summary={s} 
+                                    onRefresh={() => loadData(true)} 
+                                />
+                                ))}
+                            </motion.div>
+                         </div>
+                     )}
+
+                     {expiredBudgets.length > 0 && (
+                         <div className="space-y-6">
+                            <div className="flex items-center gap-6">
+                                <h2 className="text-sm font-black uppercase tracking-[0.2em] text-text-secondary whitespace-nowrap">Previous Budgets</h2>
+                                <div className="h-px bg-border flex-1 opacity-50" />
+                            </div>
+                            <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" layout>
+                                {expiredBudgets.map((s: any) => (
+                                <BudgetCard 
+                                    key={s.budget_id} 
+                                    summary={s} 
+                                    onRefresh={() => loadData(true)} 
+                                />
+                                ))}
+                            </motion.div>
+                         </div>
+                     )}
+                </div>
             )}
           </AnimatePresence>
         </div>

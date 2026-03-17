@@ -46,3 +46,10 @@ export const deleteBudgetRoute = async (budget_id: string) => {
     });
     return data.result;
 };
+
+export const expireBudgetRoute = async (budget_id: string) => {
+    const data = await apiClient<any>(`/api/budgets/expire-budget/${budget_id}`, {
+        method: "PUT",
+    });
+    return data.result;
+};

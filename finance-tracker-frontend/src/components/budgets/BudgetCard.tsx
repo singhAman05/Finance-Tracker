@@ -1,26 +1,39 @@
-"use client";
-
-import { motion } from "framer-motion";
+import { useState, useMemo } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Target, TrendingUp, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Target, StopCircle, Check } from "lucide-react";
 import { BudgetSummary } from "@/components/redux/slices/slice_budgets";
+import { expireBudget } from "@/service/service_budgets";
+import { useDispatch } from "react-redux";
+import { setLoading } from "@/components/redux/slices/slice_budgets";
 
 interface BudgetCardProps {
     summary: BudgetSummary;
     onClick?: () => void;
+    onRefresh?: () => void;
 }
 
-export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
+export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardProps) {
+    const dispatch = useDispatch();
+    const [showConfirm, setShowConfirm] = useState(false);
+    const [isExpiring, setIsExpiring] = useState(false);
     const {
         category_name,
         budget_amount,
-        spent_amount,
-        remaining_amount,
+        total_spent,
+        remaining,
         percentage_used,
+        end_date,
+        name,
+        period_type,
     } = summary;
+
+    const spent_amount = total_spent;
+    const remaining_amount = remaining;
+
+    const isExpired = !summary.is_active;
 
     const isOverBudget = percentage_used >= 100;
     const isWarning = percentage_used >= 90 && percentage_used < 100;
@@ -44,12 +57,32 @@ export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
             maximumFractionDigits: 0,
         }).format(val);
 
+    const handleExpire = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+        try {
+            setIsExpiring(true);
+            const result = await expireBudget(summary.budget_id);
+            if (result && onRefresh) {
+                onRefresh();
+            } else {
+                // If no refresh callback is passed, triggering a reload will suffice
+                // Alternatively, component just updates via a global reload
+                window.location.reload(); 
+            }
+        } catch (error) {
+            console.error("Failed to expire budget", error);
+        } finally {
+            setIsExpiring(false);
+            setShowConfirm(false);
+        }
+    };
+
     return (
         <motion.div
-            whileHover={{ y: -6 }}
+            whileHover={!isExpired ? { y: -6 } : {}}
             transition={{ duration: 0.3, ease: "easeOut" }}
-            onClick={onClick}
-            className="group cursor-pointer"
+            onClick={!isExpired ? onClick : undefined}
+            className={cn("group", !isExpired ? "cursor-pointer" : "cursor-default opacity-85 hover:opacity-100 transition-opacity")}
         >
             <Card className="overflow-hidden border border-border bg-card/50 backdrop-blur-sm hover:bg-card hover:border-primary/20 transition-all duration-300 shadow-sm hover:shadow-xl rounded-[1.5rem] sm:rounded-[2rem]">
                 <CardContent className="p-5 sm:p-7">
@@ -70,15 +103,39 @@ export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
                                 />
                             </div>
                              <div>
-                                <h3 className="text-base sm:text-lg font-black text-text-primary tracking-tight">{category_name}</h3>
-                                <p className="text-[9px] sm:text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70">Monthly Limit</p>
+                                <h3 className="text-base sm:text-lg font-black text-text-primary tracking-tight">
+                                    {name?.trim() || category_name}
+                                </h3>
+                                <div className="flex items-center gap-2">
+                                    <p className="text-[9px] sm:text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70 capitalize">
+                                        {(period_type || "monthly")} limit
+                                    </p>
+
+                                    {name && (
+                                        <span className="text-[9px] sm:text-[10px] text-text-secondary opacity-70">
+                                            • {category_name}
+                                        </span>
+                                    )}
+                                </div>
                             </div>
                         </div>
-                        <div className={cn(
-                            "rounded-full px-3 py-1 font-black text-xs tracking-tighter",
-                            isOverBudget ? "bg-destructive/10 text-destructive" : "bg-secondary text-text-primary"
-                        )}>
-                            {percentage_used.toFixed(0)}%
+                        <div className="flex flex-col items-end gap-2">
+                             <div className={cn(
+                                "rounded-full px-3 py-1 font-black text-xs tracking-tighter",
+                                isExpired ? "bg-muted text-text-secondary" : isOverBudget ? "bg-destructive/10 text-destructive" : "bg-secondary text-text-primary"
+                            )}>
+                                {isExpired ? "EXPIRED" : `${Math.min(percentage_used, 100).toFixed(0)}%`}
+                            </div>
+                            
+                            {!isExpired && (
+                               <button 
+                                 onClick={(e) => { e.stopPropagation(); setShowConfirm(true); }}
+                                 className="text-text-secondary hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity p-1"
+                                 title="End Budget Early"
+                               >
+                                 <StopCircle className="w-4 h-4" />
+                               </button>
+                            )}
                         </div>
                     </div>
 
@@ -120,6 +177,43 @@ export default function BudgetCard({ summary, onClick }: BudgetCardProps) {
                         </div>
                     </div>
                 </CardContent>
+                
+                {/* Confirmation Overlay */}
+                <AnimatePresence>
+                    {showConfirm && (
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 z-20 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-[1.5rem] sm:rounded-[2rem]"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <Target className="w-8 h-8 text-danger mb-3" />
+                            <h4 className="font-bold text-text-primary text-sm mb-1">End Budget Early?</h4>
+                            <p className="text-xs text-text-secondary mb-4">This will permanently set the budget's expiration date to today. This cannot be undone.</p>
+                            
+                            <div className="flex gap-2 w-full">
+                                <Button 
+                                  variant="outline" 
+                                  size="sm" 
+                                  className="flex-1 rounded-full text-xs h-8"
+                                  onClick={() => setShowConfirm(false)}
+                                  disabled={isExpiring}
+                                >
+                                  Cancel
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  className="flex-1 rounded-full text-xs h-8 bg-danger text-white hover:bg-danger/90"
+                                  onClick={handleExpire}
+                                  disabled={isExpiring}
+                                >
+                                  {isExpiring ? "Ending..." : "End Now"}
+                                </Button>
+                            </div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
             </Card>
         </motion.div>
     );
