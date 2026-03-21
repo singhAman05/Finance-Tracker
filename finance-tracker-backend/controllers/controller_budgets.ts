@@ -170,6 +170,14 @@ export const handleBudgetUpdate = async (req: Request, res: Response) => {
     const client_id = user.id;
 
     try {
+        const existingBudgets = await fetchBudgets(client_id);
+        const budgetToUpdate = existingBudgets.data?.find((b: any) => b.id === budget_id);
+
+        if (budgetToUpdate && budgetToUpdate.is_active === false) {
+            res.status(400).json({ message: "Cannot update an expired budget" });
+            return;
+        }
+
         const result = await updateBudget(budget_id, client_id, req.body);
 
         if (result.error) {
@@ -194,6 +202,44 @@ export const handleBudgetUpdate = async (req: Request, res: Response) => {
     }
 };
 
+export const handleBudgetExpire = async (req: Request, res: Response) => {
+    const { budget_id } = req.params;
+    const user = (req as any).user.payload;
+    const client_id = user.id;
+
+    try {
+        const today = new Date().toISOString().split("T")[0];
+
+        // Update both end_date and is_active explicitly to end the budget early
+        const updates = {
+            end_date: today,
+            is_active: false
+        };
+
+        const result = await updateBudget(budget_id, client_id, updates);
+
+        if (result.error) {
+            console.error("Budget expire error:", result.error);
+            res.status(404).json({
+                message: "Budget not found or unauthorized",
+            });
+            return;
+        }
+
+        const cacheKey = `budgets:${client_id}`;
+        await deleteCache(cacheKey);
+        await deleteCache(`budgets:summary:${client_id}`);
+
+        res.status(200).json({
+            message: "Budget successfully ended early",
+            data: result.data,
+        });
+    } catch (err) {
+        console.error("Budget expire failed:", err);
+        res.status(500).json({ message: "Internal Server Error" });
+    }
+};
+
 export const handleBudgetSummary = async (req: Request, res: Response) => {
     const user = (req as any).user.payload;
     const client_id = user.id;
@@ -201,13 +247,13 @@ export const handleBudgetSummary = async (req: Request, res: Response) => {
 
     try {
         const cached = await getCache(cacheKey);
-        if (cached) {
-            res.status(200).json({
-                message: "Budget summary from cache",
-                data: cached,
-            });
-            return;
-        }
+        // if (cached) {
+        //     res.status(200).json({
+        //         message: "Budget summary from cache",
+        //         data: cached,
+        //     });
+        //     return;
+        // }
 
         const result = await fetchBudgetSummary(client_id);
 

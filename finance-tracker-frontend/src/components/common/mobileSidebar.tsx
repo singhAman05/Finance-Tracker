@@ -53,7 +53,6 @@ export function MobileSidebar({ onClose }: { onClose: () => void }) {
     { label: "Budgets", icon: ClipboardList, href: "/dashboard/budgets" },
     { label: "Bills", icon: Calendar, href: "/dashboard/bills" },
     { label: "Reports", icon: LineChart, href: "/dashboard/reports" },
-    { label: "Cash Flow", icon: BarChart2, href: "/cash-flow", disabled: true },
     { label: "Goals", icon: Target, href: "/goals", disabled: true },
     { label: "Investments", icon: PiggyBank, href: "/investments", disabled: true },
     { label: "Categories", icon: Tag, href: "/categories", disabled: true },

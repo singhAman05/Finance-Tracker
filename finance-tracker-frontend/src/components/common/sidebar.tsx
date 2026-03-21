@@ -54,7 +54,6 @@ const navItems: SidebarItem[] = [
 
 const analyticsItems: SidebarItem[] = [
   { label: "Reports", icon: LineChart, href: "/dashboard/reports" },
-  { label: "Cash Flow", icon: BarChart2, href: "/cash-flow", disabled: true },
 ];
 
 const planningItems: SidebarItem[] = [
@@ -65,7 +64,7 @@ const planningItems: SidebarItem[] = [
 
 const utilityItems: SidebarItem[] = [
   { label: "Categories", icon: Tag, href: "/categories", disabled: true },
-  { label: "Settings", icon: Settings, href: "/settings", disabled: true },
+  { label: "Settings", icon: Settings, href: "/dashboard/settings" },
 ];
 
 export function Sidebar() {

@@ -18,10 +18,15 @@ export interface BudgetSummary {
     category_name: string;
     category_color?: string;
     budget_id: string;
+    name: string | null;
+    period_type: string;
     budget_amount: number;
-    spent_amount: number;
-    remaining_amount: number;
+    total_spent: number;
+    remaining: number;
     percentage_used: number;
+    is_active: boolean;
+    start_date: string;
+    end_date: string;
 }
 
 interface BudgetState {

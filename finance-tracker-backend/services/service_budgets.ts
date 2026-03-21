@@ -81,7 +81,7 @@ export const deleteBudget = async (
 export const updateBudget = async (
     budget_id: string,
     client_id: string,
-    updates: Partial<Omit<NewBudgetPayload, "client_id">>
+    updates: Partial<Omit<NewBudgetPayload, "client_id">> & { is_active?: boolean }
 ) => {
     const { data, error } = await supabase
         .from("budgets")

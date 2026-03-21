@@ -5,6 +5,7 @@ import {
     fetchBudgetSummaryRoute,
     updateBudgetRoute,
     deleteBudgetRoute,
+    expireBudgetRoute,
     CreateBudgetPayload,
 } from "@/routes/route_budgets";
 
@@ -32,6 +33,9 @@ export const fetchBudgetSummary = async () => {
             spent_amount: Number(s.total_spent) || 0,
             remaining_amount: Number(s.remaining) || 0,
             percentage_used: Number(s.percentage_used) || 0,
+            is_active: Boolean(s.is_active),
+            start_date: s.start_date,
+            end_date: s.end_date,
         }));
     }
     return result;
@@ -47,13 +51,22 @@ export const calculateBudgetSummaryStats = (summary: any[]) => {
         exceededCount: 0
     };
 
-    const totalBudget = summary.reduce((acc, curr) => acc + (Number(curr.budget_amount) || 0), 0);
-    const totalSpent = summary.reduce((acc, curr) => acc + (Number(curr.spent_amount) || 0), 0);
+    const activeSummaries = summary.filter((s) => {
+        if (!s.end_date) return true;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const endDate = new Date(s.end_date);
+        endDate.setHours(0, 0, 0, 0);
+        return today <= endDate; // Only include if it hasn't expired
+    });
+
+    const totalBudget = activeSummaries.reduce((acc, curr) => acc + (Number(curr.budget_amount) || 0), 0);
+    const totalSpent = activeSummaries.reduce((acc, curr) => acc + (Number(curr.spent_amount) || 0), 0);
     const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
-    const healthyCount = summary.filter(s => (Number(s.percentage_used) || 0) < 90).length;
-    const warningCount = summary.filter(s => (Number(s.percentage_used) || 0) >= 90 && (Number(s.percentage_used) || 0) < 100).length;
-    const exceededCount = summary.filter(s => (Number(s.percentage_used) || 0) >= 100).length;
+    const healthyCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) < 90).length;
+    const warningCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) >= 90 && (Number(s.percentage_used) || 0) < 100).length;
+    const exceededCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) >= 100).length;
 
     return {
         totalBudget,
@@ -77,6 +90,14 @@ export const deleteBudget = async (budget_id: string) => {
     const result = await deleteBudgetRoute(budget_id);
     if (result) {
         notify.success(result.message || "Budget deleted successfully");
+    }
+    return result;
+};
+
+export const expireBudget = async (budget_id: string) => {
+    const result = await expireBudgetRoute(budget_id);
+    if (result) {
+        notify.success(result.message || "Budget ended early");
     }
     return result;
 };

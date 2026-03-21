@@ -1,5 +1,5 @@
 // src/services/service_account.ts
-import { createAccountRoute, fetchAccountsRoute, deleteAccountRoute } from '@/routes/route_accounts';
+import { createAccountRoute, fetchAccountsRoute, deleteAccountRoute, processRecurringRoute } from '@/routes/route_accounts';
 import { notify } from '@/lib/notifications';
 
 export const createAccount = async (data: object) => {
@@ -26,7 +26,7 @@ export function getBankLogoUrl(bankName: string) {
 export const fetchAccounts = async () => {
   try {
     const result = await fetchAccountsRoute();
-    if(result.data.length>0){
+    if (result.data.length > 0) {
       result.data = result.data.map((acc: any) => ({
         id: acc.id,
         name: `${acc.account_holder_name} Account`,
@@ -36,9 +36,16 @@ export const fetchAccounts = async () => {
         bank: acc.bank_name,
         currency: acc.currency,
         status: acc.status,
+        // Recurring fields
+        is_recurring: acc.is_recurring ?? false,
+        recurring_amount: acc.recurring_amount ?? null,
+        recurring_type: acc.recurring_type ?? null,
+        recurring_frequency: acc.recurring_frequency ?? null,
+        recurring_day_of_month: acc.recurring_day_of_month ?? null,
+        recurring_description: acc.recurring_description ?? null,
+        recurring_last_posted: acc.recurring_last_posted ?? null,
       }))
     }
-    console.log("Processed accounts data in service:", result.data);
     return result;
   } catch (error) {
     console.error("Failed to fetch accounts:", error);
@@ -46,14 +53,25 @@ export const fetchAccounts = async () => {
   }
 };
 
+export const processRecurringAccounts = async () => {
+  try {
+    const result = await processRecurringRoute();
+    return result;
+  } catch (error) {
+    console.error("Failed to process recurring accounts:", error);
+    throw error;
+  }
+};
+
+
 export const deleteAccount = async (accountId: string) => {
-  try{
+  try {
     const result = await deleteAccountRoute(accountId);
     console.log("Deleted account in service:", result);
     notify.success(result.message || "Account deleted successfully");
     return result;
   }
-  catch(error){
+  catch (error) {
     console.error("Failed to delete account:", error);
     throw error;
   }
