@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "@/app/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,10 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { createBill, CreateBillPayload } from "@/service/service_bills";
+import { fetchCategories } from "@/service/service_categories";
+import { fetchAccounts } from "@/service/service_accounts";
+import { setCategories } from "@/components/redux/slices/slice_categories";
+import { setAccounts } from "@/components/redux/slices/slice_accounts";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -31,8 +35,23 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const { symbol } = useCurrency();
 
+  const SYMBOL_MAP: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+
+  // Reactively derive the currency symbol from the selected account
+  // NOTE: moved below form useState to avoid temporal dead zone
+
   const [loading, setLoading] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
+
+  // Fetch categories/accounts if not already in Redux
+  useEffect(() => {
+    if (categories.length === 0) {
+      fetchCategories().then((res) => { if (res?.data) dispatch(setCategories(res.data)); });
+    }
+    if (accounts.length === 0) {
+      fetchAccounts().then((res) => { if (res?.data) dispatch(setAccounts(res.data)); });
+    }
+  }, [dispatch, categories.length, accounts.length]);
 
   const [form, setForm] = useState({
     name: "",
@@ -46,6 +65,10 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
     reminder_days_before: "0",
     notes: "",
   });
+
+  // Reactively derive the currency symbol from the selected account
+  const selectedAccountCurrency = accounts.find((a: any) => a.id === form.account_id)?.currency;
+  const activeSymbol = selectedAccountCurrency ? (SYMBOL_MAP[selectedAccountCurrency] ?? selectedAccountCurrency) : symbol;
 
   const handleChange = (field: string, value: string) => {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -134,7 +157,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="bill-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Amount ({symbol}) *</Label>
+              <Label htmlFor="bill-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Amount ({activeSymbol}) *</Label>
               <Input
                 id="bill-amount"
                 type="number"

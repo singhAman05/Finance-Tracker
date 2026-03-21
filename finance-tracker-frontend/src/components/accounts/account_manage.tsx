@@ -199,6 +199,17 @@ export default function AccountsPage() {
 
   const { formatCurrency, symbol } = useCurrency();
 
+  /** Format a balance using the account's own currency, e.g. USD → "$" locale */
+  const formatAccountBalance = (balance: number, accountCurrency?: string) => {
+    const cur = accountCurrency || "INR";
+    const localeMap: Record<string, string> = { INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
+    return new Intl.NumberFormat(localeMap[cur] || "en-US", {
+      style: "currency",
+      currency: cur,
+      maximumFractionDigits: 0,
+    }).format(balance);
+  };
+
   // --- Sub Components ---
 
   const LoadingSkeleton = () => (
@@ -479,7 +490,7 @@ export default function AccountsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-mono font-bold text-sm text-text-primary">{formatCurrency(account.balance)}</span>
+                            <span className="font-mono font-bold text-sm text-text-primary">{formatAccountBalance(account.balance, account.currency)}</span>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -544,7 +555,7 @@ export default function AccountsPage() {
                                 <Badge variant="secondary" className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-text-secondary border border-border hover:bg-muted/80">{account.type}</Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <span className="font-mono font-bold tracking-tight text-base text-text-primary">{formatCurrency(account.balance)}</span>
+                                <span className="font-mono font-bold tracking-tight text-base text-text-primary">{formatAccountBalance(account.balance, account.currency)}</span>
                               </TableCell>
                               <TableCell className="text-center">
                                 <div className="inline-flex items-center justify-center">

@@ -18,6 +18,7 @@ const fadeUp = {
 interface BillsInstanceListProps {
   instances: BillInstance[];
   bills: Bill[];
+  accounts: any[];
   onPay: (instanceId: string) => void;
   payingId: string | null;
 }
@@ -50,15 +51,34 @@ const statusConfig = {
 export default function BillsInstanceList({
   instances,
   bills,
+  accounts,
   onPay,
   payingId,
 }: BillsInstanceListProps) {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency, currency: settingsCurrency } = useCurrency();
   const { formatDate } = useDateFormat();
+
+  // Build lookup maps
   const billMap = bills.reduce((acc, b) => {
     acc[b.id] = b;
     return acc;
   }, {} as Record<string, Bill>);
+
+  const accountMap = accounts.reduce((acc: Record<string, any>, a: any) => {
+    acc[a.id] = a;
+    return acc;
+  }, {});
+
+  const localeMap: Record<string, string> = { INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
+
+  const formatForAccount = (amount: number, accountCurrency?: string) => {
+    const cur = accountCurrency || settingsCurrency || "INR";
+    return new Intl.NumberFormat(localeMap[cur] || "en-US", {
+      style: "currency",
+      currency: cur,
+      maximumFractionDigits: 0,
+    }).format(amount);
+  };
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
@@ -198,7 +218,7 @@ export default function BillsInstanceList({
                             : "text-text-primary"
                         }`}
                       >
-                        {formatCurrency(instance.amount)}
+                        {formatForAccount(instance.amount, accountMap[bill?.account_id ?? ""]?.currency)}
                       </span>
 
                       {effectiveStatus !== "paid" && (

@@ -1,16 +1,32 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Sidebar } from "@/components/common/sidebar";
 import { MobileSidebar } from "@/components/common/mobileSidebar";
 import { Menu, Wallet } from "lucide-react";
+import { RootState } from "@/app/store";
+import { fetchSettings } from "@/service/service_settings";
+import { setSettings } from "@/components/redux/slices/slice_settings";
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const dispatch = useDispatch();
   const [isMobileOpen, setMobileOpen] = useState(false);
+  const existingSettings = useSelector((state: RootState) => state.settings.settings);
+
+  // Load user settings on first mount so useCurrency/useDateFormat
+  // work on every page without requiring a visit to /settings first.
+  useEffect(() => {
+    if (!existingSettings) {
+      fetchSettings().then((data) => {
+        if (data) dispatch(setSettings(data));
+      });
+    }
+  }, [dispatch, existingSettings]);
 
   return (
     <div className="flex h-screen overflow-hidden">

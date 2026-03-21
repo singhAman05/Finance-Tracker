@@ -105,7 +105,7 @@ const GlassTooltip = ({ active, payload, label }: any) => {
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-tight">{item.name}:</span>
               </div>
-              <span className="text-xs font-bold text-text-primary">{active?.currencySymbol || "₹"}{item.value.toLocaleString()}</span>
+              <span className="text-xs font-bold text-text-primary">{active?.currencySymbol}{item.value.toLocaleString()}</span>
             </div>
           ))}
         </div>

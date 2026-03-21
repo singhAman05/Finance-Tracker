@@ -67,6 +67,11 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   );
   const { formatDate } = useDateFormat();
 
+  const SYMBOL_MAP: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
+  // Symbol for the currently selected account
+  const selectedAcctCurrency = accounts.find((a) => a.id === accountId)?.currency;
+  const activeSymbol = selectedAcctCurrency ? (SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency) : SYMBOL_MAP["INR"];
+
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [type, setType] = useState<"expense" | "income">("expense");
   const [category, setCategory] = useState("");
@@ -265,12 +270,13 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                       {accounts.map((a) => (
                         <SelectItem key={a.id} value={a.id} className="py-3">
                           <div className="flex justify-between w-full gap-2">
-                            <span className="font-semibold text-text-primary">
-                              {a.name}
-                            </span>
-                            <span className="text-text-secondary/60 text-xs">
-                              •••• {a.lastDigits}
-                            </span>
+                            <span className="font-semibold text-text-primary">{a.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              {a.currency && a.currency !== "INR" && (
+                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">{SYMBOL_MAP[a.currency] ?? a.currency}</span>
+                              )}
+                              <span className="text-text-secondary/60 text-xs">•••• {a.lastDigits}</span>
+                            </div>
                           </div>
                         </SelectItem>
                       ))}
@@ -335,7 +341,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                   </Label>
                   <div className="relative">
                     <div className="absolute left-0 inset-y-0 flex items-center px-4 pointer-events-none text-text-secondary font-bold text-sm border-r border-border mr-4">
-                      {accounts.find((a) => a.id === accountId)?.currency || "INR"}
+                      {activeSymbol}
                     </div>
                     <Input
                       type="number"

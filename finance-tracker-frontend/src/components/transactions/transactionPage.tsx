@@ -115,12 +115,26 @@ interface Account {
   name: string;
   bank: string;
   balance?: number;
+  currency?: string;
 }
 
 interface Category {
   id: string;
   name: string;
   color?: string;
+}
+
+/** Format an amount using the account's own currency, falling back to a default currency. */
+function formatForAccount(amount: number, accountCurrency?: string, fallbackCurrency = "INR") {
+  const currency = accountCurrency || fallbackCurrency;
+  const localeMap: Record<string, string> = {
+    INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB",
+  };
+  return new Intl.NumberFormat(localeMap[currency] || "en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export default function TransactionPage() {
@@ -284,7 +298,7 @@ export default function TransactionPage() {
     }
   };
 
-  const { formatCurrency, symbol } = useCurrency();
+  const { formatCurrency, symbol, currency } = useCurrency();
   const { formatDate } = useDateFormat();
 
   // --- Skeleton Component ---
@@ -578,6 +592,7 @@ export default function TransactionPage() {
                       const category = categoryMap[tx.category_id];
                       const isExpense = tx.type === "expense";
                       const displayAmount = Math.abs(tx.amount);
+                      const txAmount = formatForAccount(displayAmount, account?.currency, currency);
                       return (
                         <motion.div
                           key={tx.id}
@@ -607,7 +622,7 @@ export default function TransactionPage() {
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={cn("font-mono font-bold text-sm", isExpense ? "text-danger" : "text-success")}>
-                              {isExpense ? "-" : "+"}{formatCurrency(displayAmount)}
+                              {isExpense ? "-" : "+"}{txAmount}
                             </span>
                             <Button
                               variant="ghost"
@@ -644,6 +659,7 @@ export default function TransactionPage() {
                           const category = categoryMap[tx.category_id];
                           const isExpense = tx.type === "expense";
                           const displayAmount = Math.abs(tx.amount);
+                          const txAmount = formatForAccount(displayAmount, account?.currency, currency);
                           return (
                             <motion.tr
                               key={tx.id}
@@ -677,7 +693,7 @@ export default function TransactionPage() {
                               </TableCell>
                               <TableCell className="text-right pr-8">
                                 <span className={cn("font-mono font-medium tracking-tight", isExpense ? "text-danger" : "text-success")}>
-                                  {isExpense ? "-" : "+"}{formatCurrency(displayAmount)}
+                                  {isExpense ? "-" : "+"}{txAmount}
                                 </span>
                               </TableCell>
                               <TableCell className="text-right pr-8">
