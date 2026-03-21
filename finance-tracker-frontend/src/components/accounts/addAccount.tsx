@@ -29,6 +29,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface AddAccountProps {
   onClose: () => void;
@@ -62,6 +63,7 @@ const recurringFrequencies = [
 export function AddAccount({ onClose }: AddAccountProps) {
   const dispatch = useDispatch();
   const categories = useSelector((state: RootState) => state.categories.categories);
+  const { symbol } = useCurrency();
 
   const [form, setForm] = useState({
     account_holder_name: "",
@@ -387,7 +389,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
                             onChange={(e) => updateRecurring("recurring_amount", e.target.value)}
                             className={cn(inputClasses, "pl-10", errors.recurring_amount && "border-red-500")}
                           />
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm">₹</span>
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary font-bold text-sm">{symbol}</span>
                         </div>
                         {errors.recurring_amount && <p className="text-xs text-red-500 ml-1">{errors.recurring_amount}</p>}
                       </div>
@@ -502,7 +504,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
                     {recurring.is_recurring && recurring.recurring_amount && (
                       <p className="text-xs text-emerald-500 font-medium mt-1 flex items-center gap-1">
                         <RefreshCw className="h-3 w-3" />
-                        ₹{Number(recurring.recurring_amount).toLocaleString()} {recurring.recurring_type} · {recurring.recurring_frequency}, day {recurring.recurring_day_of_month}
+                        {symbol}{Number(recurring.recurring_amount).toLocaleString()} {recurring.recurring_type} · {recurring.recurring_frequency}, day {recurring.recurring_day_of_month}
                       </p>
                     )}
                   </div>

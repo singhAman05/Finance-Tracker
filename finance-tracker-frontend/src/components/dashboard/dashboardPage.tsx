@@ -59,6 +59,8 @@ import { setCategories } from "../redux/slices/slice_categories";
 
 // Types
 import { BillInstance, Bill } from "@/types/interfaces";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 const staggerContainer = {
   hidden: {},
@@ -103,7 +105,7 @@ const GlassTooltip = ({ active, payload, label }: any) => {
                 <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
                 <span className="text-[10px] font-bold text-text-secondary uppercase tracking-tight">{item.name}:</span>
               </div>
-              <span className="text-xs font-bold text-text-primary">₹{item.value.toLocaleString()}</span>
+              <span className="text-xs font-bold text-text-primary">{active?.currencySymbol || "₹"}{item.value.toLocaleString()}</span>
             </div>
           ))}
         </div>
@@ -120,6 +122,8 @@ export default function DashboardPage() {
   const transactions = useSelector((state: RootState) => state.transactions.transactions);
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
   const categories = useSelector((state: RootState) => state.categories.categories);
+  const { formatCurrency, symbol, formatAxis } = useCurrency();
+  const { formatDate } = useDateFormat();
 
   const [isClient, setIsClient] = useState(false);
   const [budgetSummary, setBudgetSummary] = useState<any[]>([]);
@@ -224,14 +228,7 @@ export default function DashboardPage() {
   }, [transactions, categories]);
 
 
-  // Format currency
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      minimumFractionDigits: 0,
-    }).format(value);
-  };
+
 
   return (
     <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
@@ -292,7 +289,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
-                <AnimatedCounter target={financialHealth.netWorth} prefix="₹" />
+                <AnimatedCounter target={financialHealth.netWorth} prefix={symbol} />
               </div>
               <p className="text-xs text-text-secondary flex items-center mt-2 font-medium">
                  {/* Placeholder for Net Worth Growth since we don't have history yet */}
@@ -313,7 +310,7 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className={`text-2xl sm:text-3xl font-bold tracking-tighter ${financialHealth.cashFlow >= 0 ? "text-success" : "text-danger"}`}>
-                <AnimatedCounter target={Math.abs(financialHealth.cashFlow)} prefix={financialHealth.cashFlow < 0 ? "-₹" : "₹"} />
+                <AnimatedCounter target={Math.abs(financialHealth.cashFlow)} prefix={financialHealth.cashFlow < 0 ? `-${symbol}` : symbol} />
               </div>
               <p className="text-xs text-text-secondary mt-2 font-medium">
                 Income: <span className="text-text-primary">{formatCurrency(financialHealth.currentIncome)}</span> | Expenses:{" "}
@@ -380,9 +377,9 @@ export default function DashboardPage() {
                         axisLine={false} 
                         tickLine={false} 
                         tick={{ fontSize: 10, fontWeight: 600 }}
-                        tickFormatter={(val) => `₹${val/1000}k`}
+                        tickFormatter={formatAxis}
                     />
-                    <Tooltip content={<GlassTooltip />} cursor={{ fill: 'currentColor', opacity: 0.05 }} />
+                    <Tooltip content={<GlassTooltip currencySymbol={symbol} />} cursor={{ fill: 'currentColor', opacity: 0.05 }} />
                     <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
                     <Bar dataKey="expenses" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={24} />
                   </BarChart>
@@ -454,9 +451,9 @@ export default function DashboardPage() {
                         axisLine={false} 
                         tickLine={false} 
                         tick={{ fontSize: 10, fontWeight: 600 }}
-                        tickFormatter={(val) => `₹${val/1000}k`}
+                        tickFormatter={formatAxis}
                     />
-                    <Tooltip content={<GlassTooltip />} />
+                    <Tooltip content={<GlassTooltip currencySymbol={symbol} />} />
                     <Area 
                         type="monotone" 
                         dataKey={(d) => d.income - d.expenses} 
@@ -484,7 +481,7 @@ export default function DashboardPage() {
                     <div key={item.category_id || item.category_name}>
                       <div className="flex justify-between text-sm mb-2 font-medium">
                         <span className="tracking-tight">{item.category_name}</span>
-                        <span className="text-muted-foreground">{formatCurrency(item.spent_amount)} / {formatCurrency(item.budget_amount)}</span>
+                        <span className="text-muted-foreground">{formatCurrency(item.total_spent)} / {formatCurrency(item.budget_amount)}</span>
                       </div>
                       <Progress
                         value={item.percentage_used}
@@ -541,7 +538,7 @@ export default function DashboardPage() {
                         <div>
                           <div className="font-semibold tracking-tight group-hover:text-primary transition-colors max-w-[150px] truncate">{transaction.description || "No description"}</div>
                           <div className="text-xs text-text-secondary mt-0.5">
-                            {new Date(transaction.date).toLocaleDateString()} • {transaction.categoryName}
+                            {formatDate(transaction.date)} • {transaction.categoryName}
                           </div>
                         </div>
                       </div>
@@ -582,7 +579,7 @@ export default function DashboardPage() {
                       <div className="max-w-[120px]">
                         <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
                         <div className="text-xs text-muted-foreground mt-0.5">
-                          {new Date(bill.due_date).toLocaleDateString()}
+                          {formatDate(bill.due_date)}
                         </div>
                       </div>
                       <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">

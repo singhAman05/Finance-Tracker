@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -59,6 +60,7 @@ export default function BillsSummaryCards({
   paidThisMonthCount,
   paidThisMonthTotal,
 }: BillsSummaryCardsProps) {
+  const { symbol } = useCurrency();
   return (
     <motion.div
       variants={fadeUp}
@@ -76,7 +78,7 @@ export default function BillsSummaryCards({
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold tracking-tighter">
-            <AnimatedCounter target={upcomingTotal} prefix="₹" />
+            <AnimatedCounter target={upcomingTotal} prefix={symbol} />
           </div>
           <p className="text-xs text-text-secondary mt-2 font-medium">
             <span className="text-text-primary font-semibold">{upcomingCount}</span>{" "}
@@ -119,7 +121,7 @@ export default function BillsSummaryCards({
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold tracking-tighter text-success">
-            <AnimatedCounter target={paidThisMonthTotal} prefix="₹" />
+            <AnimatedCounter target={paidThisMonthTotal} prefix={symbol} />
           </div>
           <p className="text-xs text-text-secondary mt-2 font-medium">
             <span className="text-text-primary font-semibold">{paidThisMonthCount}</span>{" "}

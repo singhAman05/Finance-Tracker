@@ -1,5 +1,7 @@
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { LayoutGrid } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 import {
   Table,
   TableHeader,
@@ -14,14 +16,10 @@ interface CategoriesTabProps {
   categoryData: CategoryAnalysis[];
 }
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+
 
 export default function CategoriesTab({ categoryData }: CategoriesTabProps) {
+  const { formatCurrency } = useCurrency();
   return (
     <Card className="rounded-3xl border border-border bg-card shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">

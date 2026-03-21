@@ -19,6 +19,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { createBill, CreateBillPayload } from "@/service/service_bills";
 import { X } from "lucide-react";
 import { toast } from "sonner";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface AddBillFormProps {
   onClose: () => void;
@@ -28,6 +29,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
   const dispatch = useDispatch();
   const categories = useSelector((state: RootState) => state.categories.categories);
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
+  const { symbol } = useCurrency();
 
   const [loading, setLoading] = useState(false);
   const [isRecurring, setIsRecurring] = useState(false);
@@ -132,7 +134,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="bill-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Amount (₹) *</Label>
+              <Label htmlFor="bill-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Amount ({symbol}) *</Label>
               <Input
                 id="bill-amount"
                 type="number"

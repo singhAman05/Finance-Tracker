@@ -19,6 +19,7 @@ import {
 } from "@/service/service_accounts";
 import { getFinancialHealth } from "@/service/service_transactions";
 import { RootState as TxRootState } from "@/app/store";
+import { useCurrency } from "@/hooks/useCurrency";
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -196,12 +197,7 @@ export default function AccountsPage() {
   // Net worth growth from cash flow month-over-month
   const netWorthTrend = financialHealth.netWorthGrowth;
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(value);
+  const { formatCurrency, symbol } = useCurrency();
 
   // --- Sub Components ---
 
@@ -359,7 +355,7 @@ export default function AccountsPage() {
                       <AnimatedCounter target={item.val as number} />
                     ) : (
                       <>
-                        ₹<AnimatedCounter target={Math.abs(item.val as number)} />
+                        {symbol}<AnimatedCounter target={Math.abs(item.val as number)} />
                       </>
                     )}
                   </span>

@@ -6,6 +6,7 @@ import { RootState } from "@/app/store";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,6 +26,7 @@ interface AddBudgetFormProps {
 export default function AddBudgetForm({ onClose }: AddBudgetFormProps) {
   const dispatch = useDispatch();
   const categories = useSelector((state: RootState) => state.categories.categories);
+  const { symbol } = useCurrency();
   
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -112,7 +114,7 @@ export default function AddBudgetForm({ onClose }: AddBudgetFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="budget-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Limit Amount (₹) *</Label>
+              <Label htmlFor="budget-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Limit Amount ({symbol}) *</Label>
               <Input
                 id="budget-amount"
                 type="number"

@@ -4,11 +4,10 @@ import { useEffect, useState, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
-import { setBudgets, setSummary, setLoading } from "@/components/redux/slices/slice_budgets";
-import { setCategories } from "@/components/redux/slices/slice_categories";
-import { fetchBudgets, fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
-import { fetchCategories } from "@/service/service_categories";
+import { setSummary, setLoading } from "@/components/redux/slices/slice_budgets";
+import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
 import { openModal } from "@/components/redux/slices/slice_modal";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Target, PieChart, LayoutGrid } from "lucide-react";
@@ -45,22 +44,14 @@ export default function BudgetsPage() {
   const { summary, loading } = useSelector((state: RootState) => state.budgets);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const categories = useSelector((state: RootState) => state.categories.categories);
-
   const loadData = async (refresh = false) => {
     try {
       if (refresh) setIsRefreshing(true);
       else dispatch(setLoading(true));
 
-      const [budgetsRes, summaryRes, categoriesRes] = await Promise.all([
-        fetchBudgets(),
-        fetchBudgetSummary(),
-        categories.length === 0 ? fetchCategories() : Promise.resolve(null),
-      ]);
+      const summaryRes = await fetchBudgetSummary();
 
-      if (budgetsRes?.data) dispatch(setBudgets(budgetsRes.data));
       if (summaryRes?.data) dispatch(setSummary(summaryRes.data));
-      if (categoriesRes?.data) dispatch(setCategories(categoriesRes.data));
     } catch (err) {
       console.error("Failed to fetch budget data:", err);
     } finally {
@@ -86,52 +77,13 @@ export default function BudgetsPage() {
 
   const stats = useMemo(() => calculateBudgetSummaryStats(summary), [summary]);
 
-  const budgets = useSelector((state: RootState) => state.budgets.budgets);
-
-const enrichedSummary = useMemo(() => {
-  if (!Array.isArray(summary) || !Array.isArray(categories) || !Array.isArray(budgets)) return [];
-
-  const categoryMap = new Map(
-    categories.map((c) => [String(c.id), c])
-  );
-
-  const budgetMap = new Map(
-    budgets.map((b) => [String(b.id), b])
-  );
-
-  return summary.map((s) => {
-    const category = categoryMap.get(String(s.category_id));
-    const fullBudget = budgetMap.get(String(s.budget_id));
-
-    return {
-      ...s,
-
-      // ✅ category enrichment
-      category_name: category?.name ?? "Uncategorized",
-      category_color: category?.color ?? "#94a3b8",
-
-      // ✅ NEW (CRITICAL)
-      name: fullBudget?.name ?? null,
-      period_type: fullBudget?.period_type ?? "monthly",
-    };
-  });
-}, [summary, categories, budgets]);
   const { activeBudgets, expiredBudgets } = useMemo(() => {
-    if (!Array.isArray(enrichedSummary)) return { activeBudgets: [], expiredBudgets: [] };
+    if (!Array.isArray(summary)) return { activeBudgets: [], expiredBudgets: [] };
     
-    const active: any[] = [];
-    const expired: any[] = [];
+    const active: typeof summary = [];
+    const expired: typeof summary = [];
     
-    enrichedSummary.forEach(s => {
-       if (!s.end_date) {
-           active.push(s);
-           return;
-       }
-       const today = new Date();
-       today.setHours(0, 0, 0, 0);
-       const endDate = new Date(s.end_date);
-       endDate.setHours(0, 0, 0, 0);
-       
+    summary.forEach(s => {
        if (s.is_active) {
           active.push(s);
        } else {
@@ -140,24 +92,19 @@ const enrichedSummary = useMemo(() => {
     });
     
     return { activeBudgets: active, expiredBudgets: expired };
-  }, [enrichedSummary]);
+  }, [summary]);
 
   const chartData = useMemo(() => {
     if (!Array.isArray(activeBudgets)) return [];
     return activeBudgets.map((s) => ({
-      name: s.category_name,
+      name: s.budget_name?.trim() || s.category_name,
       spent: s.total_spent,
       budget: s.budget_amount,
       percentage: s.percentage_used,
     })).sort((a, b) => b.percentage - a.percentage);
   }, [activeBudgets]);
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(val);
+  const { formatCurrency } = useCurrency();
 
   if (loading && summary.length === 0) {
     return (
@@ -290,7 +237,7 @@ const enrichedSummary = useMemo(() => {
         {/* Budgets Grid */}
         <div className="space-y-8 mt-4">
           <AnimatePresence mode="popLayout">
-            {(!Array.isArray(enrichedSummary) || enrichedSummary.length === 0) ? (
+            {(!Array.isArray(summary) || summary.length === 0) ? (
                <motion.div 
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}

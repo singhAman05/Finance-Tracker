@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 // UI Components
 import {
@@ -64,6 +65,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
+  const { formatDate } = useDateFormat();
 
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [type, setType] = useState<"expense" | "income">("expense");
@@ -288,7 +290,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                         variant="outline"
                         className="h-12 w-full justify-start bg-muted border border-border rounded-xl font-medium text-text-primary hover:bg-muted/80 focus:ring-1 focus:ring-ring"
                       >
-                        {date ? format(date, "PPP") : "Select date"}
+                        {date ? formatDate(date) : "Select date"}
                         <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>

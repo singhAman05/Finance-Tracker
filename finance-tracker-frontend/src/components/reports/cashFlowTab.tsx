@@ -13,18 +13,15 @@ import {
 } from "recharts";
 import { LineChart, Sparkles } from "lucide-react";
 import { MonthlyData, Transaction } from "@/types/interfaces";
+
 import { getDailyCumulativeFlow, getCashFlowForecast } from "@/service/service_reports";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+
 
 // Custom tooltip for charts
-const GlassTooltip = ({ active, payload, label }: any) => {
+const GlassTooltip = ({ active, payload, label, formatCurrency, symbol }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl">
@@ -83,6 +80,7 @@ interface CashFlowTabProps {
 }
 
 export default function CashFlowTab({ transactions, monthlyData }: CashFlowTabProps) {
+  const { formatCurrency, formatAxis, symbol } = useCurrency();
   // Get daily cumulative data for the current month
   const dailyFlowData = getDailyCumulativeFlow(transactions);
   
@@ -127,9 +125,9 @@ export default function CashFlowTab({ transactions, monthlyData }: CashFlowTabPr
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fontSize: 11, fontWeight: 700, fill: "var(--text-secondary)" }}
-                  tickFormatter={(val) => `₹${val / 1000}k`}
+                  tickFormatter={formatAxis}
                 />
-                <Tooltip content={<GlassTooltip />} cursor={{ stroke: 'var(--muted)', strokeWidth: 1, strokeDasharray: '3 3' }} />
+                <Tooltip content={<GlassTooltip formatCurrency={formatCurrency} symbol={symbol} />} cursor={{ stroke: 'var(--muted)', strokeWidth: 1, strokeDasharray: '3 3' }} />
                 <Legend 
                   verticalAlign="top" 
                   align="right"
@@ -187,9 +185,9 @@ export default function CashFlowTab({ transactions, monthlyData }: CashFlowTabPr
                   axisLine={false} 
                   tickLine={false} 
                   tick={{ fontSize: 11, fontWeight: 700, fill: "var(--text-secondary)" }}
-                  tickFormatter={(val) => `₹${val / 1000}k`}
+                  tickFormatter={formatAxis}
                 />
-                <Tooltip content={<GlassTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                <Tooltip content={<GlassTooltip formatCurrency={formatCurrency} symbol={symbol} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
                 <Legend 
                   verticalAlign="top" 
                   align="right"

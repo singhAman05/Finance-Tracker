@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle, LayoutGrid } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -61,6 +62,7 @@ export default function BudgetsSummaryCards({
   warningCount,
   exceededCount,
 }: BudgetsSummaryCardsProps) {
+  const { symbol } = useCurrency();
   return (
     <motion.div
       variants={fadeUp}
@@ -94,8 +96,8 @@ export default function BudgetsSummaryCards({
                 />
             </div>
             <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider opacity-80">
-                 <span>Spent: ₹{totalSpent.toLocaleString()}</span>
-                 <span>Limit: ₹{totalBudget.toLocaleString()}</span>
+                 <span>Spent: {symbol}{totalSpent.toLocaleString()}</span>
+                 <span>Limit: {symbol}{totalBudget.toLocaleString()}</span>
             </div>
         </CardContent>
       </Card>

@@ -7,6 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { BillInstance, Bill } from "@/types/interfaces";
 import { Calendar, CheckCircle2, Clock, AlertCircle, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 16 },
@@ -41,21 +43,9 @@ const statusConfig = {
   },
 };
 
-function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    minimumFractionDigits: 0,
-  }).format(value);
-}
 
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString("en-IN", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
+
+
 
 export default function BillsInstanceList({
   instances,
@@ -63,6 +53,8 @@ export default function BillsInstanceList({
   onPay,
   payingId,
 }: BillsInstanceListProps) {
+  const { formatCurrency } = useCurrency();
+  const { formatDate } = useDateFormat();
   const billMap = bills.reduce((acc, b) => {
     acc[b.id] = b;
     return acc;

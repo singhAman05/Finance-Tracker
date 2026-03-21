@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { getTransactionStats, getFinancialHealth } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 // Redux Actions
 import { setAccounts } from "../redux/slices/slice_accounts";
@@ -282,12 +284,8 @@ export default function TransactionPage() {
     }
   };
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(val);
+  const { formatCurrency, symbol } = useCurrency();
+  const { formatDate } = useDateFormat();
 
   // --- Skeleton Component ---
   const LoadingSkeleton = () => (
@@ -441,7 +439,7 @@ export default function TransactionPage() {
               </div>
 
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter text-text-primary mb-2">
-                ₹<AnimatedCounter target={Math.abs(stat.value)} />
+                {symbol}<AnimatedCounter target={Math.abs(stat.value)} />
               </div>
 
               {stat.trend !== null && (
@@ -602,7 +600,7 @@ export default function TransactionPage() {
                               {tx.description || category?.name || "Transaction"}
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[11px] text-text-secondary">{format(new Date(tx.date), "MMM dd")}</span>
+                              <span className="text-[11px] text-text-secondary">{formatDate(tx.date)}</span>
                               <span className="text-text-secondary/40">·</span>
                               <span className="text-[11px] text-text-secondary truncate">{category?.name || "Uncategorized"}</span>
                             </div>
@@ -658,7 +656,7 @@ export default function TransactionPage() {
                               <TableCell className="pl-6 py-4">
                                 <div className="flex items-center text-sm text-text-secondary">
                                   <Calendar className="mr-2 h-3.5 w-3.5 text-text-secondary" />
-                                  {format(new Date(tx.date), "MMM dd, yyyy")}
+                                  {formatDate(tx.date)}
                                 </div>
                               </TableCell>
                               <TableCell>

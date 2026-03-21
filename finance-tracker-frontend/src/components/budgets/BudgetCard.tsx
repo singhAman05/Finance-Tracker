@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Target, PauseCircle, Check } from "lucide-react";
 import { BudgetSummary } from "@/components/redux/slices/slice_budgets";
 import { expireBudget } from "@/service/service_budgets";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface BudgetCardProps {
     summary: BudgetSummary;
@@ -18,13 +19,13 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
     const [isExpiring, setIsExpiring] = useState(false);
     const {
         category_name,
+        budget_name,
+        period_type,
         budget_amount,
         total_spent,
         remaining,
         percentage_used,
         end_date,
-        name,
-        period_type,
     } = summary;
 
     const spent_amount = total_spent;
@@ -47,12 +48,7 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
         return "bg-success";
     };
 
-    const formatCurrency = (val: number) =>
-        new Intl.NumberFormat("en-IN", {
-            style: "currency",
-            currency: "INR",
-            maximumFractionDigits: 0,
-        }).format(val);
+    const { formatCurrency } = useCurrency();
 
     const handleExpire = async (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -101,14 +97,14 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
                             </div>
                              <div>
                                 <h3 className="text-base sm:text-lg font-black text-text-primary tracking-tight">
-                                    {name?.trim() || category_name}
+                                    {budget_name?.trim() || category_name}
                                 </h3>
                                  <div className="flex items-center gap-2">
                                     <p className="text-[9px] sm:text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70">
                                         {(period_type || "monthly")} limit
                                     </p>
 
-                                    {name && (
+                                    {budget_name && (
                                         <span className="px-1.5 py-0.5 rounded-md bg-muted text-[8px] sm:text-[9px] font-bold text-text-secondary uppercase tracking-wider">
                                             {category_name}
                                         </span>

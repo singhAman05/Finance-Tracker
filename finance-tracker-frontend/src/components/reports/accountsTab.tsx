@@ -8,6 +8,7 @@ import {
   TableCell,
 } from "@/components/ui/table";
 import { AccountAnalysis } from "@/types/interfaces";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface AccountsTabProps {
   accountData: AccountAnalysis[];
@@ -15,14 +16,10 @@ interface AccountsTabProps {
 
 import { Landmark } from "lucide-react";
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+
 
 export default function AccountsTab({ accountData }: AccountsTabProps) {
+  const { formatCurrency } = useCurrency();
   return (
     <Card className="rounded-3xl border border-border bg-card shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
