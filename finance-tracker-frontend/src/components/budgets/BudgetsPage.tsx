@@ -5,7 +5,9 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
 import { setBudgets, setSummary, setLoading } from "@/components/redux/slices/slice_budgets";
+import { setCategories } from "@/components/redux/slices/slice_categories";
 import { fetchBudgets, fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
+import { fetchCategories } from "@/service/service_categories";
 import { openModal } from "@/components/redux/slices/slice_modal";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -43,18 +45,22 @@ export default function BudgetsPage() {
   const { summary, loading } = useSelector((state: RootState) => state.budgets);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
+  const categories = useSelector((state: RootState) => state.categories.categories);
+
   const loadData = async (refresh = false) => {
     try {
       if (refresh) setIsRefreshing(true);
       else dispatch(setLoading(true));
 
-      const [budgetsRes, summaryRes] = await Promise.all([
+      const [budgetsRes, summaryRes, categoriesRes] = await Promise.all([
         fetchBudgets(),
         fetchBudgetSummary(),
+        categories.length === 0 ? fetchCategories() : Promise.resolve(null),
       ]);
 
       if (budgetsRes?.data) dispatch(setBudgets(budgetsRes.data));
       if (summaryRes?.data) dispatch(setSummary(summaryRes.data));
+      if (categoriesRes?.data) dispatch(setCategories(categoriesRes.data));
     } catch (err) {
       console.error("Failed to fetch budget data:", err);
     } finally {
@@ -78,7 +84,6 @@ export default function BudgetsPage() {
     setPrevModalType(modalType);
   }, [modalType, prevModalType]);
 
-  const categories = useSelector((state: RootState) => state.categories.categories);
   const stats = useMemo(() => calculateBudgetSummaryStats(summary), [summary]);
 
   const budgets = useSelector((state: RootState) => state.budgets.budgets);
@@ -224,52 +229,61 @@ const enrichedSummary = useMemo(() => {
           </div>
 
           <div className="h-[180px] sm:h-[240px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" opacity={0.3} />
-                <XAxis type="number" hide />
-                <YAxis 
-                  dataKey="name" 
-                  type="category" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fontSize: 11, fontWeight: 700, fill: "var(--text-secondary)" }}
-                  width={80}
-                />
-                <Tooltip 
-                  cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
-                  content={({ active, payload }) => {
-                    if (active && payload && payload.length) {
-                      const data = payload[0].payload;
-                      return (
-                        <div className="bg-card border border-border p-3 rounded-2xl shadow-xl backdrop-blur-md">
-                          <p className="font-bold text-sm mb-2">{data.name}</p>
-                          <div className="space-y-1">
-                              <div className="flex justify-between gap-4 text-xs font-medium">
-                                <span className="text-text-secondary">Spent:</span>
-                                <span className="text-text-primary">{formatCurrency(data.spent)}</span>
-                              </div>
-                              <div className="flex justify-between gap-4 text-xs font-medium border-t border-border pt-1">
-                                <span className="text-text-secondary">Budget:</span>
-                                <span className="text-text-primary">{formatCurrency(data.budget)}</span>
-                              </div>
+            {chartData.length === 0 ? (
+               <div className="w-full h-full flex flex-col items-center justify-center text-center bg-muted/20 rounded-xl border border-border/50">
+                 <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-3">
+                    <Target className="w-5 h-5 text-text-secondary/50" />
+                 </div>
+                 <p className="text-sm text-text-secondary font-medium">Add an active budget to get real-time evaluation</p>
+               </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} layout="vertical" margin={{ left: 10, right: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border)" opacity={0.3} />
+                  <XAxis type="number" hide />
+                  <YAxis 
+                    dataKey="name" 
+                    type="category" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 11, fontWeight: 700, fill: "var(--text-secondary)" }}
+                    width={80}
+                  />
+                  <Tooltip 
+                    cursor={{ fill: 'var(--muted)', opacity: 0.4 }}
+                    content={({ active, payload }) => {
+                      if (active && payload && payload.length) {
+                        const data = payload[0].payload;
+                        return (
+                          <div className="bg-card border border-border p-3 rounded-2xl shadow-xl backdrop-blur-md">
+                            <p className="font-bold text-sm mb-2">{data.name}</p>
+                            <div className="space-y-1">
+                                <div className="flex justify-between gap-4 text-xs font-medium">
+                                  <span className="text-text-secondary">Spent:</span>
+                                  <span className="text-text-primary">{formatCurrency(data.spent)}</span>
+                                </div>
+                                <div className="flex justify-between gap-4 text-xs font-medium border-t border-border pt-1">
+                                  <span className="text-text-secondary">Budget:</span>
+                                  <span className="text-text-primary">{formatCurrency(data.budget)}</span>
+                                </div>
+                            </div>
                           </div>
-                        </div>
-                      );
-                    }
-                    return null;
-                  }}
-                />
-                <Bar dataKey="spent" radius={[0, 6, 6, 0]} barSize={24}>
-                  {chartData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.percentage >= 100 ? "var(--danger)" : entry.percentage >= 90 ? "var(--warning)" : "var(--success)"} 
-                    />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+                        );
+                      }
+                      return null;
+                    }}
+                  />
+                  <Bar dataKey="spent" radius={[0, 6, 6, 0]} barSize={24}>
+                    {chartData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.percentage >= 100 ? "var(--danger)" : entry.percentage >= 90 ? "var(--warning)" : "var(--success)"} 
+                      />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </motion.div>
 

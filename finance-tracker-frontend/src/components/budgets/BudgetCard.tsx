@@ -3,11 +3,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Target, StopCircle, Check } from "lucide-react";
+import { Target, PauseCircle, Check } from "lucide-react";
 import { BudgetSummary } from "@/components/redux/slices/slice_budgets";
 import { expireBudget } from "@/service/service_budgets";
-import { useDispatch } from "react-redux";
-import { setLoading } from "@/components/redux/slices/slice_budgets";
 
 interface BudgetCardProps {
     summary: BudgetSummary;
@@ -16,7 +14,6 @@ interface BudgetCardProps {
 }
 
 export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardProps) {
-    const dispatch = useDispatch();
     const [showConfirm, setShowConfirm] = useState(false);
     const [isExpiring, setIsExpiring] = useState(false);
     const {
@@ -106,14 +103,14 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
                                 <h3 className="text-base sm:text-lg font-black text-text-primary tracking-tight">
                                     {name?.trim() || category_name}
                                 </h3>
-                                <div className="flex items-center gap-2">
-                                    <p className="text-[9px] sm:text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70 capitalize">
+                                 <div className="flex items-center gap-2">
+                                    <p className="text-[9px] sm:text-[10px] text-text-secondary font-black uppercase tracking-widest opacity-70">
                                         {(period_type || "monthly")} limit
                                     </p>
 
                                     {name && (
-                                        <span className="text-[9px] sm:text-[10px] text-text-secondary opacity-70">
-                                            • {category_name}
+                                        <span className="px-1.5 py-0.5 rounded-md bg-muted text-[8px] sm:text-[9px] font-bold text-text-secondary uppercase tracking-wider">
+                                            {category_name}
                                         </span>
                                     )}
                                 </div>
@@ -133,7 +130,7 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
                                  className="text-text-secondary hover:text-danger opacity-0 group-hover:opacity-100 transition-opacity p-1"
                                  title="End Budget Early"
                                >
-                                 <StopCircle className="w-4 h-4" />
+                                 <PauseCircle className="w-6 h-6" />
                                </button>
                             )}
                         </div>
@@ -162,12 +159,18 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
                             </div>
                             
                             <div className="flex items-center justify-between">
-                                 <div className="flex items-center gap-2">
-                                    <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", getProgressColor())} />
-                                    <span className={cn("text-[10px] font-black uppercase tracking-widest", getStatusColor())}>
-                                        {isOverBudget ? "Exceeded" : isWarning ? "Warning" : "On Track"}
-                                    </span>
-                                 </div>
+                                 {isExpired ? (
+                                     <span className="text-[10px] font-black uppercase tracking-widest text-text-secondary">
+                                         Finished
+                                     </span>
+                                 ) : (
+                                     <div className="flex items-center gap-2">
+                                        <div className={cn("w-1.5 h-1.5 rounded-full animate-pulse", getProgressColor())} />
+                                        <span className={cn("text-[10px] font-black uppercase tracking-widest", getStatusColor())}>
+                                            {isOverBudget ? "Exceeded" : isWarning ? "Warning" : "On Track"}
+                                        </span>
+                                     </div>
+                                 )}
                                  <p className="text-[11px] font-bold text-text-secondary tracking-tight">
                                     {isOverBudget 
                                         ? `${formatCurrency(Math.abs(remaining_amount))} over limit` 
@@ -188,7 +191,7 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
                             className="absolute inset-0 z-20 bg-background/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center rounded-[1.5rem] sm:rounded-[2rem]"
                             onClick={(e) => e.stopPropagation()}
                         >
-                            <Target className="w-8 h-8 text-danger mb-3" />
+                            <PauseCircle className="w-8 h-8 text-danger mb-3" />
                             <h4 className="font-bold text-text-primary text-sm mb-1">End Budget Early?</h4>
                             <p className="text-xs text-text-secondary mb-4">This will permanently set the budget's expiration date to today. This cannot be undone.</p>
                             
