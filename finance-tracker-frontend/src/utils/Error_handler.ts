@@ -33,24 +33,47 @@ function notifyApiError(error: ApiResult<any>["error"]) {
 
 function redirectToLogin() {
     if (typeof window !== "undefined") {
-        localStorage.removeItem("jwt");
+        sessionStorage.removeItem("jwt");
+        sessionStorage.removeItem("user");
         window.location.replace("/login");
     }
 }
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+/** Decode JWT and check if expired (returns true if expired or invalid) */
+function isTokenExpired(token: string): boolean {
+    try {
+        const payload = JSON.parse(atob(token.split(".")[1]));
+        return payload.exp * 1000 < Date.now();
+    } catch {
+        return true;
+    }
+}
+
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
 ): Promise<ApiResult<T>> {
     const token =
-        typeof window !== "undefined" ? localStorage.getItem("jwt") : null;
+        typeof window !== "undefined" ? sessionStorage.getItem("jwt") : null;
 
     // 1. Pre-fetch Auth Check
     if (!token) {
         const error = {
             message: "Session missing",
+            status: 401,
+            type: "AUTH" as const,
+        };
+        notifyApiError(error);
+        redirectToLogin();
+        return { result: null, error };
+    }
+
+    // 1b. Token expiry check (#7)
+    if (isTokenExpired(token)) {
+        const error = {
+            message: "Session expired. Please login again.",
             status: 401,
             type: "AUTH" as const,
         };

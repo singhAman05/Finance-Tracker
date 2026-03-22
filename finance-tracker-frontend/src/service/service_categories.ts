@@ -10,7 +10,6 @@ export interface Category {
 // Fetch all categories
 export const fetchCategories = async ()=> {
   const result = await fetchCategoriesRoute();
-  console.log( "Fetched Categories in service:", result);
   return result;
 };
 

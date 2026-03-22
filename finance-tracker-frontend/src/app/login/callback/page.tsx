@@ -40,8 +40,8 @@ export default function GoogleCallbackPage() {
         const data = await loginGoogleRoute(email, name);
 
         // Persist auth state (same as phone login)
-        localStorage.setItem("jwt", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.setItem("jwt", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
 
         dispatch(
           login({
@@ -53,7 +53,6 @@ export default function GoogleCallbackPage() {
         // Redirect based on profile completion
         router.replace(data.user.profile_complete ? "/dashboard" : "/profile");
       } catch (error) {
-        console.error("Google auth sync failed:", error);
         router.replace("/login?error=google_auth_failed");
       }
     };

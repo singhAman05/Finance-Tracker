@@ -1,50 +1,29 @@
-import { baseUrl } from "@/utils/Error_handler";
+import { apiClient } from "@/utils/Error_handler";
+import type { User } from "@/types/interfaces";
 
-export const phoneLoginRoute = async (phone: string) => {
-  try {
-    const response = await fetch(`${baseUrl}/api/auth/phone`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ phone }),
-    });
+// --- Response types for auth endpoints ---
+interface AuthResponse {
+  message: string;
+  token: string;
+  user: User;
+}
 
-    const data = await response.json();
+// --- Route functions ---
 
-    if (!response.ok) {
-      throw new Error(data?.message || "Login failed. Please try again.");
-    }
-
-    return data
-  } catch (error) {
-    console.error("Login API Error:", error);
-    throw new Error(
-      error instanceof Error ? error.message : "Unexpected login error."
-    );
-  }
+export const phoneLoginRoute = async (phone: string): Promise<AuthResponse> => {
+  const data = await apiClient<AuthResponse>("/api/auth/phone", {
+    method: "POST",
+    body: JSON.stringify({ phone }),
+  });
+  if (data.error) throw new Error(data.error.message);
+  return data.result as AuthResponse;
 };
 
-export const loginGoogleRoute = async (email: string, name: string) => {
-  try {
-    const response = await fetch(`${baseUrl}/api/auth/google-login`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ email, name }),
-    });
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data?.message || "Login failed. Please try again.");
-    }
-
-    return data
-  } catch (error) {
-    console.error("Google Login API Error:", error);
-    throw new Error(
-      error instanceof Error ? error.message : "Unexpected Google login error."
-    );
-  }
-}
+export const loginGoogleRoute = async (email: string, name: string): Promise<AuthResponse> => {
+  const data = await apiClient<AuthResponse>("/api/auth/google-login", {
+    method: "POST",
+    body: JSON.stringify({ email, name }),
+  });
+  if (data.error) throw new Error(data.error.message);
+  return data.result as AuthResponse;
+};

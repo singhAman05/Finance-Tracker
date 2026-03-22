@@ -1,38 +1,23 @@
-import { baseUrl } from "@/utils/Error_handler";
+import { apiClient } from "@/utils/Error_handler";
+import type { User, ProfilePayload } from "@/types/interfaces";
 
-export const profileRoute = async (profile_update: any): Promise<void> => {
-  try {
-    const token = localStorage.getItem('jwt');
-    if (!token) {
-      throw new Error("Authentication token not found.");
-    }
+interface ProfileResponse {
+  message: string;
+  user: User;
+}
 
-    const response = await fetch(`${baseUrl}/api/profile/complete_profile`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(profile_update),
-    });
+export const profileRoute = async (profile_update: ProfilePayload) => {
+  const data = await apiClient<ProfileResponse>("/api/profile/complete_profile", {
+    method: "POST",
+    body: JSON.stringify(profile_update),
+  });
 
-    const data = await response.json();
+  if (data.error) throw new Error(data.error.message);
 
-    if (response.status !== 201) {
-      console.error("Profile update failed:", data);
-      throw new Error(data?.message || "Profile update failed.");
-    }
-
-    console.log("Profile updated successfully:", data);
-
-    // Save user safely to localStorage
-    if (data.user) {
-      localStorage.setItem("user", JSON.stringify(data.user));
-    }
-  } catch (error) {
-    console.error("ProfileRoute Error:", error);
-    throw new Error(
-      error instanceof Error ? error.message : "Unexpected profile update error."
-    );
+  // Save user safely to sessionStorage
+  if (data.result?.user) {
+    sessionStorage.setItem("user", JSON.stringify(data.result.user));
   }
+
+  return data.result;
 };

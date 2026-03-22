@@ -203,12 +203,11 @@ export default function TransactionPage() {
         ]);
 
         if (accounts.length === 0 || isRefresh)
-          dispatch(setAccounts(accRes.data));
+          dispatch(setAccounts(accRes?.data ?? []));
         if (transactions.length === 0 || isRefresh)
-          console.log("Fetched Transactions:", txRes);
-        dispatch(setTransactions(txRes.data));
+          dispatch(setTransactions(txRes?.data ?? []));
         if (categories.length === 0 || isRefresh)
-          dispatch(setCategories(catRes.data));
+          dispatch(setCategories(catRes?.data ?? []));
       } catch (err) {
         console.error("Failed to load data:", err);
       } finally {
@@ -289,9 +288,7 @@ export default function TransactionPage() {
     try {
       dispatch(removeTransaction(deleteData.id)); // Optimistic update
       const res = await deleteTransaction(deleteData.id);
-      if (res.error) throw new Error(res.error);
     } catch (err) {
-      console.error(err);
       loadData(true); // Revert
     } finally {
       setDeleteData(null);

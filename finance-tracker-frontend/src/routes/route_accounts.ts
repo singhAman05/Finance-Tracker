@@ -1,53 +1,44 @@
-import { apiClient, baseUrl } from "@/utils/Error_handler";
+import { apiClient } from "@/utils/Error_handler";
+
+interface AccountResponse {
+  message: string;
+  data: Record<string, unknown>[];
+}
+
+interface SingleAccountResponse {
+  message: string;
+  data: Record<string, unknown>;
+}
 
 export const createAccountRoute = async (payload: object) => {
-  const token = localStorage.getItem('jwt');
-  if (!token) {
-    throw new Error('Not authenticated');
-  }
-  const res = await fetch(`${baseUrl}/api/accounts/creating-account`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+  const data = await apiClient<SingleAccountResponse>("/api/accounts/creating-account", {
+    method: "POST",
     body: JSON.stringify(payload),
   });
-
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.message || `HTTP ${res.status}`);
-  }
-  const result = await res.json();
-  return result;
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
 };
 
 export const fetchAccountsRoute = async () => {
-  const data = await apiClient<any>(
-    `/api/accounts/fetch-accounts`,
-    {
-      method: "GET",
-    }
-  )
-  return data.result
-}
+  const data = await apiClient<AccountResponse>("/api/accounts/fetch-accounts", {
+    method: "GET",
+  });
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
+};
 
 export const deleteAccountRoute = async (accountId: string) => {
-  const data = await apiClient<any>(
-    `/api/accounts/delete-account/${accountId}`,
-    {
-      method: "DELETE",
-    }
-  )
-  return data.result
-}
+  const data = await apiClient<{ message: string }>(`/api/accounts/delete-account/${accountId}`, {
+    method: "DELETE",
+  });
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
+};
 
 export const processRecurringRoute = async () => {
-  const data = await apiClient<any>(
-    `/api/accounts/process-recurring`,
-    {
-      method: "POST",
-    }
-  )
-  return data.result
-}
+  const data = await apiClient<{ message: string }>("/api/accounts/process-recurring", {
+    method: "POST",
+  });
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
+};

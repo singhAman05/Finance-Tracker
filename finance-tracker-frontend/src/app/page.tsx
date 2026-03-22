@@ -38,8 +38,8 @@ export default function Home() {
 
   const handleAuthNavigation = () => {
     if (typeof window !== "undefined") {
-      const token = localStorage.getItem("jwt");
-      const user = localStorage.getItem("user");
+      const token = sessionStorage.getItem("jwt");
+      const user = sessionStorage.getItem("user");
       if (token && user) {
         router.push("/dashboard");
         return;

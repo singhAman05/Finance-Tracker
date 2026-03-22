@@ -281,7 +281,8 @@ export default function AuthForm() {
             </motion.div>
           </motion.div>
 
-          {/* Demo Notice */}
+          {/* Demo Notice — dev only */}
+          {process.env.NODE_ENV === "development" && (
           <motion.div variants={fadeUp} className="mt-6 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border">
               <span className="w-1.5 h-1.5 rounded-full bg-text-secondary animate-pulse" />
@@ -290,6 +291,7 @@ export default function AuthForm() {
               </span>
             </div>
           </motion.div>
+          )}
         </motion.div>
       </div>
     </div>

@@ -8,8 +8,8 @@ export const loginService = async (phone: string, dispatch: AppDispatch) => {
     const data = await phoneLoginRoute(phone);
     const { message, token, user } = data;
 
-    localStorage.setItem("jwt", token);
-    localStorage.setItem("user", JSON.stringify(user));
+    sessionStorage.setItem("jwt", token);
+    sessionStorage.setItem("user", JSON.stringify(user));
 
     dispatch(login({ user, token }));
 
@@ -29,8 +29,8 @@ export const loginWithGoogle = async () => {
 
 export const logoutService = async () => {
   try {
-    localStorage.removeItem("jwt");
-    localStorage.removeItem("user");
+    sessionStorage.removeItem("jwt");
+    sessionStorage.removeItem("user");
     await signOut({ callbackUrl: process.env.NEXTAUTH_URL });
   } catch (error) {
     console.error("Logout failed:", error);

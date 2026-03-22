@@ -109,7 +109,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
         dispatch(setCategories(categoriesList));
 
         if (accountsList.length > 0) {
-          setAccountId((prev) => prev || accountsList[0].id);
+          setAccountId((prev: string) => prev || String(accountsList[0].id));
         }
       } catch (err) {
         if (isMounted) {
@@ -151,12 +151,12 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
       };
 
       const result = await createTransaction(payload);
-      if (!result?.error) {
+      if (result?.data) {
         dispatch(addTransaction(result.data));
-        if (onClose) onClose();
       }
+      if (onClose) onClose();
     } catch (err) {
-      console.error("Submission error", err);
+      // Error already handled by route/apiClient
     } finally {
       setSubmitting(false);
     }

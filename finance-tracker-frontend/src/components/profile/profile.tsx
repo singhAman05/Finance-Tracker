@@ -37,21 +37,25 @@ export default function ProfilePage() {
   const router = useRouter();
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (user) {
-      const parsed = JSON.parse(user);
-      setName(parsed.fullName || parsed.full_name || "");
-      
-      const existingEmail = parsed.email || "";
-      if (existingEmail) {
-        setEmail(existingEmail);
-        setIsExistingEmail(true);
-      }
+    const raw = sessionStorage.getItem("user");
+    if (raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        setName(parsed.fullName || parsed.full_name || "");
+        
+        const existingEmail = parsed.email || "";
+        if (existingEmail) {
+          setEmail(existingEmail);
+          setIsExistingEmail(true);
+        }
 
-      const existingPhone = parsed.phone || "";
-      if (existingPhone && isValidPhoneNumber(existingPhone)) {
-        setPhone(existingPhone);
-        setIsExistingPhone(true);
+        const existingPhone = parsed.phone || "";
+        if (existingPhone && isValidPhoneNumber(existingPhone)) {
+          setPhone(existingPhone);
+          setIsExistingPhone(true);
+        }
+      } catch {
+        sessionStorage.removeItem("user");
       }
     }
   }, []);

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/common/sidebar";
 import { MobileSidebar } from "@/components/common/mobileSidebar";
 import { Menu, Wallet } from "lucide-react";
@@ -15,18 +16,40 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const dispatch = useDispatch();
+  const router = useRouter();
   const [isMobileOpen, setMobileOpen] = useState(false);
+  const token = useSelector((state: RootState) => state.auth.token);
   const existingSettings = useSelector((state: RootState) => state.settings.settings);
+
+  // Auth guard — redirect if no token
+  useEffect(() => {
+    if (!token) {
+      router.replace("/login");
+    }
+  }, [token, router]);
 
   // Load user settings on first mount so useCurrency/useDateFormat
   // work on every page without requiring a visit to /settings first.
   useEffect(() => {
-    if (!existingSettings) {
-      fetchSettings().then((data) => {
-        if (data) dispatch(setSettings(data));
+    if (!existingSettings && token) {
+      fetchSettings().then((res) => {
+        const settings = res?.data ?? res;
+        if (settings) dispatch(setSettings(settings as any));
       });
     }
-  }, [dispatch, existingSettings]);
+  }, [dispatch, existingSettings, token]);
+
+  // Show nothing while redirecting unauthenticated users
+  if (!token) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-background">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <p className="text-sm text-text-secondary">Redirecting…</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex h-screen overflow-hidden">
