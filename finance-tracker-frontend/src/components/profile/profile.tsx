@@ -109,39 +109,47 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-950 p-4 md:p-6">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-background p-4 md:p-6 relative overflow-hidden text-text-primary">
+      {/* Background Pattern exactly like dashboard */}
+      <div
+        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+        style={{
+          backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+          backgroundSize: "32px 32px",
+        }}
+      />
+      <div className="max-w-4xl mx-auto relative z-10">
         {/* Header Section */}
         <div className="mb-8 md:mb-12">
           <div className="flex items-center gap-3 mb-2">
-            <div className="h-10 w-10 rounded-lg bg-slate-900 dark:bg-white flex items-center justify-center shadow-lg">
-              <User className="h-5 w-5 text-white dark:text-slate-900" />
+            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center shadow-lg">
+              <User className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl md:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
+            <h1 className="text-2xl md:text-3xl font-bold text-text-primary tracking-tight">
               Profile Setup
             </h1>
           </div>
-          <p className="text-slate-600 dark:text-slate-400 ml-1">
+          <p className="text-text-secondary ml-1">
             Complete your information to personalize your finance dashboard
           </p>
 
           {/* Progress bar */}
           <div className="mt-6 max-w-md">
             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider mb-2">
-              <span className="text-slate-500">Completion</span>
+              <span className="text-text-secondary">Completion</span>
               <span
                 className={
                   progress === 100
-                    ? "text-green-500"
-                    : "text-slate-900 dark:text-white"
+                    ? "text-success"
+                    : "text-text-primary"
                 }
               >
                 {progress}%
               </span>
             </div>
-            <div className="h-2 w-full bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+            <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
               <div
-                className="h-full bg-slate-900 dark:bg-white transition-all duration-700 ease-out"
+                className="h-full bg-primary transition-all duration-700 ease-out"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -150,30 +158,30 @@ export default function ProfilePage() {
 
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           <div className="md:col-span-2">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xl p-6 md:p-8 space-y-6">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-50 dark:border-slate-800 pb-4">
+            <div className="bg-card rounded-3xl border border-border shadow-sm p-6 md:p-8 space-y-6">
+              <h2 className="text-lg font-bold text-text-primary border-b border-border pb-4">
                 Basic Details
               </h2>
 
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Full Name */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-slate-500">
+                  <Label className="text-xs font-bold uppercase text-text-secondary">
                     Full Name
                   </Label>
                   <BaseInput
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Enter your full name"
-                    className="h-12 rounded-xl"
+                    className="h-12 rounded-xl bg-background border-input"
                   />
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-5">
                 {/* Email */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-slate-500">
-                    Email Address <span className="text-red-500">*</span>
+                  <Label className="text-xs font-bold uppercase text-text-secondary">
+                    Email Address <span className="text-danger">*</span>
                   </Label>
                   <div className="relative">
                     <BaseInput
@@ -182,26 +190,26 @@ export default function ProfilePage() {
                       disabled={isExistingEmail}
                       placeholder="e.g. alex@example.com"
                       className={cn(
-                        "h-12 rounded-xl",
-                        isExistingEmail && "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed opacity-70"
+                        "h-12 rounded-xl bg-background border-input",
+                        isExistingEmail && "bg-muted cursor-not-allowed opacity-70 border-border"
                       )}
                     />
                     {isExistingEmail && (
-                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-green-500" />
+                      <CheckCircle2 className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-success" />
                     )}
                   </div>
                 </div>
 
                 {/* Phone with Country Code */}
                 <div className="space-y-2">
-                  <Label className="text-xs font-bold uppercase text-slate-500">
-                    Phone Number {!isExistingEmail && <span className="text-red-500">*</span>}
+                  <Label className="text-xs font-bold uppercase text-text-secondary">
+                    Phone Number {!isExistingEmail && <span className="text-danger">*</span>}
                   </Label>
                   <div
                     className={cn(
-                      "flex items-center px-3 h-12 rounded-xl border border-slate-200 dark:border-slate-800 focus-within:ring-2 focus-within:ring-slate-900 dark:focus-within:ring-white transition-all",
+                      "flex items-center px-3 h-12 rounded-xl border border-input bg-background focus-within:ring-1 focus-within:ring-ring transition-all",
                       isExistingPhone &&
-                        "bg-slate-50 dark:bg-slate-800/50 cursor-not-allowed"
+                        "bg-muted border-border cursor-not-allowed opacity-70"
                     )}
                   >
                       <PhoneInput
@@ -215,7 +223,7 @@ export default function ProfilePage() {
                       />
                     </div>
                     {phone && !isPhoneValid && (
-                      <p className="text-[10px] font-medium text-red-500">
+                      <p className="text-[10px] font-medium text-danger">
                         Please enter a valid phone number
                       </p>
                     )}
@@ -224,7 +232,7 @@ export default function ProfilePage() {
 
                 {/* Role Selection */}
                 <div className="space-y-3">
-                  <Label className="text-xs font-bold uppercase text-slate-500">
+                  <Label className="text-xs font-bold uppercase text-text-secondary">
                     Primary Role
                   </Label>
                   <div className="grid grid-cols-2 gap-4">
@@ -236,8 +244,8 @@ export default function ProfilePage() {
                         className={cn(
                           "p-4 rounded-2xl border-2 transition-all text-left",
                           role === id
-                            ? "border-slate-900 bg-slate-900 text-white dark:border-white dark:bg-white dark:text-black shadow-lg"
-                            : "border-slate-100 dark:border-slate-800 hover:border-slate-300"
+                            ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                            : "border-border bg-card text-text-primary hover:border-text-secondary/30"
                         )}
                       >
                         <span className="font-bold text-sm capitalize">
@@ -252,10 +260,10 @@ export default function ProfilePage() {
                   type="submit"
                   disabled={!canSubmit}
                   className={cn(
-                    "w-full h-14 text-sm font-bold uppercase tracking-widest rounded-2xl transition-all",
+                    "w-full h-14 text-sm font-bold uppercase tracking-widest rounded-2xl transition-all shadow-none outline-none",
                     canSubmit
-                      ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900"
-                      : "bg-slate-100 dark:bg-slate-800 text-slate-400"
+                      ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                      : "bg-muted text-muted-foreground border border-border"
                   )}
                 >
                   {loading ? (
@@ -270,11 +278,11 @@ export default function ProfilePage() {
 
           {/* Side Panel Tips */}
           <div className="hidden md:block">
-            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 shadow-sm">
-              <h3 className="font-bold text-slate-900 dark:text-white text-sm mb-4 tracking-tight">
+            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
+              <h3 className="font-bold text-text-primary text-sm mb-4 tracking-tight">
                 ✦ Why complete this?
               </h3>
-              <p className="text-xs text-slate-500 leading-relaxed mb-4">
+              <p className="text-xs text-text-secondary leading-relaxed mb-4">
                 Complete your profile to receive real-time SMS alerts for your
                 transactions and personalized budget advice based on your
                 profession.
