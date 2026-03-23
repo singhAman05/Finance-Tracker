@@ -22,7 +22,7 @@ export default function SettingsPage() {
       if (!settings) dispatch(setLoading(true));
       try {
         const data = await fetchSettings();
-        if (data) dispatch(setSettings(data));
+        if (data?.data) dispatch(setSettings(data.data));
       } catch (err) {
         console.error(err);
         dispatch(setError("Failed to load settings"));

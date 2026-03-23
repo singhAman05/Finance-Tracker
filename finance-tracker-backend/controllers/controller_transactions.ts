@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { fetchTransactions, createTransaction, deleteTransaction } from "../services/service_transactions";
 import { validateTransactionPayload } from "../utils/validationUtils";
 import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
-import { captureRejectionSymbol } from "events";
+import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
 
 export const handleTransactionsAdd = async (req: Request, res: Response) => {
     const user = (req as any).user.payload;
@@ -11,7 +11,7 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
     const validation = validateTransactionPayload({ ...req.body, client_id });
 
     if (!validation.valid) {
-        res.status(400).json({ message: validation.message });
+        res.status(400).json({ success: false, message: validation.message });
         return;
     }
 
@@ -42,8 +42,8 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         const result = await createTransaction(payload);
 
         if (result.error) {
-            console.error("Supabase Error:", result.error);
-            res.status(500).json({ message: "Failed to add transaction." });
+            console.error("Transaction creation error:", result.error);
+            res.status(500).json({ success: false, message: "Failed to add transaction." });
             return;
         }
 
@@ -51,51 +51,54 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         const cacheKey = `transactions:${client_id}`;
         await deleteCache(cacheKey);
         await deleteCache(`budgets:summary:${client_id}`);
+        // Also invalidate accounts cache since balance was updated
+        await deleteCache(`accounts:${client_id}`);
 
         res.status(201).json({ message: "Transaction added", data: result.data });
     } catch (err) {
-        console.error("Unexpected Error:", err);
-        res.status(500).json({ message: "Internal Server Error" });
+        console.error("Transaction creation error:", err);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
 export const handleTransactionsFetch = async (req: Request, res: Response) => {
     const user = (req as any).user.payload;
     const client_id = user.id;
-    const cacheKey = `transactions:${client_id}`;
+    const { page, limit, from, to } = parsePagination(req);
+    const cacheKey = `transactions:${client_id}:${page}:${limit}`;
 
     try {
-        // Try to get from Redis cache first
-        // console.log("Fetched Transactions from DB: Attempting to get from cache");
         const cached = await getCache(cacheKey);
         if (cached) {
-            console.log("Serving transactions from Redis cache");
-            res.status(200).json({ message: `Transactions from Cache`, data: cached });
+            res.status(200).json({ message: "Transactions from Cache", ...cached });
             return;
         }
 
-        // If not found in cache, fetch from DB
-        const result = await fetchTransactions(client_id);
+        const result = await fetchTransactions(client_id, { from, to });
 
         if (result.data && result.data.length === 0) {
-            // console.log(`No Transactions made by user: ${client_id} : `, result.data);
-            res.status(200).json({ message: `No Transactions made`, data: result.data });
+            res.status(200).json({ message: "No Transactions made", data: result.data, pagination: buildPaginationMeta(page, limit, result.count) });
             return;
         }
 
+        // --- #17/#18: Don't leak Supabase error details ---
         if (result.error) {
-            console.log(`Cannot Fetch Transactions from DB`);
-            res.status(405).json({ message: `${result.error}` });
+            console.error("Cannot Fetch Transactions from DB:", result.error);
+            res.status(500).json({ success: false, message: "Failed to fetch transactions" });
             return;
         }
-        // console.log("Fetched Transactions from DB:", result.data);
-        // Set cache for future
-        await setCache(cacheKey, result.data, 3600); // 1 hour TTL
 
-        res.status(200).json({ message: `Transactions fetched`, data: result.data });
+        const responseBody = {
+            data: result.data,
+            pagination: buildPaginationMeta(page, limit, result.count),
+        };
+
+        await setCache(cacheKey, responseBody, 3600); // 1 hour TTL
+
+        res.status(200).json({ message: "Transactions fetched", ...responseBody });
     } catch (err) {
-        console.log(err);
-        res.status(500).json({ message: `Internal Server Error` });
+        console.error("Transaction fetch error:", err);
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
@@ -107,14 +110,16 @@ export const handleTransactionDelete = async (req: Request, res: Response) => {
         const result = await deleteTransaction(transaction_id, client_id);
 
         if (result.error) {
-            console.log("Transaction deletion error:", result.error);
-            res.status(404).json({ message: "Transaction not found or unauthorized" });
+            console.error("Transaction deletion error:", result.error);
+            res.status(404).json({ success: false, message: "Transaction not found or unauthorized" });
             return;
         }
 
         const cacheKey = `transactions:${client_id}`;
         await deleteCache(cacheKey);
         await deleteCache(`budgets:summary:${client_id}`);
+        // Also invalidate accounts cache since balance was reversed
+        await deleteCache(`accounts:${client_id}`);
 
         res.status(200).json({
             message: "Transaction deleted successfully",
@@ -122,6 +127,6 @@ export const handleTransactionDelete = async (req: Request, res: Response) => {
         });
     } catch (err) {
         console.error("Transaction deletion failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 }

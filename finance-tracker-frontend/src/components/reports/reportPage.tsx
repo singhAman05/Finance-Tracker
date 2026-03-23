@@ -60,7 +60,7 @@ export default function ReportPage() {
     try {
       setPendingLoads((prev) => prev + 1);
       const data = await fetchAccounts();
-      dispatch(setAccounts(data.data || data)); // Handle both {data} and raw array
+      dispatch(setAccounts(data?.data || data)); // Handle both {data} and raw array
     } catch (err) {
       console.error(err);
     } finally {
@@ -73,7 +73,7 @@ export default function ReportPage() {
     try {
       setPendingLoads((prev) => prev + 1);
       const res = await fetchTransactions();
-      const txArray = res.data || res; // Extract .data if it exists
+      const txArray = res?.data || res; // Extract .data if it exists
       if (Array.isArray(txArray)) {
         const transformedData = txArray.map((tx: any) => ({
           ...tx,
@@ -93,7 +93,7 @@ export default function ReportPage() {
     try {
       setPendingLoads((prev) => prev + 1);
       const data = await fetchCategories();
-      dispatch(setCategories(data.data || data));
+      dispatch(setCategories(data?.data || data));
     } catch (err) {
       console.error(err);
     } finally {

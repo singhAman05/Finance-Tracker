@@ -159,7 +159,6 @@ export default function AccountsPage() {
     try {
       const res = await deleteAccount(id);
       dispatch(removeAccount(id));
-      if (res.error) throw new Error(res.error.message);
     } catch (err) {
       console.error("Delete error:", err);
       loadAccounts(true);

@@ -31,13 +31,15 @@ export default function GoogleCallbackPage() {
 
       try {
         const { email, name } = session.user;
+        const idToken = (session as any).idToken as string | undefined;
 
         if (!email || !name) {
           throw new Error("Google account missing email or name");
         }
 
         // Call backend → create/update user → get JWT
-        const data = await loginGoogleRoute(email, name);
+        // Pass idToken for server-side verification when available
+        const data = await loginGoogleRoute(email, name, idToken);
 
         // Persist auth state (same as phone login)
         sessionStorage.setItem("jwt", data.token);

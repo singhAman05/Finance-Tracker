@@ -1,3 +1,5 @@
+const ALLOWED_CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SGD', 'AED', 'SAR'];
+
 export const validatePhone = async (phone: string) => {
     if (!phone || typeof phone !== 'string' || phone.trim() === '') {
         return {
@@ -6,7 +8,7 @@ export const validatePhone = async (phone: string) => {
         };
     }
 
-    // Updated regex for E.164 format
+    // E.164 format
     const phoneRegex = /^\+[1-9]\d{1,14}$/;
     if (!phoneRegex.test(phone)) {
         return {
@@ -15,7 +17,7 @@ export const validatePhone = async (phone: string) => {
         };
     }
 
-    // Additional check for minimum length
+    // Minimum digit length
     if (phone.replace(/\D/g, '').length < 8) {
         return {
             valid: false,
@@ -66,7 +68,25 @@ export const validateAccount = async (name: string, type: string) => {
     return { valid: true };
 };
 
-export const validateCategory = async(name: string, type: string)=>{
+// --- #16: Validate balance, currency, account_number_last4 ---
+export const validateAccountDetails = (balance: unknown, currency: string, accountNumberLast4: string) => {
+    const parsedBalance = parseFloat(balance as string);
+    if (isNaN(parsedBalance) || parsedBalance < 0) {
+        return { valid: false, message: "Balance must be a non-negative number." };
+    }
+
+    if (currency && !ALLOWED_CURRENCIES.includes(currency)) {
+        return { valid: false, message: `Currency must be one of: ${ALLOWED_CURRENCIES.join(', ')}` };
+    }
+
+    if (accountNumberLast4 && (typeof accountNumberLast4 !== 'string' || accountNumberLast4.length !== 4 || !/^\d{4}$/.test(accountNumberLast4))) {
+        return { valid: false, message: "Account number last 4 digits must be exactly 4 digits." };
+    }
+
+    return { valid: true };
+};
+
+export const validateCategory = async (name: string, type: string) => {
     const validTypes = ['income', 'expense'];
 
     if (!name || typeof name !== 'string' || name.trim() === '') {
@@ -83,11 +103,13 @@ export const validateCategory = async(name: string, type: string)=>{
         };
     }
 
-    return {valid : true};
+    return { valid: true };
 };
 
-export const validateTransactionPayload = (body: any) => {
+// --- #15: Added transaction type validation ---
+export const validateTransactionPayload = (body: Record<string, unknown>) => {
   const validRecurrenceRules = ["weekly", "bi-weekly", "monthly", "quarterly", "yearly"];
+  const validTypes = ["income", "expense"];
 
   if (!body.account_id || typeof body.account_id !== "string") {
     return {
@@ -110,9 +132,17 @@ export const validateTransactionPayload = (body: any) => {
     };
   }
 
+  // --- #15: Type must be "income" or "expense" ---
+  if (!body.type || typeof body.type !== "string" || !validTypes.includes(body.type)) {
+    return {
+      valid: false,
+      message: `Type must be one of: ${validTypes.join(", ")}`,
+    };
+  }
+
   if (
     body.recurrence_rule &&
-    !validRecurrenceRules.includes(body.recurrence_rule)
+    !validRecurrenceRules.includes(body.recurrence_rule as string)
   ) {
     return {
       valid: false,

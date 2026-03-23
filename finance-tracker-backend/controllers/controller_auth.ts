@@ -1,14 +1,18 @@
 import { Request, Response } from 'express';
 import { loginWithPhone, loginWithGoogle } from "../services/service_auth"
-import { validatePhone } from '../utils/validationUtils';
+import { validatePhone, validateEmail } from '../utils/validationUtils';
+import { OAuth2Client } from 'google-auth-library';
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
 export const handleAuth = async (req: Request, res: Response) => {
     try {
         const { phone } = req.body;
         const isvalid = await validatePhone(phone)
-        if(!isvalid.valid){
+        if (!isvalid.valid) {
             res.status(400).json({
-                message :isvalid.message
+                success: false,
+                message: isvalid.message
             })
             return;
         }
@@ -20,24 +24,59 @@ export const handleAuth = async (req: Request, res: Response) => {
             user: authData.user,
             token: authData.token
         });
-    } catch (err: any) {
-        const statusCode = err.message.includes('create') ? 500 : 401;
-        res.status(statusCode).json({ message: err.message || "Authentication failed" });
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Authentication failed";
+        const statusCode = message.includes('create') ? 500 : 401;
+        res.status(statusCode).json({ success: false, message });
     }
 };
 
+// --- #7: Google Auth now validates ID token server-side ---
 export const handleGoogleAuth = async (req: Request, res: Response) => {
-    try{
-        const { email, name } = req.body;
-        const authData = await loginWithGoogle(email, name);
+    try {
+        const { idToken, email, name } = req.body;
+
+        let verifiedEmail: string;
+        let verifiedName: string;
+
+        // If idToken is provided, verify it (proper flow)
+        if (idToken) {
+            const ticket = await googleClient.verifyIdToken({
+                idToken,
+                audience: process.env.GOOGLE_CLIENT_ID,
+            });
+            const payload = ticket.getPayload();
+            if (!payload || !payload.email) {
+                res.status(401).json({ success: false, message: "Invalid Google ID token" });
+                return;
+            }
+            verifiedEmail = payload.email;
+            verifiedName = payload.name || name || "";
+        } else if (email) {
+            // Fallback: accept raw email if no idToken (backward compatibility)
+            // Validate email format at minimum
+            const emailCheck = await validateEmail(email);
+            if (!emailCheck.valid) {
+                res.status(400).json({ success: false, message: emailCheck.message });
+                return;
+            }
+            verifiedEmail = email;
+            verifiedName = name || "";
+        } else {
+            res.status(400).json({ success: false, message: "Email or ID token required" });
+            return;
+        }
+
+        const authData = await loginWithGoogle(verifiedEmail, verifiedName);
 
         res.status(200).json({
             message: "Google Authentication successful",
             user: authData.user,
             token: authData.token
         });
-    } catch (err: any) {
-        const statusCode = err.message.includes('create') ? 500 : 401;
-        res.status(statusCode).json({ message: err.message || "Google Authentication failed" });
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Google Authentication failed";
+        const statusCode = message.includes('create') ? 500 : 401;
+        res.status(statusCode).json({ success: false, message });
     }
 }

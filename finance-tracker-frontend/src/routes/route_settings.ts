@@ -1,12 +1,9 @@
 import { apiClient } from "@/utils/Error_handler";
+import type { ClientSettings } from "@/service/service_settings";
 
 interface SettingsResponse {
   message: string;
-  data: {
-    currency: string;
-    date_format: string;
-    [key: string]: unknown;
-  };
+  data: ClientSettings;
 }
 
 export const fetchSettingsRoute = async () => {

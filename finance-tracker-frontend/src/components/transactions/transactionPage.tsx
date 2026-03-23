@@ -109,8 +109,8 @@ function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: 
   return <span>{display}</span>;
 }
 
-// --- Interfaces ---
-interface Account {
+// --- Local type aliases (mapped shape from service_accounts, different from DB-level interfaces) ---
+type MappedAccount = {
   id: string;
   name: string;
   bank: string;
@@ -118,7 +118,7 @@ interface Account {
   currency?: string;
 }
 
-interface Category {
+type MappedCategory = {
   id: string;
   name: string;
   color?: string;
@@ -170,7 +170,7 @@ export default function TransactionPage() {
       accounts.reduce((map, acc) => {
         map[acc.id] = acc;
         return map;
-      }, {} as Record<string, Account>),
+      }, {} as Record<string, MappedAccount>),
     [accounts]
   );
 
@@ -179,7 +179,7 @@ export default function TransactionPage() {
       categories.reduce((map, cat) => {
         map[cat.id] = cat;
         return map;
-      }, {} as Record<string, Category>),
+      }, {} as Record<string, MappedCategory>),
     [categories]
   );
 

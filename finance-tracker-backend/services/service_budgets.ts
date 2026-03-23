@@ -42,10 +42,11 @@ export const createBudget = async (payload: NewBudgetPayload) => {
     return { data, error };
 };
 
-export const fetchBudgets = async (client_id: string) => {
-    const { data, error } = await supabase
-        .from("budgets")
-        .select(`
+export const fetchBudgets = async (
+    client_id: string,
+    pagination?: { from: number; to: number }
+) => {
+    const selectCols = `
       id,
       category_id,
       name,
@@ -56,11 +57,20 @@ export const fetchBudgets = async (client_id: string) => {
       is_active,
       notes,
       created_at
-    `)
+    `;
+
+    let query = supabase
+        .from("budgets")
+        .select(selectCols, { count: 'exact' })
         .eq("client_id", client_id)
         .order("start_date", { ascending: false });
 
-    return { data, error };
+    if (pagination) {
+        query = query.range(pagination.from, pagination.to);
+    }
+
+    const { data, error, count } = await query;
+    return { data, error, count: count ?? 0 };
 };
 
 export const deleteBudget = async (

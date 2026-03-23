@@ -1,13 +1,20 @@
 import { apiClient } from "@/utils/Error_handler";
+import type { Budget, BudgetSummary } from "@/components/redux/slices/slice_budgets";
 
 interface BudgetResponse {
     message: string;
-    data: Record<string, unknown>;
+    data: Budget;
 }
 
 interface BudgetsListResponse {
     message: string;
-    data: Record<string, unknown>[];
+    data: Budget[];
+    pagination?: { page: number; limit: number; total: number; pages: number; };
+}
+
+interface BudgetSummaryListResponse {
+    message: string;
+    data: BudgetSummary[];
 }
 
 export interface CreateBudgetPayload {
@@ -38,7 +45,7 @@ export const fetchBudgetsRoute = async () => {
 };
 
 export const fetchBudgetSummaryRoute = async () => {
-    const data = await apiClient<BudgetsListResponse>("/api/budgets/fetch-budget-summary", {
+    const data = await apiClient<BudgetSummaryListResponse>("/api/budgets/fetch-budget-summary", {
         method: "GET",
     });
     if (data.error) throw new Error(data.error.message);

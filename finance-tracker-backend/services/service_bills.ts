@@ -111,26 +111,42 @@ export const createBill = async (payload: NewBillPayload) => {
    Fetch Bills
 ========================= */
 
-export const fetchBills = async (client_id: string) => {
-    const { data, error } = await supabase
+export const fetchBills = async (
+    client_id: string,
+    pagination?: { from: number; to: number }
+) => {
+    let query = supabase
         .from("bills")
-        .select("*")
+        .select("*", { count: 'exact' })
         .eq("client_id", client_id)
         .order("created_at", { ascending: false });
 
+    if (pagination) {
+        query = query.range(pagination.from, pagination.to);
+    }
+
+    const { data, error, count } = await query;
     if (error) throw new Error(error.message);
-    return data;
+    return { data, count: count ?? 0 };
 };
 
-export const fetchBillInstances = async (client_id: string) => {
-    const { data, error } = await supabase
+export const fetchBillInstances = async (
+    client_id: string,
+    pagination?: { from: number; to: number }
+) => {
+    let query = supabase
         .from("bill_instances")
-        .select("*")
+        .select("*", { count: 'exact' })
         .eq("client_id", client_id)
         .order("due_date", { ascending: true });
 
+    if (pagination) {
+        query = query.range(pagination.from, pagination.to);
+    }
+
+    const { data, error, count } = await query;
     if (error) throw new Error(error.message);
-    return data;
+    return { data, count: count ?? 0 };
 };
 
 /* =========================

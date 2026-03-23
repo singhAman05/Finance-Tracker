@@ -6,6 +6,7 @@ import {
     markBillInstanceAsPaid,
 } from "../services/service_bills";
 import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
 
 /* ==============================
    Create Bill
@@ -62,7 +63,7 @@ export const handleBillCreation = async (req: Request, res: Response) => {
         });
     } catch (err: any) {
         console.error("Bill creation failed:", err);
-        res.status(500).json({ message: err.message || "Internal Server Error" });
+        res.status(500).json({ success: false, message: "Failed to create bill" });
     }
 };
 
@@ -73,29 +74,35 @@ export const handleBillCreation = async (req: Request, res: Response) => {
 export const handleBillsFetch = async (req: Request, res: Response) => {
     const user = (req as any).user.payload;
     const client_id = user.id;
-    const cacheKey = `bills:${client_id}`;
+    const { page, limit, from, to } = parsePagination(req);
+    const cacheKey = `bills:${client_id}:${page}:${limit}`;
 
     try {
         const cached = await getCache(cacheKey);
         if (cached) {
             res.status(200).json({
                 message: "Bills from Cache",
-                data: cached,
+                ...cached,
             });
             return;
         }
 
-        const bills = await fetchBills(client_id);
+        const result = await fetchBills(client_id, { from, to });
 
-        await setCache(cacheKey, bills, 3600);
+        const responseBody = {
+            data: result.data,
+            pagination: buildPaginationMeta(page, limit, result.count),
+        };
+
+        await setCache(cacheKey, responseBody, 3600);
 
         res.status(200).json({
             message: "Bills fetched",
-            data: bills,
+            ...responseBody,
         });
     } catch (err) {
         console.error("Fetch bills failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 
@@ -109,29 +116,35 @@ export const handleBillInstancesFetch = async (
 ) => {
     const user = (req as any).user.payload;
     const client_id = user.id;
-    const cacheKey = `bill_instances:${client_id}`;
+    const { page, limit, from, to } = parsePagination(req);
+    const cacheKey = `bill_instances:${client_id}:${page}:${limit}`;
 
     try {
         const cached = await getCache(cacheKey);
         if (cached) {
             res.status(200).json({
                 message: "Bill instances from Cache",
-                data: cached,
+                ...cached,
             });
             return;
         }
 
-        const instances = await fetchBillInstances(client_id);
+        const result = await fetchBillInstances(client_id, { from, to });
 
-        await setCache(cacheKey, instances, 1800); // 30 mins
+        const responseBody = {
+            data: result.data,
+            pagination: buildPaginationMeta(page, limit, result.count),
+        };
+
+        await setCache(cacheKey, responseBody, 1800); // 30 mins
 
         res.status(200).json({
             message: "Bill instances fetched",
-            data: instances,
+            ...responseBody,
         });
     } catch (err) {
         console.error("Fetch bill instances failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
+        res.status(500).json({ success: false, message: "Internal Server Error" });
     }
 };
 

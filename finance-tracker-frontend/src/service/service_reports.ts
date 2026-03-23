@@ -1,10 +1,5 @@
 import { Account, Category, Transaction, CategoryAnalysis, AccountAnalysis, MonthlyData, ChartDataInput, BillInstance } from "@/types/interfaces";
-
-export interface Budget {
-  id: string;
-  category_id: string;
-  limit: number;
-}
+import type { Budget } from "@/components/redux/slices/slice_budgets";
 
 export const getBudgetVsActual = (
   categories: Category[],
@@ -20,7 +15,7 @@ export const getBudgetVsActual = (
     const budget = budgetMap[category.id];
 
     const actual = stats?.expenses || 0;
-    const limit = budget?.limit || 0;
+    const limit = budget?.amount || 0;
     const remaining = limit - actual;
     const percentage = limit > 0 ? (actual / limit) * 100 : 0;
 

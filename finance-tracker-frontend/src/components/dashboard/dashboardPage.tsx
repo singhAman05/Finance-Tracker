@@ -143,9 +143,9 @@ export default function DashboardPage() {
             // Only fetch if we don't have data (or you could perform a background refresh)
             const promises = [];
             
-            if (transactions.length === 0) promises.push(fetchTransactions().then(res => dispatch(setTransactions(res.data))));
-            if (accounts.length === 0) promises.push(fetchAccounts().then(res => dispatch(setAccounts(res.data))));
-            if (categories.length === 0) promises.push(fetchCategories().then(res => dispatch(setCategories(res.data))));
+            if (transactions.length === 0) promises.push(fetchTransactions().then(res => { if (res?.data) dispatch(setTransactions(res.data)); }));
+            if (accounts.length === 0) promises.push(fetchAccounts().then(res => { if (res?.data) dispatch(setAccounts(res.data)); }));
+            if (categories.length === 0) promises.push(fetchCategories().then(res => { if (res?.data) dispatch(setCategories(res.data)); }));
             
             // Always fetch fresh summaries for dashboard
             promises.push(fetchBudgetSummary().then(res => setBudgetSummary(res?.data || [])));

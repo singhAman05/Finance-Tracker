@@ -1,11 +1,6 @@
 import { fetchCategoriesRoute } from "@/routes/route_categories";
+import type { Category } from "@/types/interfaces";
 
-// Define the category interface
-export interface Category {
-  id: string;
-  name: string;
-  type: string;
-}
 
 // Fetch all categories
 export const fetchCategories = async ()=> {
