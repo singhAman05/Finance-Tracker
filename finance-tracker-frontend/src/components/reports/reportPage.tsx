@@ -11,8 +11,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTransactions } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts } from "@/service/service_accounts";
+import { PieChart } from "lucide-react";
 import Loader from "@/utils/loader";
 import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
 
 // Import our new components and services
 import ReportHeader from "@/components/reports/reportHeader";
@@ -174,6 +176,20 @@ export default function ReportPage() {
           <div className="w-full flex items-center justify-center min-h-[400px]">
             <Loader size="md" text="Loading your financial data..." />
           </div>
+        ) : transactions.length === 0 && accounts.length === 0 ? (
+          <motion.div variants={fadeUp} className="w-full flex-col flex items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center mt-12 shadow-sm">
+            <PieChart className="h-16 w-16 text-muted-foreground mx-auto mb-6 opacity-50" />
+            <h2 className="text-2xl font-bold mb-3 text-text-primary">No Financial Data</h2>
+            <p className="text-text-secondary mb-8">
+              Add transactions and accounts to review your analytics and see insights on your spending heavily.
+            </p>
+            <Button 
+              onClick={() => router.push("/dashboard")}
+              className="w-full max-w-[200px] mx-auto h-12 bg-primary text-primary-foreground font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-primary/90 transition-colors"
+            >
+              Go to Dashboard
+            </Button>
+          </motion.div>
         ) : (
           <>
             <motion.div variants={fadeUp}>

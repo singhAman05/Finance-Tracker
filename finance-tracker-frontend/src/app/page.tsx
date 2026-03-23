@@ -72,12 +72,12 @@ export default function Home() {
           >
             <button 
               onClick={handleAuthNavigation}
-              className="text-sm font-medium hover:text-primary transition-colors">
+              className="text-sm font-medium hover:text-primary transition-colors cursor-pointer">
               Log in
             </button>
             <button 
               onClick={handleAuthNavigation}
-              className="px-5 py-2 rounded-full bg-primary text-white dark:text-black text-sm font-medium hover:brightness-110 transition-all"
+              className="px-5 py-2 rounded-full bg-primary text-white dark:text-black text-sm font-medium hover:brightness-110 transition-all cursor-pointer"
             >
               Get Started
             </button>
@@ -118,7 +118,7 @@ export default function Home() {
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={handleAuthNavigation}
-                className="group px-8 py-4 rounded-full bg-primary text-white dark:text-black hover:brightness-110 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit"
+                className="group px-8 py-4 rounded-full bg-primary text-white dark:text-black hover:brightness-110 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit cursor-pointer"
               >
                 Start Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -404,7 +404,7 @@ export default function Home() {
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 onClick={handleAuthNavigation}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-background text-text-primary hover:bg-muted text-black dark:text-white hover:scale-105 transition-transform font-medium"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-background text-text-primary hover:bg-muted text-black dark:text-white hover:scale-105 transition-transform font-medium cursor-pointer"
               >
                 Create Free Account
                 <ArrowRight className="w-4 h-4" />
