@@ -50,13 +50,21 @@ export const createTransaction = async (payload: NewTransactionPayload) => {
             .single();
 
         if (account) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from('accounts')
                 .update({ balance: account.balance + balanceChange })
                 .eq('id', payload.account_id);
+            if (updateError) {
+                await supabase.from("transactions").delete().eq("id", data.id);
+                return { data: null, error: updateError };
+            }
+        } else {
+            await supabase.from("transactions").delete().eq("id", data.id);
+            return { data: null, error: { message: "Account not found for balance update" } as any };
         }
     } else if (balanceError) {
-        console.error('Balance update error:', balanceError);
+        await supabase.from("transactions").delete().eq("id", data.id);
+        return { data: null, error: balanceError };
     }
 
     return { data, error: null };
@@ -94,18 +102,7 @@ export const deleteTransaction = async (transaction_id: string, client_id: strin
         return { data: null, error: fetchError || { message: "Transaction not found" } };
     }
 
-    // Delete the transaction
-    const { data, error } = await supabase
-        .from("transactions")
-        .delete()
-        .eq("id", transaction_id)
-        .eq("client_id", client_id)
-        .select()
-        .single();
-
-    if (error) return { data, error };
-
-    // Reverse the balance change
+    // Reverse the balance change first
     const balanceReversal = tx.type === 'income' ? -tx.amount : tx.amount;
     const { error: balanceError } = await supabase.rpc('adjust_account_balance', {
         p_account_id: tx.account_id,
@@ -121,13 +118,37 @@ export const deleteTransaction = async (transaction_id: string, client_id: strin
             .single();
 
         if (account) {
-            await supabase
+            const { error: updateError } = await supabase
                 .from('accounts')
                 .update({ balance: account.balance + balanceReversal })
                 .eq('id', tx.account_id);
+            if (updateError) {
+                return { data: null, error: updateError };
+            }
+        } else {
+            return { data: null, error: { message: "Account not found for balance reversal" } as any };
         }
     } else if (balanceError) {
-        console.error('Balance reversal error:', balanceError);
+        return { data: null, error: balanceError };
+    }
+
+    // Delete the transaction after successful balance reversal
+    const { data, error } = await supabase
+        .from("transactions")
+        .delete()
+        .eq("id", transaction_id)
+        .eq("client_id", client_id)
+        .select()
+        .single();
+
+    if (error) {
+        // Best-effort compensation: re-apply removed balance effect
+        const compensation = -balanceReversal;
+        await supabase.rpc('adjust_account_balance', {
+            p_account_id: tx.account_id,
+            p_amount: compensation,
+        });
+        return { data, error };
     }
 
     return { data, error: null };

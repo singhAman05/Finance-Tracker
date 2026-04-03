@@ -56,7 +56,7 @@ export function MobileSidebar({ onClose }: { onClose: () => void }) {
     { label: "Goals", icon: Target, href: "/goals", disabled: true },
     { label: "Investments", icon: PiggyBank, href: "/investments", disabled: true },
     { label: "Categories", icon: Tag, href: "/categories", disabled: true },
-    { label: "Settings", icon: Settings, href: "/settings", disabled: true },
+    { label: "Settings", icon: Settings, href: "/dashboard/settings" },
   ];
 
   const handleLogout = () => {

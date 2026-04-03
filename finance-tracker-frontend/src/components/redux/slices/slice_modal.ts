@@ -13,9 +13,9 @@ export type ModalPayload =
 export interface ConfirmDeletePayload {
     title: string;
     description?: string;
-    confirmLabel?: string;
-    cancelLabel?: string;
-    onConfirm: () => void | Promise<void>;
+    confirmText?: string;
+    cancelText?: string;
+    actionKey?: "CLEAR_HISTORY";
 }
 
 interface ModalState {

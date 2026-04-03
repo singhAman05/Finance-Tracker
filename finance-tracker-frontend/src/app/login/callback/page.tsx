@@ -33,8 +33,8 @@ export default function GoogleCallbackPage() {
         const { email, name } = session.user;
         const idToken = (session as any).idToken as string | undefined;
 
-        if (!email || !name) {
-          throw new Error("Google account missing email or name");
+        if (!email || !name || !idToken) {
+          throw new Error("Google account missing email, name, or ID token");
         }
 
         // Call backend → create/update user → get JWT

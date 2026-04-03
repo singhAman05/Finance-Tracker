@@ -5,7 +5,7 @@ import {
     fetchBillInstances,
     markBillInstanceAsPaid,
 } from "../services/service_bills";
-import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
 import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
 
 /* ==============================
@@ -54,8 +54,8 @@ export const handleBillCreation = async (req: Request, res: Response) => {
         const bill = await createBill(payload);
 
         // Invalidate related caches
-        await deleteCache(`bills:${client_id}`);
-        await deleteCache(`bill_instances:${client_id}`);
+        await deleteCacheByPrefix(`bills:${client_id}:`);
+        await deleteCacheByPrefix(`bill_instances:${client_id}:`);
 
         res.status(201).json({
             message: "Bill created successfully",
@@ -169,9 +169,10 @@ export const handleBillInstancePayment = async (
         await markBillInstanceAsPaid(bill_instance_id, client_id);
 
         // Invalidate caches
-        await deleteCache(`bill_instances:${client_id}`);
-        await deleteCache(`transactions:${client_id}`);
+        await deleteCacheByPrefix(`bill_instances:${client_id}:`);
+        await deleteCacheByPrefix(`transactions:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
+        await deleteCacheByPrefix(`accounts:${client_id}:`);
 
         res.status(200).json({
             message: "Bill marked as paid successfully",

@@ -3,16 +3,19 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { RootState } from "@/app/store";
-import { fetchSettings, updateSettings, ClientSettings } from "@/service/service_settings";
+import { fetchSettings, updateSettings, ClientSettings, exportAllData } from "@/service/service_settings";
 import { setSettings, updateLocalSettings, setLoading, setError } from "@/components/redux/slices/slice_settings";
-import { Bell, Globe, Calendar, Database, Shield, MonitorSmartphone, Download, Trash2, KeyRound } from "lucide-react";
+import { Bell, Globe, Database, Download, Trash2, ArrowLeft } from "lucide-react";
 import Loader from "@/utils/loader";
+import { useRouter } from "next/navigation";
+import { openModal } from "@/components/redux/slices/slice_modal";
 
 export default function SettingsPage() {
   const dispatch = useDispatch();
+  const router = useRouter();
   const { settings, loading } = useSelector((state: RootState) => state.settings);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -49,10 +52,39 @@ export default function SettingsPage() {
   };
 
   const handleExportCSV = () => {
-    // We already have a CSV export in the service_reports area, but a dedicated 'Export All' 
-    // functionality would normally trigger a separate backend job or frontend assembly.
-    // For now, providing a visual placeholder action.
-    alert("Full data export initiated. This will download shortly.");
+    exportAllData()
+      .then((res) => {
+        const payload = res?.data ?? res;
+        const fileName = `finance-tracker-export-${new Date().toISOString().slice(0, 10)}.json`;
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      })
+      .catch(() => {
+        dispatch(setError("Failed to export data"));
+      });
+  };
+
+  const handleClearHistory = () => {
+    dispatch(
+      openModal({
+        type: "CONFIRM_DELETE",
+        payload: {
+          title: "Clear all history?",
+          description:
+            "This will delete all your transactions and bills history and cannot be undone.",
+          confirmText: "Clear History",
+          cancelText: "Cancel",
+          actionKey: "CLEAR_HISTORY",
+        },
+      })
+    );
   };
 
   const staggerContainer = {
@@ -105,13 +137,22 @@ export default function SettingsPage() {
       >
         {/* Settings Header Block */}
         <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
-          <div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/dashboard")}
+              className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4 inline-flex items-center cursor-pointer"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </button>
+            <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
               Settings
             </h1>
             <p className="text-sm sm:text-base font-medium text-text-secondary mt-1">
               Manage your preferences, notifications, and account settings
             </p>
+            </div>
           </div>
           {isSaving && (
              <div className="flex items-center gap-2 text-primary text-sm font-bold bg-primary/10 px-3 py-1.5 rounded-full">
@@ -225,7 +266,7 @@ export default function SettingsPage() {
             </motion.div>
           </div>
 
-          {/* Right Column - Data & Account */}
+          {/* Right Column - Data */}
           <div className="space-y-8">
             {/* Data Management */}
             <motion.div variants={fadeUp}>
@@ -241,18 +282,21 @@ export default function SettingsPage() {
                 <CardContent className="p-6 space-y-4">
                   <button 
                     onClick={handleExportCSV}
-                    className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 hover:border-emerald-500/30 transition-all group"
+                    className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 hover:border-emerald-500/30 transition-all group cursor-pointer"
                   >
                     <div className="flex items-center gap-3 text-left">
                       <Download className="h-5 w-5 text-text-secondary group-hover:text-emerald-500 transition-colors" />
                       <div>
                         <h4 className="font-bold text-sm text-text-primary">Export Data</h4>
-                        <p className="text-xs text-text-secondary mt-0.5">Download all history as CSV</p>
+                        <p className="text-xs text-text-secondary mt-0.5">Download all history as JSON</p>
                       </div>
                     </div>
                   </button>
 
-                  <button className="w-full flex items-center justify-between p-4 rounded-xl border border-danger/20 hover:bg-danger/5 transition-all group">
+                  <button
+                    onClick={handleClearHistory}
+                    className="w-full flex items-center justify-between p-4 rounded-xl border border-danger/20 hover:bg-danger/5 transition-all group cursor-pointer"
+                  >
                     <div className="flex items-center gap-3 text-left">
                       <Trash2 className="h-5 w-5 text-danger opacity-70 group-hover:opacity-100 transition-opacity" />
                       <div>
@@ -264,33 +308,6 @@ export default function SettingsPage() {
                 </CardContent>
               </Card>
             </motion.div>
-
-            {/* Account Security */}
-            <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-                  <CardTitle className="flex items-center gap-3 text-lg">
-                    <div className="p-2 rounded-xl bg-amber-500/10">
-                      <Shield className="h-5 w-5 text-amber-500" />
-                    </div>
-                    Security
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <button className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 hover:border-amber-500/30 transition-all group">
-                    <div className="flex items-center gap-3 text-left">
-                      <KeyRound className="h-5 w-5 text-text-secondary group-hover:text-amber-500 transition-colors" />
-                      <div>
-                        <h4 className="font-bold text-sm text-text-primary">Change Password</h4>
-                        <p className="text-xs text-text-secondary mt-0.5">Update your login credentials</p>
-                      </div>
-                    </div>
-                  </button>
-                </CardContent>
-              </Card>
-            </motion.div>
-
-
           </div>
         </div>
       </motion.div>

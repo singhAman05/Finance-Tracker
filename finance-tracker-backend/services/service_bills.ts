@@ -176,6 +176,7 @@ export const markBillInstanceAsPaid = async (
         .single();
 
     if (billError) throw new Error(billError.message);
+    if (!bill.account_id) throw new Error("Bill is not linked to an account");
 
     const { data: transaction, error: txError } =
         await createTransaction({

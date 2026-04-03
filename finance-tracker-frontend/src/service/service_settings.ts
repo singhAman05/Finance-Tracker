@@ -1,5 +1,5 @@
 import { notify } from "@/lib/notifications";
-import { fetchSettingsRoute, updateSettingsRoute } from "@/routes/route_settings";
+import { clearHistoryRoute, exportDataRoute, fetchSettingsRoute, updateSettingsRoute } from "@/routes/route_settings";
 
 export interface ClientSettings {
   currency: string;
@@ -26,6 +26,27 @@ export const updateSettings = async (payload: Partial<ClientSettings>) => {
         return result;
     } catch (error) {
         console.error("Failed to update settings:", error);
+        throw error;
+    }
+};
+
+export const exportAllData = async () => {
+    try {
+        const result = await exportDataRoute();
+        return result;
+    } catch (error) {
+        console.error("Failed to export data:", error);
+        throw error;
+    }
+};
+
+export const clearHistory = async () => {
+    try {
+        const result = await clearHistoryRoute();
+        notify.success("History cleared successfully");
+        return result;
+    } catch (error) {
+        console.error("Failed to clear history:", error);
         throw error;
     }
 };

@@ -73,6 +73,7 @@ import {
   Filter,
   Wallet,
   Calendar,
+  ArrowLeft,
   RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -370,13 +371,23 @@ export default function TransactionPage() {
       </AlertDialog>
 
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
-        <div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard")}
+            className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
             Transactions
           </h1>
           <p className="text-text-secondary mt-1">
             Track your cash flow and spending habits.
           </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button

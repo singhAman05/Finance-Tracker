@@ -27,3 +27,22 @@ export const deleteCache = async (key: string) => {
         console.error('Redis DEL error:', err);
     }
 };
+
+export const deleteCacheByPrefix = async (prefix: string) => {
+    try {
+        const keysToDelete: string[] = [];
+        for await (const key of redisClient.scanIterator({ MATCH: `${prefix}*`, COUNT: 100 })) {
+            if (Array.isArray(key)) {
+                keysToDelete.push(...key);
+            } else {
+                keysToDelete.push(key);
+            }
+        }
+
+        if (keysToDelete.length > 0) {
+            await redisClient.del(keysToDelete);
+        }
+    } catch (err) {
+        console.error('Redis DEL by prefix error:', err);
+    }
+};

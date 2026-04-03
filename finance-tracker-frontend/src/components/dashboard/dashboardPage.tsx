@@ -128,7 +128,7 @@ export default function DashboardPage() {
   const [isClient, setIsClient] = useState(false);
   const [budgetSummary, setBudgetSummary] = useState<any[]>([]);
   const [bills, setBills] = useState<Bill[]>([]);
-  const [upcomingBills, setUpcomingBills] = useState<BillInstance[]>([]);
+  const [billInstances, setBillInstances] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -152,17 +152,7 @@ export default function DashboardPage() {
             // We need both bills to map names and instances for the schedule
             promises.push(fetchBills().then(res => setBills(res?.data || [])));
             promises.push(fetchBillInstances().then(res => {
-                const instances = res?.data || [];
-                // Filter for upcoming/unpaid bills in the next 15 days
-                const now = new Date();
-                const fifteenDaysLater = new Date();
-                fifteenDaysLater.setDate(now.getDate() + 15);
-
-                const upcoming = instances
-                    .filter((bi: any) => bi.status !== 'paid' && new Date(bi.due_date) <= fifteenDaysLater)
-                    .sort((a: any, b: any) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
-                    .slice(0, 5);
-                setUpcomingBills(upcoming);
+                setBillInstances(res?.data || []);
             }));
 
             await Promise.all(promises);
@@ -189,10 +179,38 @@ export default function DashboardPage() {
     return getCategoryData(categories, categoryMap);
   }, [categories, transactions]);
   
+  const activeBudgetSummary = useMemo(
+    () => (Array.isArray(budgetSummary) ? budgetSummary.filter((item: any) => Boolean(item.is_active)) : []),
+    [budgetSummary]
+  );
+
   // Budget stats
   const budgetStats = useMemo(() => {
-    return calculateBudgetSummaryStats(budgetSummary);
-  }, [budgetSummary]);
+    return calculateBudgetSummaryStats(activeBudgetSummary);
+  }, [activeBudgetSummary]);
+
+  const { overdueBills, upcomingBills } = useMemo(() => {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+    const fifteenDaysLater = new Date(now);
+    fifteenDaysLater.setDate(now.getDate() + 15);
+
+    const unpaid = (billInstances || []).filter((bi: BillInstance) => bi.status !== "paid");
+    const overdue = unpaid
+      .filter((bi: BillInstance) => new Date(bi.due_date) < now)
+      .sort((a: BillInstance, b: BillInstance) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .slice(0, 3);
+
+    const upcoming = unpaid
+      .filter((bi: BillInstance) => {
+        const due = new Date(bi.due_date);
+        return due >= now && due <= fifteenDaysLater;
+      })
+      .sort((a: BillInstance, b: BillInstance) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .slice(0, 3);
+
+    return { overdueBills: overdue, upcomingBills: upcoming };
+  }, [billInstances]);
 
   // Prepared data for charts using real data
   const { monthlyMap } = aggregateTransactions(transactions);
@@ -291,12 +309,22 @@ export default function DashboardPage() {
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
                 <AnimatedCounter target={financialHealth.netWorth} prefix={symbol} />
               </div>
-              <p className="text-xs text-text-secondary flex items-center mt-2 font-medium">
-                 {/* Placeholder for Net Worth Growth since we don't have history yet */}
-                <ArrowUpRight className="h-4 w-4 text-success mr-1" />
-                <span className="text-success">Live</span>
-                <span className="ml-1 text-text-secondary">updated from accounts</span>
-              </p>
+              {financialHealth.netWorthGrowth !== null ? (
+                <p className="text-xs text-text-secondary flex items-center mt-2 font-medium">
+                  {financialHealth.netWorthGrowth >= 0 ? (
+                    <ArrowUpRight className="h-4 w-4 text-success mr-1" />
+                  ) : (
+                    <ArrowDownRight className="h-4 w-4 text-danger mr-1" />
+                  )}
+                  <span className={financialHealth.netWorthGrowth >= 0 ? "text-success" : "text-danger"}>
+                    {financialHealth.netWorthGrowth > 0 ? "+" : ""}
+                    {financialHealth.netWorthGrowth}%
+                  </span>
+                  <span className="ml-1 text-text-secondary">vs last month</span>
+                </p>
+              ) : (
+                <p className="text-xs text-text-secondary mt-2 font-medium">No prior month data</p>
+              )}
             </CardContent>
           </Card>
 
@@ -477,8 +505,8 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {budgetSummary.slice(0, 4).map((item) => (
-                    <div key={item.category_id || item.category_name}>
+                  {activeBudgetSummary.slice(0, 4).map((item, index) => (
+                    <div key={item.budget_id || `${item.category_id || item.category_name}-${index}`}>
                       <div className="flex justify-between text-sm mb-2 font-medium">
                         <span className="tracking-tight">{item.category_name}</span>
                         <span className="text-muted-foreground">{formatCurrency(item.total_spent)} / {formatCurrency(item.budget_amount)}</span>
@@ -489,8 +517,17 @@ export default function DashboardPage() {
                       />
                     </div>
                   ))}
-                  {budgetSummary.length === 0 && (
-                      <p className="text-sm text-center text-muted-foreground py-4">No budgets set up yet.</p>
+                  {activeBudgetSummary.length === 0 && (
+                    <div className="text-sm text-center text-muted-foreground py-4">
+                      <p>No active budgets found.</p>
+                      <Button
+                        variant="link"
+                        onClick={() => router.push("/dashboard/budgets")}
+                        className="mt-1"
+                      >
+                        Create a budget
+                      </Button>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -509,7 +546,7 @@ export default function DashboardPage() {
                     variant="ghost" 
                     size="sm" 
                     className="text-primary hover:text-primary/80 hover:bg-primary/5"
-                    onClick={() => router.push("/transactions")}
+                    onClick={() => router.push("/dashboard/transactions")}
                 >
                   View All
                 </Button>
@@ -564,32 +601,54 @@ export default function DashboardPage() {
           <div className="lg:col-span-3">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="pb-6">
-                <CardTitle className="text-lg text-primary">Upcoming Bills</CardTitle>
-                <CardDescription className="text-muted-foreground">Next 15 days</CardDescription>
+                <CardTitle className="text-lg text-primary">Bills Snapshot</CardTitle>
+                <CardDescription className="text-muted-foreground">Overdue and next 15 days</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {upcomingBills.map((bill) => {
-                    const billName = bills.find(b => b.id === bill.bill_id)?.name || "Bill Due";
-                    return (
-                    <div
-                      key={bill.id}
-                      className="flex items-center justify-between"
-                    >
-                      <div className="max-w-[120px]">
-                        <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
-                        <div className="text-xs text-muted-foreground mt-0.5">
-                          {formatDate(bill.due_date)}
-                        </div>
-                      </div>
-                      <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">
-                        {formatCurrency(bill.amount)}
-                      </div>
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-danger mb-3">Overdue</p>
+                    <div className="space-y-3">
+                      {overdueBills.length > 0 ? overdueBills.map((bill) => {
+                        const billName = bills.find(b => b.id === bill.bill_id)?.name || "Bill Due";
+                        return (
+                          <div key={bill.id} className="flex items-center justify-between">
+                            <div className="max-w-[120px]">
+                              <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{formatDate(bill.due_date)}</div>
+                            </div>
+                            <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">
+                              {formatCurrency(bill.amount)}
+                            </div>
+                          </div>
+                        );
+                      }) : (
+                        <p className="text-xs text-muted-foreground">No overdue bills.</p>
+                      )}
                     </div>
-                  )})}
-                  {upcomingBills.length === 0 && (
-                      <p className="text-sm text-center text-muted-foreground py-4">No upcoming bills.</p>
-                  )}
+                  </div>
+
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-3">Upcoming</p>
+                    <div className="space-y-3">
+                      {upcomingBills.length > 0 ? upcomingBills.map((bill) => {
+                        const billName = bills.find(b => b.id === bill.bill_id)?.name || "Bill Due";
+                        return (
+                          <div key={bill.id} className="flex items-center justify-between">
+                            <div className="max-w-[120px]">
+                              <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">{formatDate(bill.due_date)}</div>
+                            </div>
+                            <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">
+                              {formatCurrency(bill.amount)}
+                            </div>
+                          </div>
+                        );
+                      }) : (
+                        <p className="text-xs text-muted-foreground">No upcoming bills.</p>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

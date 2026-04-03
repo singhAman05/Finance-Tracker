@@ -1,9 +1,10 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Plus, RefreshCw } from "lucide-react";
+import { ArrowLeft, Plus, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -21,18 +22,30 @@ interface BudgetsHeaderProps {
 }
 
 export default function BudgetsHeader({ onAddBudget, onRefresh, isRefreshing }: BudgetsHeaderProps) {
+  const router = useRouter();
+
   return (
     <motion.div
       variants={fadeUp}
       className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center"
     >
-      <div>
+      <div className="flex items-center gap-3">
+        <Button
+          variant="outline"
+          onClick={() => router.push("/dashboard")}
+          className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4"
+        >
+          <ArrowLeft className="h-4 w-4 mr-2" />
+          Back
+        </Button>
+        <div>
         <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
           Budget Management
         </h1>
         <p className="mt-2 text-base text-text-secondary">
           Track your spending habits and hit your financial targets.
         </p>
+        </div>
       </div>
 
       <div className="flex items-center gap-3 w-full md:w-auto">

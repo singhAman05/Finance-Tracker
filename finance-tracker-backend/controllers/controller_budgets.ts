@@ -6,7 +6,7 @@ import {
     updateBudget,
     fetchBudgetSummary
 } from "../services/service_budgets";
-import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
 import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
 
 export const handleBudgetCreation = async (req: Request, res: Response) => {
@@ -76,8 +76,7 @@ export const handleBudgetCreation = async (req: Request, res: Response) => {
         }
 
         // Invalidate cache
-        const cacheKey = `budgets:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`budgets:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(201).json({
@@ -158,8 +157,7 @@ export const handleBudgetDeletion = async (req: Request, res: Response) => {
             return;
         }
 
-        const cacheKey = `budgets:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`budgets:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({
@@ -206,8 +204,7 @@ export const handleBudgetUpdate = async (req: Request, res: Response) => {
             return;
         }
 
-        const cacheKey = `budgets:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`budgets:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({
@@ -244,8 +241,7 @@ export const handleBudgetExpire = async (req: Request, res: Response) => {
             return;
         }
 
-        const cacheKey = `budgets:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`budgets:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
 
         res.status(200).json({

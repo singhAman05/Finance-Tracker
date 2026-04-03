@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 
 interface AddAccountProps {
   onClose: () => void;
@@ -174,7 +175,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
 
   return (
     <div className="w-full max-w-2xl relative mx-auto">
-      <div className="rounded-[2.5rem] sm:rounded-3xl border border-border bg-card overflow-hidden shadow-2xl transition-all duration-300 relative">
+      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-[2rem] sm:rounded-3xl relative">
         <div
           className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
           style={{
@@ -183,37 +184,33 @@ export function AddAccount({ onClose }: AddAccountProps) {
           }}
         />
 
-        <div className="absolute top-0 left-0 right-0 h-1 bg-muted">
-          <motion.div
-            className="h-full bg-primary"
-            initial={{ width: "0%" }}
-            animate={{ width: "100%" }}
-            transition={{ duration: 0.8, ease: "circOut" }}
-          />
+        <div className="bg-muted/30 border-b border-border p-5 sm:p-8 relative z-10">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 sm:gap-5">
+              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
+                <Landmark className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
+              </div>
+              <div>
+                <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">
+                  Link New Account
+                </CardTitle>
+                <CardDescription className="text-xs sm:text-sm text-text-secondary mt-1 max-w-sm leading-relaxed">
+                  Connect your financial institution to start tracking transparently.
+                </CardDescription>
+              </div>
+            </div>
+            <button
+              className="h-10 w-10 rounded-full hover:bg-muted text-text-secondary transition-colors flex items-center justify-center cursor-pointer"
+              onClick={onClose}
+              type="button"
+              aria-label="Close"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
-        <div className="relative p-5 sm:p-8 md:p-10">
-          <button
-            className="absolute top-4 right-4 sm:top-6 sm:right-6 w-9 h-9 sm:w-10 sm:h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors z-20"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4 text-text-secondary" />
-          </button>
-
-          <div className="mb-8 sm:mb-10 flex items-start gap-4 sm:gap-5">
-            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-primary rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
-              <Landmark className="h-5 w-5 sm:h-6 sm:w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold tracking-tighter text-text-primary">
-                Link New Account
-              </h2>
-              <p className="text-xs sm:text-sm text-text-secondary mt-1 max-w-sm leading-relaxed">
-                Connect your financial institution to start tracking transparently.
-              </p>
-            </div>
-          </div>
-
+        <CardContent className="p-5 sm:p-8 relative z-10">
           <form onSubmit={handleSubmit} className="space-y-8">
             <AnimatePresence mode="wait">
               {errors.submit && (
@@ -286,7 +283,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
                   />
                   <button
                     type="button"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
                     onClick={() => setShowAccountNumber(!showAccountNumber)}
                   >
                     {showAccountNumber ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -351,7 +348,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
               <button
                 type="button"
                 onClick={() => updateRecurring("is_recurring", !recurring.is_recurring)}
-                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
+                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors cursor-pointer"
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -404,7 +401,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
                               type="button"
                               onClick={() => { updateRecurring("recurring_type", t); updateRecurring("recurring_category_id", ""); }}
                               className={cn(
-                                "flex-1 text-sm font-semibold transition-colors capitalize",
+                                "flex-1 text-sm font-semibold transition-colors capitalize cursor-pointer",
                                 recurring.recurring_type === t
                                   ? t === "income" ? "bg-emerald-500 text-white" : "bg-red-500 text-white"
                                   : "bg-muted text-text-secondary hover:bg-muted/80"
@@ -517,7 +514,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
               type="submit"
               disabled={loading}
               className={cn(
-                "w-full h-14 rounded-full bg-primary text-primary-foreground font-semibold text-lg hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/10 flex items-center justify-center gap-2",
+                "w-full h-14 rounded-full bg-primary text-primary-foreground font-semibold text-lg hover:scale-[1.01] active:scale-[0.99] transition-all shadow-xl shadow-primary/10 flex items-center justify-center gap-2 cursor-pointer",
                 loading && "opacity-70 cursor-not-allowed hover:scale-100"
               )}
             >
@@ -528,8 +525,8 @@ export function AddAccount({ onClose }: AddAccountProps) {
               )}
             </button>
           </form>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -18,15 +18,20 @@ export default function DashboardLayout({
   const dispatch = useDispatch();
   const router = useRouter();
   const [isMobileOpen, setMobileOpen] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
   const token = useSelector((state: RootState) => state.auth.token);
   const existingSettings = useSelector((state: RootState) => state.settings.settings);
 
+  useEffect(() => {
+    setIsHydrated(true);
+  }, []);
+
   // Auth guard — redirect if no token
   useEffect(() => {
-    if (!token) {
+    if (isHydrated && !token) {
       router.replace("/login");
     }
-  }, [token, router]);
+  }, [isHydrated, token, router]);
 
   // Load user settings on first mount so useCurrency/useDateFormat
   // work on every page without requiring a visit to /settings first.
@@ -40,7 +45,7 @@ export default function DashboardLayout({
   }, [dispatch, existingSettings, token]);
 
   // Show nothing while redirecting unauthenticated users
-  if (!token) {
+  if (!isHydrated || !token) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">

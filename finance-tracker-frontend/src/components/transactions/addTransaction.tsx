@@ -68,10 +68,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   const { formatDate } = useDateFormat();
 
   const SYMBOL_MAP: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
-  // Symbol for the currently selected account
-  const selectedAcctCurrency = accounts.find((a) => a.id === accountId)?.currency;
-  const activeSymbol = selectedAcctCurrency ? (SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency) : SYMBOL_MAP["INR"];
-
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [type, setType] = useState<"expense" | "income">("expense");
   const [category, setCategory] = useState("");
@@ -81,6 +77,12 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Symbol for the currently selected account
+  const selectedAcctCurrency = accounts.find((a) => a.id === accountId)?.currency;
+  const activeSymbol = selectedAcctCurrency
+    ? (SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency)
+    : SYMBOL_MAP["INR"];
 
   useEffect(() => {
     let isMounted = true;
@@ -193,7 +195,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="rounded-full hover:bg-muted text-text-secondary"
+                className="rounded-full hover:bg-muted text-text-secondary cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -215,7 +217,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
               type="button"
               onClick={() => setType("expense")}
               className={cn(
-                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors cursor-pointer",
                 type === "expense" ? "text-text-primary" : "text-text-secondary"
               )}
             >
@@ -225,7 +227,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
               type="button"
               onClick={() => setType("income")}
               className={cn(
-                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors cursor-pointer",
                 type === "income" ? "text-white" : "text-text-secondary"
               )}
             >
@@ -373,7 +375,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                 type="submit"
                 disabled={submitting || !amount || !category}
                 className={cn(
-                  "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98] mt-2",
+                  "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98] mt-2 cursor-pointer",
                   type === "expense"
                     ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
                     : "bg-success text-white hover:bg-success/90 shadow-success/20"

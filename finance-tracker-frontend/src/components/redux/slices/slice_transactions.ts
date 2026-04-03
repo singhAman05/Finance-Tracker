@@ -5,6 +5,14 @@ type TransactionState = {
     transactions: any[];
 };
 
+const normalizeTransaction = (tx: Record<string, unknown>) => ({
+    ...tx,
+    date:
+        tx?.date instanceof Date
+            ? tx.date.toISOString()
+            : tx?.date ?? null,
+});
+
 const initialState: TransactionState = {
     transactions: [],
 };
@@ -14,10 +22,16 @@ const transactionSlice = createSlice({
     initialState,
     reducers: {
         setTransactions(state, action) {
-            state.transactions = action.payload;
+            state.transactions = Array.isArray(action.payload)
+                ? action.payload.map((tx: unknown) =>
+                    normalizeTransaction((tx ?? {}) as Record<string, unknown>)
+                )
+                : [];
         },
         addTransaction(state, action) {
-            state.transactions.push(action.payload);
+            state.transactions.push(
+                normalizeTransaction((action.payload ?? {}) as Record<string, unknown>)
+            );
         },
         removeTransaction(state, action) {
             state.transactions = state.transactions.filter(

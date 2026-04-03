@@ -58,6 +58,7 @@ import {
   CreditCard,
   RefreshCw,
   Wallet,
+  ArrowLeft,
   ArrowUpRight,
 } from "lucide-react";
 
@@ -291,7 +292,16 @@ export default function AccountsPage() {
           variants={fadeUp}
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
         >
-          <div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard")}
+              className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
               Financial Assets
             </h1>
@@ -299,6 +309,7 @@ export default function AccountsPage() {
               Manage your bank accounts, credit cards, and cash flow in one
               place.
             </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button

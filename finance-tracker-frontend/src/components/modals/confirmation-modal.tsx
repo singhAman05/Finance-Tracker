@@ -3,6 +3,8 @@
 import { motion } from "framer-motion";
 import { useDispatch } from "react-redux";
 import { closeModal } from "@/components/redux/slices/slice_modal";
+import { clearHistory } from "@/service/service_settings";
+import { setError } from "@/components/redux/slices/slice_settings";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,7 +17,7 @@ interface ConfirmationModalProps {
   confirmText?: string;
   cancelText?: string;
   variant?: "danger" | "default";
-  onConfirm: () => Promise<void> | void;
+  actionKey?: "CLEAR_HISTORY";
 }
 
 export function ConfirmationModal({
@@ -24,7 +26,7 @@ export function ConfirmationModal({
   confirmText = "Confirm",
   cancelText = "Cancel",
   variant = "danger",
-  onConfirm,
+  actionKey,
 }: ConfirmationModalProps) {
   const dispatch = useDispatch();
   const [loading, setLoading] = useState(false);
@@ -34,8 +36,14 @@ export function ConfirmationModal({
   const handleConfirm = async () => {
     try {
       setLoading(true);
-      await onConfirm();
+      if (actionKey === "CLEAR_HISTORY") {
+        await clearHistory();
+      }
       handleClose();
+    } catch {
+      if (actionKey === "CLEAR_HISTORY") {
+        dispatch(setError("Failed to clear history"));
+      }
     } finally {
       setLoading(false);
     }
@@ -79,7 +87,7 @@ export function ConfirmationModal({
           </div>
 
           {/* Actions */}
-          <div className="mt-8 flex gap-3 relative z-10">
+          <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-3 relative z-10">
             <Button
               variant="outline"
               className="w-full rounded-full h-11 border-border text-text-primary hover:bg-muted font-semibold transition-all"

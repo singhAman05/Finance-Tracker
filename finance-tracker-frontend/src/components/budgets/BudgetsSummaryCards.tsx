@@ -69,7 +69,7 @@ export default function BudgetsSummaryCards({
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
     >
       {/* Overall Utilization */}
-      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl shadow-primary/20 border-border dark:border-white/10 rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
+      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl border-border dark:border-white/10 rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
         <div 
           className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
           style={{ 

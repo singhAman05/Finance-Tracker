@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { setAccounts } from "../redux/slices/slice_accounts";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
@@ -45,7 +45,7 @@ export default function ReportPage() {
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
-  const [pendingLoads, setPendingLoads] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
 
   const accountLookup = accounts.reduce((map, acc) => {
     map[acc.id] = acc;
@@ -57,57 +57,46 @@ export default function ReportPage() {
     return map;
   }, {} as Record<string, any>);
 
-  const loadAccounts = useCallback(async () => {
-    if (accounts.length > 0) return;
-    try {
-      setPendingLoads((prev) => prev + 1);
-      const data = await fetchAccounts();
-      dispatch(setAccounts(data?.data || data)); // Handle both {data} and raw array
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingLoads((prev) => prev - 1);
-    }
-  }, [accounts, dispatch]);
-
-  const loadTransactions = useCallback(async () => {
-    if (transactions.length > 0) return;
-    try {
-      setPendingLoads((prev) => prev + 1);
-      const res = await fetchTransactions();
-      const txArray = res?.data || res; // Extract .data if it exists
-      if (Array.isArray(txArray)) {
-        const transformedData = txArray.map((tx: any) => ({
-          ...tx,
-          date: new Date(tx.date),
-        }));
-        dispatch(setTransactions(transformedData));
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingLoads((prev) => prev - 1);
-    }
-  }, [transactions, dispatch]);
-
-  const loadCategories = useCallback(async () => {
-    if (categories.length > 0) return;
-    try {
-      setPendingLoads((prev) => prev + 1);
-      const data = await fetchCategories();
-      dispatch(setCategories(data?.data || data));
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setPendingLoads((prev) => prev - 1);
-    }
-  }, [categories, dispatch]);
-
   useEffect(() => {
-    loadAccounts();
-    loadTransactions();
-    loadCategories();
-  }, [loadAccounts, loadTransactions, loadCategories]);
+    let mounted = true;
+
+    const loadData = async () => {
+      setIsLoading(true);
+      dispatch(setTransactions([]));
+      const tasks: Promise<void>[] = [
+        fetchAccounts()
+          .then((data) => {
+            const payload = data?.data || data;
+            dispatch(setAccounts(Array.isArray(payload) ? payload : []));
+          })
+          .catch((err) => console.error(err)),
+        fetchTransactions()
+          .then((res) => {
+            const txArray = res?.data || res;
+            if (Array.isArray(txArray)) {
+              dispatch(setTransactions(txArray));
+            } else {
+              dispatch(setTransactions([]));
+            }
+          })
+          .catch((err) => console.error(err)),
+        fetchCategories()
+          .then((data) => {
+            const payload = data?.data || data;
+            dispatch(setCategories(Array.isArray(payload) ? payload : []));
+          })
+          .catch((err) => console.error(err)),
+      ];
+
+      await Promise.allSettled(tasks);
+      if (mounted) setIsLoading(false);
+    };
+
+    loadData();
+    return () => {
+      mounted = false;
+    };
+  }, [dispatch]);
 
   // Calculate all data using our service functions
   const currentMonthTransactions = transactions.filter(tx => {
@@ -172,16 +161,16 @@ export default function ReportPage() {
           onExport={handleExport}
         />
 
-        {pendingLoads > 0 ? (
+        {isLoading ? (
           <div className="w-full flex items-center justify-center min-h-[400px]">
             <Loader size="md" text="Loading your financial data..." />
           </div>
-        ) : transactions.length === 0 && accounts.length === 0 ? (
+        ) : transactions.length === 0 ? (
           <motion.div variants={fadeUp} className="w-full flex-col flex items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center mt-12 shadow-sm">
             <PieChart className="h-16 w-16 text-muted-foreground mx-auto mb-6 opacity-50" />
-            <h2 className="text-2xl font-bold mb-3 text-text-primary">No Financial Data</h2>
+            <h2 className="text-2xl font-bold mb-3 text-text-primary">Not enough data to generate a report</h2>
             <p className="text-text-secondary mb-8">
-              Add transactions and accounts to review your analytics and see insights on your spending heavily.
+              Add some transactions to generate meaningful report insights.
             </p>
             <Button 
               onClick={() => router.push("/dashboard")}

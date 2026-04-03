@@ -125,16 +125,17 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
     });
 
     const totalBalances = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    const netWorth = totalBalances + currentIncome - currentExpense;
+    // Accounts balance already reflects posted transactions, so net worth = current balances.
+    const netWorth = totalBalances;
     const cashFlow = currentIncome - currentExpense;
 
     // Percent changes — use null check (not truthy) so 0% growth is preserved
     const incomeGrowth = percentageChange(currentIncome, prevIncome);
     const expenseGrowth = percentageChange(currentExpense, prevExpense);
 
-    // Net worth growth: approximate using cash flow vs previous cash flow
-    const prevCashFlow = prevIncome - prevExpense;
-    const netWorthGrowth = percentageChange(cashFlow, prevCashFlow);
+    // Estimate previous month net worth by removing current-month cash flow from current net worth.
+    const previousNetWorth = netWorth - cashFlow;
+    const netWorthGrowth = percentageChange(netWorth, previousNetWorth);
 
     return {
         netWorth,

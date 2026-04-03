@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { fetchTransactions, createTransaction, deleteTransaction } from "../services/service_transactions";
 import { validateTransactionPayload } from "../utils/validationUtils";
-import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
 import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
 
 export const handleTransactionsAdd = async (req: Request, res: Response) => {
@@ -48,11 +48,9 @@ export const handleTransactionsAdd = async (req: Request, res: Response) => {
         }
 
         // Invalidate cache after successful insert
-        const cacheKey = `transactions:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`transactions:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
-        // Also invalidate accounts cache since balance was updated
-        await deleteCache(`accounts:${client_id}`);
+        await deleteCacheByPrefix(`accounts:${client_id}:`);
 
         res.status(201).json({ message: "Transaction added", data: result.data });
     } catch (err) {
@@ -115,11 +113,9 @@ export const handleTransactionDelete = async (req: Request, res: Response) => {
             return;
         }
 
-        const cacheKey = `transactions:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`transactions:${client_id}:`);
         await deleteCache(`budgets:summary:${client_id}`);
-        // Also invalidate accounts cache since balance was reversed
-        await deleteCache(`accounts:${client_id}`);
+        await deleteCacheByPrefix(`accounts:${client_id}:`);
 
         res.status(200).json({
             message: "Transaction deleted successfully",

@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import { creatingAccount, fetchAllaccounts, deleteAccount, processRecurringAccounts, fetchRecurringAccounts } from "../services/service_accounts";
 import { validateAccount, validateAccountDetails } from "../utils/validationUtils";
-import { getCache, setCache, deleteCache } from "../utils/cacheUtils";
+import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
 import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
 
 export const handleAccountCreation = async (req: Request, res: Response) => {
@@ -49,8 +49,7 @@ export const handleAccountCreation = async (req: Request, res: Response) => {
         }
 
         // Invalidate cache after new account is added
-        const cacheKey = `accounts:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`accounts:${client_id}:`);
         res.status(201).json({ message: "Account added Successfully", data: result.data });
     } catch (err) {
         console.error("Account addition failed:", err);
@@ -115,8 +114,7 @@ export const handleAccountDeletion = async (req: Request, res: Response) => {
             return;
         }
 
-        const cacheKey = `accounts:${client_id}`;
-        await deleteCache(cacheKey);
+        await deleteCacheByPrefix(`accounts:${client_id}:`);
 
         res.status(200).json({
             message: "Account deleted successfully",
@@ -133,7 +131,7 @@ export const handleProcessRecurring = async (req: Request, res: Response) => {
     const client_id = user.id;
     try {
         const result = await processRecurringAccounts(client_id);
-        await deleteCache(`accounts:${client_id}`);
+        await deleteCacheByPrefix(`accounts:${client_id}:`);
         res.status(200).json({
             message: "Recurring accounts processed",
             processed: result.processed,
