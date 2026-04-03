@@ -1,11 +1,18 @@
 import { apiClient } from "@/utils/Error_handler";
+import type { Category } from "@/types/interfaces";
 
-export const fetchCategoriesRoute = async()=>{
-  const data = await apiClient<any>(
-        `/api/category/get-system-categories`,
-        {
-            method: "GET",
-        }
-    )
-  return data.result
+interface CategoriesResponse {
+  message: string;
+  data: Category[];
 }
+
+export const fetchCategoriesRoute = async () => {
+  const data = await apiClient<CategoriesResponse>(
+    "/api/category/get-system-categories",
+    {
+      method: "GET",
+    }
+  );
+  if (data.error) throw new Error(data.error.message);
+  return data.result;
+};

@@ -3,9 +3,10 @@
 import { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { RootState } from "@/app/store";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useCurrency } from "@/hooks/useCurrency";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -25,6 +26,7 @@ interface AddBudgetFormProps {
 export default function AddBudgetForm({ onClose }: AddBudgetFormProps) {
   const dispatch = useDispatch();
   const categories = useSelector((state: RootState) => state.categories.categories);
+  const { symbol } = useCurrency();
   
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState({
@@ -80,25 +82,29 @@ export default function AddBudgetForm({ onClose }: AddBudgetFormProps) {
         }}
       />
       
-      <CardHeader className="flex flex-row items-center justify-between p-5 pb-3 sm:p-6 sm:pb-4 border-b border-border/40 relative z-10">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
-             <Target className="h-6 w-6 text-primary-foreground" />
+      <div className="bg-muted/30 border-b border-border p-5 sm:p-8 relative z-10">
+        <div className="flex items-start justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 bg-primary rounded-2xl flex items-center justify-center shadow-lg shadow-primary/10 shrink-0">
+              <Target className="h-6 w-6 text-primary-foreground" />
+            </div>
+            <div>
+              <CardTitle className="text-xl sm:text-2xl font-bold tracking-tight text-text-primary">Create Budget</CardTitle>
+              <CardDescription className="text-xs sm:text-sm text-text-secondary mt-1">Define your spending limits</CardDescription>
+            </div>
           </div>
-          <div>
-            <CardTitle className="text-lg sm:text-xl font-bold tracking-tight text-text-primary">Create Budget</CardTitle>
-            <p className="text-[10px] sm:text-xs text-text-secondary mt-0.5">Define your spending limits</p>
-          </div>
+          <button
+            onClick={onClose}
+            type="button"
+            aria-label="Close"
+            className="h-10 w-10 rounded-full hover:bg-muted text-text-secondary transition-colors flex items-center justify-center cursor-pointer"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
-        <button
-          onClick={onClose}
-          className="p-2 rounded-full text-text-secondary hover:bg-muted transition-colors"
-        >
-          <X className="h-5 w-5" />
-        </button>
-      </CardHeader>
+      </div>
 
-      <CardContent className="p-5 sm:pt-6 relative z-10">
+      <CardContent className="p-5 sm:p-8 relative z-10">
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1.5">
@@ -112,7 +118,7 @@ export default function AddBudgetForm({ onClose }: AddBudgetFormProps) {
               />
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="budget-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Limit Amount (₹) *</Label>
+              <Label htmlFor="budget-amount" className="text-xs font-semibold uppercase tracking-wider text-text-secondary ml-1">Limit Amount ({symbol}) *</Label>
               <Input
                 id="budget-amount"
                 type="number"
@@ -208,14 +214,14 @@ export default function AddBudgetForm({ onClose }: AddBudgetFormProps) {
               type="button"
               variant="outline"
               onClick={onClose}
-              className="flex-1 rounded-full h-12 border-border text-text-primary hover:bg-muted font-semibold transition-all"
+              className="flex-1 rounded-full h-12 border-border text-text-primary hover:bg-muted font-semibold transition-all cursor-pointer"
               disabled={loading}
             >
               Cancel
             </Button>
             <Button 
               type="submit" 
-              className="flex-1 rounded-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg shadow-primary/10 transition-all font-medium" 
+              className="flex-1 rounded-full h-12 bg-primary text-primary-foreground hover:bg-primary/90 font-semibold shadow-lg shadow-primary/10 transition-all font-medium cursor-pointer" 
               disabled={loading}
             >
               {loading ? "Creating..." : "Create Budget"}

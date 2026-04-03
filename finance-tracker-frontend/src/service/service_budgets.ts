@@ -30,12 +30,12 @@ export const fetchBudgetSummary = async () => {
         result.data = result.data.map((s: any) => ({
             ...s,
             budget_amount: Number(s.budget_amount) || 0,
-            spent_amount: Number(s.total_spent) || 0,
-            remaining_amount: Number(s.remaining) || 0,
+            total_spent: Number(s.total_spent) || 0,
+            remaining: Number(s.remaining) || 0,
             percentage_used: Number(s.percentage_used) || 0,
             is_active: Boolean(s.is_active),
-            start_date: s.start_date,
-            end_date: s.end_date,
+            budget_name: s.budget_name || null,
+            period_type: s.period_type || "monthly",
         }));
     }
     return result;
@@ -51,17 +51,10 @@ export const calculateBudgetSummaryStats = (summary: any[]) => {
         exceededCount: 0
     };
 
-    const activeSummaries = summary.filter((s) => {
-        if (!s.end_date) return true;
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endDate = new Date(s.end_date);
-        endDate.setHours(0, 0, 0, 0);
-        return today <= endDate; // Only include if it hasn't expired
-    });
+    const activeSummaries = summary.filter((s) => Boolean(s.is_active));
 
     const totalBudget = activeSummaries.reduce((acc, curr) => acc + (Number(curr.budget_amount) || 0), 0);
-    const totalSpent = activeSummaries.reduce((acc, curr) => acc + (Number(curr.spent_amount) || 0), 0);
+    const totalSpent = activeSummaries.reduce((acc, curr) => acc + (Number(curr.total_spent) || 0), 0);
     const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
     const healthyCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) < 90).length;

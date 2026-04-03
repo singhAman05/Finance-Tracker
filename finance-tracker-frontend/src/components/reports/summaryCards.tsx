@@ -3,6 +3,7 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Wallet, ArrowDownLeft, ArrowUpRight, ArrowRightLeft, TrendingUp, TrendingDown, Target } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 function AnimatedCounter({ target, duration = 1.5 }: { target: number; duration?: number }) {
   const count = useMotionValue(0);
@@ -34,6 +35,7 @@ export default function SummaryCards({
   totalExpenses,
   netWorthChange,
 }: SummaryCardsProps) {
+  const { symbol } = useCurrency();
   const stats = [
     {
       label: "Total Balance",
@@ -109,7 +111,7 @@ export default function SummaryCards({
               stat.isHero ? "text-primary-foreground" : "text-text-primary"
             )}>
               {stat.label === "Net Cash Flow" && (stat.value >= 0 ? "+" : "-")}
-              ₹<AnimatedCounter target={Math.abs(stat.value)} />
+              {symbol}<AnimatedCounter target={Math.abs(stat.value)} />
             </div>
             <p className={cn(
               "text-xs mt-2 font-medium",

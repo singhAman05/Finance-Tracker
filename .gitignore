@@ -6,3 +6,7 @@ finance-tracker-frontend/.env.local
 finance-tracker-backend/node_modules
 finance-tracker-backend/.env
 .vercel
+finance-tracker-backend/backend_audit_report.md.resolved
+finance-tracker-frontend/frontend_audit_report.md.resolved
+package-lock.json
+package.json

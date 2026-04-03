@@ -46,6 +46,7 @@ const LoadingSkeleton = () => (
 export default function BillsPage() {
   const dispatch = useDispatch();
   const { bills, instances } = useSelector((state: RootState) => state.bills);
+  const accounts = useSelector((state: RootState) => state.accounts.accounts);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -202,6 +203,7 @@ export default function BillsPage() {
           <BillsInstanceList
             instances={instances}
             bills={bills}
+            accounts={accounts}
             onPay={handlePay}
             payingId={payingId}
           />

@@ -31,17 +31,19 @@ export default function GoogleCallbackPage() {
 
       try {
         const { email, name } = session.user;
+        const idToken = (session as any).idToken as string | undefined;
 
-        if (!email || !name) {
-          throw new Error("Google account missing email or name");
+        if (!email || !name || !idToken) {
+          throw new Error("Google account missing email, name, or ID token");
         }
 
         // Call backend → create/update user → get JWT
-        const data = await loginGoogleRoute(email, name);
+        // Pass idToken for server-side verification when available
+        const data = await loginGoogleRoute(email, name, idToken);
 
         // Persist auth state (same as phone login)
-        localStorage.setItem("jwt", data.token);
-        localStorage.setItem("user", JSON.stringify(data.user));
+        sessionStorage.setItem("jwt", data.token);
+        sessionStorage.setItem("user", JSON.stringify(data.user));
 
         dispatch(
           login({
@@ -53,7 +55,6 @@ export default function GoogleCallbackPage() {
         // Redirect based on profile completion
         router.replace(data.user.profile_complete ? "/dashboard" : "/profile");
       } catch (error) {
-        console.error("Google auth sync failed:", error);
         router.replace("/login?error=google_auth_failed");
       }
     };

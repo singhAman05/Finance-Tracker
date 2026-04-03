@@ -1,4 +1,3 @@
-import { cp } from 'fs';
 import { supabase } from '../config/supabase';
 import { tokenGenerator } from '../middleware/jwt';
 
@@ -33,9 +32,9 @@ export const loginWithPhone = async (phone: string) => {
             },
             token
         };
-    } catch (err: any) {
-        console.log(err.message)
-        throw new Error(err.message);
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown auth error";
+        throw new Error(message);
     }
 };
 
@@ -70,8 +69,8 @@ export const loginWithGoogle = async (email: string, name: string) => {
             },
             token
         };
-    } catch (err: any) {
-        console.log(err.message)
-        throw new Error(err.message);
+    } catch (err: unknown) {
+        const message = err instanceof Error ? err.message : "Unknown auth error";
+        throw new Error(message);
     }
 }

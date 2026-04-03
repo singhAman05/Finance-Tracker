@@ -1,17 +1,5 @@
-import { Account, Category, Transaction, CategoryAnalysis, AccountAnalysis, MonthlyData, ChartDataInput } from "@/types/interfaces";
-
-interface Bill {
-  id: string;
-  amount: number;
-  due_date: Date;
-  paid: boolean;
-}
-
-export interface Budget {
-  id: string;
-  category_id: string;
-  limit: number;
-}
+import { Account, Category, Transaction, CategoryAnalysis, AccountAnalysis, MonthlyData, ChartDataInput, BillInstance } from "@/types/interfaces";
+import type { Budget } from "@/components/redux/slices/slice_budgets";
 
 export const getBudgetVsActual = (
   categories: Category[],
@@ -27,7 +15,7 @@ export const getBudgetVsActual = (
     const budget = budgetMap[category.id];
 
     const actual = stats?.expenses || 0;
-    const limit = budget?.limit || 0;
+    const limit = budget?.amount || 0;
     const remaining = limit - actual;
     const percentage = limit > 0 ? (actual / limit) * 100 : 0;
 
@@ -64,9 +52,9 @@ export const calculateSummaryFromAggregation = (
 
   return {
     totalBalance,
-    totalIncome: totalIncome + totalBalance,
+    totalIncome: totalIncome,
     totalExpenses,
-    netWorthChange: (totalIncome + totalBalance) - totalExpenses,
+    netWorthChange: totalIncome - totalExpenses,
   };
 };
 
@@ -84,7 +72,7 @@ export const aggregateTransactions = (transactions: Transaction[]) => {
       monthlyMap[monthKey] = { income: 0, expenses: 0 };
     }
 
-    const isIncome = tx.type === 'income' || tx.amount < 0; // fallback for some old data
+    const isIncome = tx.type === 'income';
     const absAmount = Math.abs(tx.amount);
 
     // Monthly
@@ -186,14 +174,14 @@ export const getMonthlyData = (
     .map(({ sortKey, ...rest }) => rest);
 };
 
-export const getUpcomingBillsSummary = (bills: Bill[], daysAhead = 30) => {
+export const getUpcomingBillsSummary = (bills: BillInstance[], daysAhead = 30) => {
   const now = new Date();
   const future = new Date();
   future.setDate(now.getDate() + daysAhead);
 
   const upcoming = bills.filter(
     bill =>
-      !bill.paid &&
+      bill.status !== "paid" &&
       new Date(bill.due_date) >= now &&
       new Date(bill.due_date) <= future
   );
@@ -254,9 +242,11 @@ export const convertToIncomeChartData = (data: CategoryAnalysis[]): ChartDataInp
 
 // Add this function to your service_reports.ts
 export const exportCategoryDataToCSV = (categoryData: CategoryAnalysis[], filename: string = 'financial-report.csv') => {
+  // Sanitize values to prevent CSV injection (prefix with tab if starts with =, +, -, @)
+  const sanitize = (val: string) => /^[=+\-@]/.test(val) ? `\t${val}` : val;
   const header = 'Category,Income,Expenses,Net,Transactions\n';
   const rows = categoryData.map(category =>
-    `"${category.name.replace(/"/g, '""')}",${category.income},${category.expenses},${category.net},${category.count}`
+    `"${sanitize(category.name.replace(/"/g, '""'))}",${category.income},${category.expenses},${category.net},${category.count}`
   ).join('\n');
 
   const csv = header + rows;
@@ -303,7 +293,7 @@ export const getDailyCumulativeFlow = (
   monthTransactions.forEach(tx => {
     const d = tx.date instanceof Date ? tx.date : new Date(tx.date);
     const dayIndex = d.getDate() - 1; // 0-indexed for array
-    const isIncome = tx.type === 'income' || tx.amount < 0;
+    const isIncome = tx.type === 'income';
     const absAmount = Math.abs(tx.amount);
     
     if (dayIndex >= 0 && dayIndex < daysInMonth) {
@@ -368,14 +358,10 @@ export const getCashFlowForecast = (
     }
     
     const d = new Date(y, m);
-    // Add some slight randomization to make the forecast look more realistic (±5%)
-    const randomFactor1 = 0.95 + (Math.random() * 0.1);
-    const randomFactor2 = 0.95 + (Math.random() * 0.1);
-    
     forecastData.push({
       month: d.toLocaleString("default", { month: "short", year: "numeric" }),
-      income: Math.round(avgIncome * randomFactor1),
-      expenses: Math.round(avgExpenses * randomFactor2),
+      income: Math.round(avgIncome),
+      expenses: Math.round(avgExpenses),
       isForecast: true
     });
   }

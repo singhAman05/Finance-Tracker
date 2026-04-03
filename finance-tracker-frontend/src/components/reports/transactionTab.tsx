@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/table";
 import { format } from "date-fns";
 import { Transaction } from "@/types/interfaces";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 interface TransactionsTabProps {
   transactions: Transaction[];
@@ -19,18 +21,15 @@ interface TransactionsTabProps {
 import { Calendar, ArrowRightLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+
 
 export default function TransactionsTab({
   transactions,
   accountMap,
   categoryMap,
 }: TransactionsTabProps) {
+  const { formatCurrency } = useCurrency();
+  const { formatDate } = useDateFormat();
   return (
     <Card className="rounded-3xl border border-border bg-card shadow-sm">
       <CardHeader className="flex flex-row items-center justify-between">
@@ -70,7 +69,7 @@ export default function TransactionsTab({
                     <TableCell className="pl-8 py-4">
                       <div className="flex items-center text-xs text-text-secondary font-medium">
                         <Calendar className="mr-2 h-3.5 w-3.5 opacity-60" />
-                        {format(new Date(tx.date), "MMM dd, yyyy")}
+                        {formatDate(tx.date)}
                       </div>
                     </TableCell>
                     <TableCell className="py-4">

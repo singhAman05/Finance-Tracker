@@ -24,6 +24,7 @@ import { TrendingUp, PieChart as PieChartIcon, LayoutGrid } from "lucide-react";
 import { CategoryAnalysis, MonthlyData } from "@/types/interfaces";
 import { convertToChartData } from "@/service/service_reports";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
 interface OverviewTabProps {
   monthlyData: MonthlyData[];
@@ -40,15 +41,10 @@ const COLORS = [
   "#82ca9d",
 ];
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+
 
 // Custom tooltip for charts
-const GlassTooltip = ({ active, payload, label, type = "bar" }: any) => {
+const GlassTooltip = ({ active, payload, label, type = "bar", formatCurrency, symbol }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl">
@@ -98,6 +94,7 @@ export default function OverviewTab({
   categoryData,
   totalExpenses,
 }: OverviewTabProps) {
+  const { formatCurrency, formatAxis, symbol } = useCurrency();
   const chartData = convertToChartData(categoryData);
   const topSpendingCategories = categoryData
     .filter((c) => c.expenses > 0)
@@ -134,9 +131,9 @@ export default function OverviewTab({
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fontSize: 11, fontWeight: 700, fill: "var(--text-secondary)" }}
-                    tickFormatter={(val) => `₹${val / 1000}k`}
+                    tickFormatter={formatAxis}
                   />
-                  <Tooltip content={<GlassTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+                  <Tooltip content={<GlassTooltip formatCurrency={formatCurrency} symbol={symbol} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
                   <Bar dataKey="income" fill="var(--success)" name="Income" radius={[4, 4, 0, 0]} barSize={20} />
                   <Bar dataKey="expenses" fill="var(--danger)" name="Expenses" radius={[4, 4, 0, 0]} barSize={20} />
                 </BarChart>
@@ -179,7 +176,7 @@ export default function OverviewTab({
                       />
                     ))}
                   </Pie>
-                  <Tooltip content={<GlassTooltip type="pie" />} />
+                  <Tooltip content={<GlassTooltip type="pie" formatCurrency={formatCurrency} symbol={symbol} />} />
                   <Legend 
                     verticalAlign="bottom" 
                     height={36} 

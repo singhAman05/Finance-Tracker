@@ -34,6 +34,7 @@ const handler = NextAuth({
         token.email = profile.email;
         token.name = profile.name;
         token.accessToken = account.access_token;
+        token.idToken = account.id_token; // Google ID token for server-side verification
         token.provider = account.provider;
       }
       return token;
@@ -44,10 +45,12 @@ const handler = NextAuth({
         email: token.email as string,
         image: token.picture as string,
       };
+      // Expose idToken so callback page can pass it to backend
+      (session as any).idToken = token.idToken as string | undefined;
       return session;
     },
   },
-  debug: true, // Enable debug mode for more detailed logs
+  debug: process.env.NODE_ENV === 'development',
   pages: {
     signIn: '/auth/signin',
     error: '/auth/error',

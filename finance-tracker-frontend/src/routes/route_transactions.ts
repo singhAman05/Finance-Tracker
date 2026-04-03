@@ -1,4 +1,15 @@
 import { apiClient } from "@/utils/Error_handler";
+import type { Transaction } from "@/types/interfaces";
+
+interface TransactionResponse {
+  message: string;
+  data: Transaction[];
+}
+
+interface SingleTransactionResponse {
+  message: string;
+  data: Transaction;
+}
 
 export const addTransactionRoute = async (
     payload: {
@@ -11,34 +22,36 @@ export const addTransactionRoute = async (
         is_recurring?: boolean;
         recurrence_rule?: string;
     }
-    ) => {
-    const data =  await apiClient<any>(
+) => {
+    const data = await apiClient<SingleTransactionResponse>(
         "/api/transactions/add-transaction",
         {
             method: "POST",
             body: JSON.stringify(payload),
         }
     );
+    if (data.error) throw new Error(data.error.message);
     return data.result;
-}
+};
 
-
-export const fetchTransactionsRoute = async()=>{
-    const data = await apiClient<any>(
-        `/api/transactions/fetch-transactions`,
+export const fetchTransactionsRoute = async () => {
+    const data = await apiClient<TransactionResponse>(
+        "/api/transactions/fetch-transactions",
         {
             method: "GET",
         }
-    )
-    return data.result
-}
+    );
+    if (data.error) throw new Error(data.error.message);
+    return data.result;
+};
 
-export const deleteTransactionRoute = async(transaction_id: string)=>{
-    const data = await apiClient<any>(
-    `/api/transactions/delete-transaction/${transaction_id}`,
-    {
-        method: "DELETE",
-    }
-  )
-  return data.result
-}
+export const deleteTransactionRoute = async (transaction_id: string) => {
+    const data = await apiClient<{ message: string }>(
+        `/api/transactions/delete-transaction/${transaction_id}`,
+        {
+            method: "DELETE",
+        }
+    );
+    if (data.error) throw new Error(data.error.message);
+    return data.result;
+};

@@ -19,6 +19,7 @@ import {
 } from "@/service/service_accounts";
 import { getFinancialHealth } from "@/service/service_transactions";
 import { RootState as TxRootState } from "@/app/store";
+import { useCurrency } from "@/hooks/useCurrency";
 
 // UI Components
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -57,6 +58,7 @@ import {
   CreditCard,
   RefreshCw,
   Wallet,
+  ArrowLeft,
   ArrowUpRight,
 } from "lucide-react";
 
@@ -158,7 +160,6 @@ export default function AccountsPage() {
     try {
       const res = await deleteAccount(id);
       dispatch(removeAccount(id));
-      if (res.error) throw new Error(res.error.message);
     } catch (err) {
       console.error("Delete error:", err);
       loadAccounts(true);
@@ -196,12 +197,18 @@ export default function AccountsPage() {
   // Net worth growth from cash flow month-over-month
   const netWorthTrend = financialHealth.netWorthGrowth;
 
-  const formatCurrency = (value: number) =>
-    new Intl.NumberFormat("en-IN", {
+  const { formatCurrency, symbol } = useCurrency();
+
+  /** Format a balance using the account's own currency, e.g. USD → "$" locale */
+  const formatAccountBalance = (balance: number, accountCurrency?: string) => {
+    const cur = accountCurrency || "INR";
+    const localeMap: Record<string, string> = { INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB" };
+    return new Intl.NumberFormat(localeMap[cur] || "en-US", {
       style: "currency",
-      currency: "INR",
+      currency: cur,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(balance);
+  };
 
   // --- Sub Components ---
 
@@ -285,7 +292,16 @@ export default function AccountsPage() {
           variants={fadeUp}
           className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6"
         >
-          <div>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/dashboard")}
+              className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4"
+            >
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back
+            </Button>
+            <div>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
               Financial Assets
             </h1>
@@ -293,6 +309,7 @@ export default function AccountsPage() {
               Manage your bank accounts, credit cards, and cash flow in one
               place.
             </p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             <Button
@@ -359,7 +376,7 @@ export default function AccountsPage() {
                       <AnimatedCounter target={item.val as number} />
                     ) : (
                       <>
-                        ₹<AnimatedCounter target={Math.abs(item.val as number)} />
+                        {symbol}<AnimatedCounter target={Math.abs(item.val as number)} />
                       </>
                     )}
                   </span>
@@ -483,7 +500,7 @@ export default function AccountsPage() {
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <span className="font-mono font-bold text-sm text-text-primary">{formatCurrency(account.balance)}</span>
+                            <span className="font-mono font-bold text-sm text-text-primary">{formatAccountBalance(account.balance, account.currency)}</span>
                             <Button
                               variant="ghost"
                               size="icon"
@@ -548,7 +565,7 @@ export default function AccountsPage() {
                                 <Badge variant="secondary" className="rounded-full font-medium capitalize text-[10px] tracking-wide bg-muted text-text-secondary border border-border hover:bg-muted/80">{account.type}</Badge>
                               </TableCell>
                               <TableCell className="text-right">
-                                <span className="font-mono font-bold tracking-tight text-base text-text-primary">{formatCurrency(account.balance)}</span>
+                                <span className="font-mono font-bold tracking-tight text-base text-text-primary">{formatAccountBalance(account.balance, account.currency)}</span>
                               </TableCell>
                               <TableCell className="text-center">
                                 <div className="inline-flex items-center justify-center">

@@ -1,17 +1,6 @@
 import { notify } from "@/lib/notifications";
 import { addTransactionRoute, fetchTransactionsRoute, deleteTransactionRoute } from "@/routes/route_transactions";
-
-export interface Transaction {
-    id: string;
-    type: "income" | "expense";
-    amount: number;
-    date: string; // ISO yyyy-mm-dd
-}
-
-export interface Account {
-    id: string;
-    balance?: number;
-}
+import type { Transaction, Account } from "@/types/interfaces";
 
 export const createTransaction = async (payload: {
     account_id: string;
@@ -24,26 +13,19 @@ export const createTransaction = async (payload: {
     recurrence_rule?: string;
 }) => {
     const result = await addTransactionRoute(payload);
-    notify.success(result.message || "Transaction added successfully");
+    notify.success(result?.message || "Transaction added successfully");
     return result;
 };
 
 export const fetchTransactions = async () => {
     const result = await fetchTransactionsRoute();
-    // console.log("Fetched transactions in service:", result);
     return result;
-}
+};
 
 export const deleteTransaction = async (transaction_id: string) => {
-    try {
-        const result = await deleteTransactionRoute(transaction_id);
-        notify.success(result.message || "Transaction deleted successfully");
-        return result;
-    }
-    catch (error) {
-        console.error("Failed to delete transaction:", error);
-        throw error;
-    }
+    const result = await deleteTransactionRoute(transaction_id);
+    notify.success(result?.message || "Transaction deleted successfully");
+    return result;
 };
 
 function percentageChange(current: number, previous: number): number | null {
@@ -55,31 +37,40 @@ export function getTransactionStats(
     transactions: Transaction[],
     accounts: Account[]
 ) {
+    const getMonthKey = (date: string | Date): string => {
+        const d = date instanceof Date ? date : new Date(date);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    };
+
+    const now = new Date();
+    const currentMonthKey = getMonthKey(now);
+    const prevDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const prevMonthKey = getMonthKey(prevDate);
+
     let income = 0;
     let expense = 0;
+    let prevIncome = 0;
+    let prevExpense = 0;
 
-    // Calculate transaction-based income & expense
     transactions.forEach((tx) => {
+        const key = getMonthKey(tx.date as string | Date);
+        const amt = Math.abs(tx.amount);
         if (tx.type === "income") {
-            income += tx.amount;
+            income += amt;
+            if (key === prevMonthKey) prevIncome += amt;
         } else {
-            expense += Math.abs(tx.amount);
+            expense += amt;
+            if (key === prevMonthKey) prevExpense += amt;
         }
     });
 
-    // Add account balances (your existing behavior)
-    accounts.forEach((acc) => {
-        income += acc.balance ?? 0;
-    });
+    // Net = total balance + current cash flow
+    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance ?? 0), 0);
+    const net = totalBalance + income - expense;
 
-    const net = income - expense;
-
-    /**
-     * Growth heuristic (no time window yet)
-     * Baseline slightly lower than current net
-     */
-    const previousNet = net * 0.95;
-    const growthPercent = percentageChange(net, previousNet);
+    // Growth compared to previous month's actual net
+    const prevNet = totalBalance + prevIncome - prevExpense;
+    const growthPercent = percentageChange(net, prevNet);
 
     const trend =
         growthPercent === null
@@ -103,9 +94,7 @@ export function getTransactionStats(
 }
 
 export function getFinancialHealth(transactions: Transaction[], accounts: Account[]) {
-    // Helper to get local month key (YYYY-MM) using local time, NOT UTC
-    // Using toISOString() causes UTC conversion which shifts dates in timezones like IST (+5:30)
-    const getMonthKey = (date: any): string => {
+    const getMonthKey = (date: string | Date): string => {
         const d = date instanceof Date ? date : new Date(date);
         const year = d.getFullYear();
         const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -125,7 +114,7 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
     let prevExpense = 0;
 
     transactions.forEach((tx) => {
-        const key = getMonthKey(tx.date);
+        const key = getMonthKey(tx.date as string | Date);
         if (key === currentMonthKey) {
             if (tx.type === "income") currentIncome += tx.amount;
             else currentExpense += Math.abs(tx.amount);
@@ -136,16 +125,17 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
     });
 
     const totalBalances = accounts.reduce((sum, acc) => sum + (acc.balance || 0), 0);
-    const netWorth = totalBalances + currentIncome - currentExpense;
+    // Accounts balance already reflects posted transactions, so net worth = current balances.
+    const netWorth = totalBalances;
     const cashFlow = currentIncome - currentExpense;
 
     // Percent changes — use null check (not truthy) so 0% growth is preserved
     const incomeGrowth = percentageChange(currentIncome, prevIncome);
     const expenseGrowth = percentageChange(currentExpense, prevExpense);
 
-    // Net worth growth: approximate using cash flow vs previous cash flow
-    const prevCashFlow = prevIncome - prevExpense;
-    const netWorthGrowth = percentageChange(cashFlow, prevCashFlow);
+    // Estimate previous month net worth by removing current-month cash flow from current net worth.
+    const previousNetWorth = netWorth - cashFlow;
+    const netWorthGrowth = percentageChange(netWorth, previousNetWorth);
 
     return {
         netWorth,

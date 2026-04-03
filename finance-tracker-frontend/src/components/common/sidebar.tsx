@@ -122,6 +122,8 @@ export function Sidebar() {
           <div
             key={item.label}
             role="button"
+            aria-label={item.label}
+            aria-disabled={item.disabled}
             onClick={() => {
               if (item.disabled) return;
               startTransition(() => {
@@ -232,6 +234,8 @@ export function Sidebar() {
                   : "text-text-secondary hover:bg-muted",
                 item.disabled ? "opacity-40 pointer-events-none grayscale" : "cursor-pointer font-medium"
               )}
+              aria-label={item.label}
+              aria-disabled={item.disabled}
             >
               <div className="flex items-center w-full gap-3">
                 <Icon className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:scale-105" />
@@ -316,6 +320,7 @@ export function Sidebar() {
           role="button"
           onClick={handleLogout}
           className="group flex items-center h-10 mx-2 rounded-lg transition-all duration-200 px-3 text-danger hover:bg-danger/5 cursor-pointer"
+          aria-label="Sign out"
         >
           <div className="flex items-center w-full gap-3">
             <LogOut className="w-[18px] h-[18px] flex-shrink-0 transition-transform group-hover:-translate-x-1" />

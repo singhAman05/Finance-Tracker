@@ -7,6 +7,8 @@ import { format } from "date-fns";
 import { getTransactionStats, getFinancialHealth } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 // Redux Actions
 import { setAccounts } from "../redux/slices/slice_accounts";
@@ -71,6 +73,7 @@ import {
   Filter,
   Wallet,
   Calendar,
+  ArrowLeft,
   RefreshCw,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -107,18 +110,32 @@ function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: 
   return <span>{display}</span>;
 }
 
-// --- Interfaces ---
-interface Account {
+// --- Local type aliases (mapped shape from service_accounts, different from DB-level interfaces) ---
+type MappedAccount = {
   id: string;
   name: string;
   bank: string;
   balance?: number;
+  currency?: string;
 }
 
-interface Category {
+type MappedCategory = {
   id: string;
   name: string;
   color?: string;
+}
+
+/** Format an amount using the account's own currency, falling back to a default currency. */
+function formatForAccount(amount: number, accountCurrency?: string, fallbackCurrency = "INR") {
+  const currency = accountCurrency || fallbackCurrency;
+  const localeMap: Record<string, string> = {
+    INR: "en-IN", USD: "en-US", EUR: "de-DE", GBP: "en-GB",
+  };
+  return new Intl.NumberFormat(localeMap[currency] || "en-US", {
+    style: "currency",
+    currency,
+    maximumFractionDigits: 0,
+  }).format(amount);
 }
 
 export default function TransactionPage() {
@@ -154,7 +171,7 @@ export default function TransactionPage() {
       accounts.reduce((map, acc) => {
         map[acc.id] = acc;
         return map;
-      }, {} as Record<string, Account>),
+      }, {} as Record<string, MappedAccount>),
     [accounts]
   );
 
@@ -163,7 +180,7 @@ export default function TransactionPage() {
       categories.reduce((map, cat) => {
         map[cat.id] = cat;
         return map;
-      }, {} as Record<string, Category>),
+      }, {} as Record<string, MappedCategory>),
     [categories]
   );
 
@@ -187,12 +204,11 @@ export default function TransactionPage() {
         ]);
 
         if (accounts.length === 0 || isRefresh)
-          dispatch(setAccounts(accRes.data));
+          dispatch(setAccounts(accRes?.data ?? []));
         if (transactions.length === 0 || isRefresh)
-          console.log("Fetched Transactions:", txRes);
-        dispatch(setTransactions(txRes.data));
+          dispatch(setTransactions(txRes?.data ?? []));
         if (categories.length === 0 || isRefresh)
-          dispatch(setCategories(catRes.data));
+          dispatch(setCategories(catRes?.data ?? []));
       } catch (err) {
         console.error("Failed to load data:", err);
       } finally {
@@ -273,21 +289,15 @@ export default function TransactionPage() {
     try {
       dispatch(removeTransaction(deleteData.id)); // Optimistic update
       const res = await deleteTransaction(deleteData.id);
-      if (res.error) throw new Error(res.error);
     } catch (err) {
-      console.error(err);
       loadData(true); // Revert
     } finally {
       setDeleteData(null);
     }
   };
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-IN", {
-      style: "currency",
-      currency: "INR",
-      maximumFractionDigits: 0,
-    }).format(val);
+  const { formatCurrency, symbol, currency } = useCurrency();
+  const { formatDate } = useDateFormat();
 
   // --- Skeleton Component ---
   const LoadingSkeleton = () => (
@@ -361,13 +371,23 @@ export default function TransactionPage() {
       </AlertDialog>
 
       <motion.div variants={fadeUp} className="flex flex-col gap-4 sm:flex-row sm:justify-between sm:items-end">
-        <div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            onClick={() => router.push("/dashboard")}
+            className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4"
+          >
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back
+          </Button>
+          <div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
             Transactions
           </h1>
           <p className="text-text-secondary mt-1">
             Track your cash flow and spending habits.
           </p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Button
@@ -441,7 +461,7 @@ export default function TransactionPage() {
               </div>
 
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter text-text-primary mb-2">
-                ₹<AnimatedCounter target={Math.abs(stat.value)} />
+                {symbol}<AnimatedCounter target={Math.abs(stat.value)} />
               </div>
 
               {stat.trend !== null && (
@@ -580,6 +600,7 @@ export default function TransactionPage() {
                       const category = categoryMap[tx.category_id];
                       const isExpense = tx.type === "expense";
                       const displayAmount = Math.abs(tx.amount);
+                      const txAmount = formatForAccount(displayAmount, account?.currency, currency);
                       return (
                         <motion.div
                           key={tx.id}
@@ -602,14 +623,14 @@ export default function TransactionPage() {
                               {tx.description || category?.name || "Transaction"}
                             </p>
                             <div className="flex items-center gap-1.5 mt-0.5">
-                              <span className="text-[11px] text-text-secondary">{format(new Date(tx.date), "MMM dd")}</span>
+                              <span className="text-[11px] text-text-secondary">{formatDate(tx.date)}</span>
                               <span className="text-text-secondary/40">·</span>
                               <span className="text-[11px] text-text-secondary truncate">{category?.name || "Uncategorized"}</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className={cn("font-mono font-bold text-sm", isExpense ? "text-danger" : "text-success")}>
-                              {isExpense ? "-" : "+"}{formatCurrency(displayAmount)}
+                              {isExpense ? "-" : "+"}{txAmount}
                             </span>
                             <Button
                               variant="ghost"
@@ -646,6 +667,7 @@ export default function TransactionPage() {
                           const category = categoryMap[tx.category_id];
                           const isExpense = tx.type === "expense";
                           const displayAmount = Math.abs(tx.amount);
+                          const txAmount = formatForAccount(displayAmount, account?.currency, currency);
                           return (
                             <motion.tr
                               key={tx.id}
@@ -658,7 +680,7 @@ export default function TransactionPage() {
                               <TableCell className="pl-6 py-4">
                                 <div className="flex items-center text-sm text-text-secondary">
                                   <Calendar className="mr-2 h-3.5 w-3.5 text-text-secondary" />
-                                  {format(new Date(tx.date), "MMM dd, yyyy")}
+                                  {formatDate(tx.date)}
                                 </div>
                               </TableCell>
                               <TableCell>
@@ -679,7 +701,7 @@ export default function TransactionPage() {
                               </TableCell>
                               <TableCell className="text-right pr-8">
                                 <span className={cn("font-mono font-medium tracking-tight", isExpense ? "text-danger" : "text-success")}>
-                                  {isExpense ? "-" : "+"}{formatCurrency(displayAmount)}
+                                  {isExpense ? "-" : "+"}{txAmount}
                                 </span>
                               </TableCell>
                               <TableCell className="text-right pr-8">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle, LayoutGrid } from "lucide-react";
+import { useCurrency } from "@/hooks/useCurrency";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -61,13 +62,14 @@ export default function BudgetsSummaryCards({
   warningCount,
   exceededCount,
 }: BudgetsSummaryCardsProps) {
+  const { symbol } = useCurrency();
   return (
     <motion.div
       variants={fadeUp}
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
     >
       {/* Overall Utilization */}
-      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl shadow-primary/20 border-border dark:border-white/10 rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
+      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl border-border dark:border-white/10 rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
         <div 
           className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
           style={{ 
@@ -94,8 +96,8 @@ export default function BudgetsSummaryCards({
                 />
             </div>
             <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider opacity-80">
-                 <span>Spent: ₹{totalSpent.toLocaleString()}</span>
-                 <span>Limit: ₹{totalBudget.toLocaleString()}</span>
+                 <span>Spent: {symbol}{totalSpent.toLocaleString()}</span>
+                 <span>Limit: {symbol}{totalBudget.toLocaleString()}</span>
             </div>
         </CardContent>
       </Card>

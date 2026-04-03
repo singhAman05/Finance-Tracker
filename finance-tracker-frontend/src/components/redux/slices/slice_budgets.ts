@@ -18,7 +18,7 @@ export interface BudgetSummary {
     category_name: string;
     category_color?: string;
     budget_id: string;
-    name: string | null;
+    budget_name: string | null;
     period_type: string;
     budget_amount: number;
     total_spent: number;

@@ -4,8 +4,7 @@ import { notify } from '@/lib/notifications';
 
 export const createAccount = async (data: object) => {
   const account = await createAccountRoute(data);
-  console.log("Created account in service:", account);
-  notify.success(account.message || "Account created successfully");
+  notify.success(account?.message || "Account created successfully");
   return account;
 };
 
@@ -23,56 +22,56 @@ export function getBankLogoUrl(bankName: string) {
   return bankLogos[bankName] || "/bank_logos/default-bank.svg";
 }
 
+interface MappedAccount {
+  id: string;
+  name: string;
+  type: string;
+  balance: number;
+  lastDigits: string;
+  bank: string;
+  currency: string;
+  status: string;
+  is_recurring: boolean;
+  recurring_amount: number | null;
+  recurring_type: string | null;
+  recurring_frequency: string | null;
+  recurring_day_of_month: number | null;
+  recurring_description: string | null;
+  recurring_last_posted: string | null;
+}
+
 export const fetchAccounts = async () => {
-  try {
-    const result = await fetchAccountsRoute();
-    if (result.data.length > 0) {
-      result.data = result.data.map((acc: any) => ({
-        id: acc.id,
-        name: `${acc.account_holder_name} Account`,
-        type: acc.account_type,
-        balance: acc.balance,
-        lastDigits: acc.account_number_last4,
-        bank: acc.bank_name,
-        currency: acc.currency,
-        status: acc.status,
-        // Recurring fields
-        is_recurring: acc.is_recurring ?? false,
-        recurring_amount: acc.recurring_amount ?? null,
-        recurring_type: acc.recurring_type ?? null,
-        recurring_frequency: acc.recurring_frequency ?? null,
-        recurring_day_of_month: acc.recurring_day_of_month ?? null,
-        recurring_description: acc.recurring_description ?? null,
-        recurring_last_posted: acc.recurring_last_posted ?? null,
-      }))
-    }
-    return result;
-  } catch (error) {
-    console.error("Failed to fetch accounts:", error);
-    throw error;
-  }
+  const result = await fetchAccountsRoute();
+  if (!result || !result.data) return { data: [] as MappedAccount[], message: "" };
+
+  const mappedData: MappedAccount[] = result.data.map((acc) => ({
+    id: acc.id as string,
+    name: `${acc.account_holder_name} Account`,
+    type: acc.account_type as string,
+    balance: acc.balance as number,
+    lastDigits: acc.account_number_last4 as string,
+    bank: acc.bank_name as string,
+    currency: acc.currency as string,
+    status: acc.status as string,
+    is_recurring: (acc.is_recurring as boolean) ?? false,
+    recurring_amount: (acc.recurring_amount as number) ?? null,
+    recurring_type: (acc.recurring_type as string) ?? null,
+    recurring_frequency: (acc.recurring_frequency as string) ?? null,
+    recurring_day_of_month: (acc.recurring_day_of_month as number) ?? null,
+    recurring_description: (acc.recurring_description as string) ?? null,
+    recurring_last_posted: (acc.recurring_last_posted as string) ?? null,
+  }));
+
+  return { ...result, data: mappedData };
 };
 
 export const processRecurringAccounts = async () => {
-  try {
-    const result = await processRecurringRoute();
-    return result;
-  } catch (error) {
-    console.error("Failed to process recurring accounts:", error);
-    throw error;
-  }
+  const result = await processRecurringRoute();
+  return result;
 };
 
-
 export const deleteAccount = async (accountId: string) => {
-  try {
-    const result = await deleteAccountRoute(accountId);
-    console.log("Deleted account in service:", result);
-    notify.success(result.message || "Account deleted successfully");
-    return result;
-  }
-  catch (error) {
-    console.error("Failed to delete account:", error);
-    throw error;
-  }
-}
+  const result = await deleteAccountRoute(accountId);
+  notify.success(result?.message || "Account deleted successfully");
+  return result;
+};

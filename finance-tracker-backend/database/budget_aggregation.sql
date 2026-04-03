@@ -7,6 +7,8 @@ RETURNS TABLE (
   category_id UUID,
   category_name VARCHAR,
   category_color VARCHAR,
+  budget_name VARCHAR,
+  period_type VARCHAR,
   budget_amount NUMERIC,
   total_spent NUMERIC,
   remaining NUMERIC,
@@ -24,6 +26,9 @@ AS $$
 
     c.name AS category_name,
     c.color AS category_color,
+
+    b.name AS budget_name,
+    b.period_type,
 
     b.amount AS budget_amount,
 
@@ -69,6 +74,8 @@ AS $$
     b.category_id,
     c.name,
     c.color,
+    b.name,
+    b.period_type,
     b.amount,
     b.is_active,
     b.start_date,

@@ -45,13 +45,21 @@ export const creatingAccount = async (account_payload: any) => {
    return { data, error };
 };
 
-export const fetchAllaccounts = async (client_id: string) => {
-   const { data, error } = await supabase
+export const fetchAllaccounts = async (
+   client_id: string,
+   pagination?: { from: number; to: number }
+) => {
+   let query = supabase
       .from('accounts')
-      .select()
-      .eq('client_id', client_id)
+      .select('*', { count: 'exact' })
+      .eq('client_id', client_id);
 
-   return { data, error };
+   if (pagination) {
+      query = query.range(pagination.from, pagination.to);
+   }
+
+   const { data, error, count } = await query;
+   return { data, error, count: count ?? 0 };
 };
 
 export const deleteAccount = async (account_id: string, client_id: string) => {
@@ -160,22 +168,41 @@ export const processRecurringAccounts = async (client_id: string) => {
          continue;
       }
 
-      // 2. Update balance
-      const newBalance = recurring_type === 'income'
-         ? balance + recurring_amount
-         : balance - recurring_amount;
+      // --- #10: Atomic balance update (prevents race condition) ---
+      const balanceChange = recurring_type === 'income' ? recurring_amount : -recurring_amount;
+      const { error: balanceError } = await supabase.rpc('adjust_account_balance', {
+          p_account_id: account_id,
+          p_amount: balanceChange,
+      });
 
-      const { error: balanceError } = await supabase
-         .from('accounts')
-         .update({
-            balance: newBalance,
-            recurring_last_posted: today,
-         })
-         .eq('id', account_id);
+      // Fallback to read-modify-write if RPC doesn't exist
+      if (balanceError && balanceError.message.includes('function')) {
+          const newBalance = recurring_type === 'income'
+              ? balance + recurring_amount
+              : balance - recurring_amount;
 
-      if (balanceError) {
-         console.error(`Failed to update balance for account ${account_id}:`, balanceError);
-         continue;
+          const { error: updateErr } = await supabase
+              .from('accounts')
+              .update({
+                  balance: newBalance,
+                  recurring_last_posted: today,
+              })
+              .eq('id', account_id);
+
+          if (updateErr) {
+              console.error(`Failed to update balance for account ${account_id}:`, updateErr);
+              continue;
+          }
+      } else if (balanceError) {
+          console.error(`Failed to update balance for account ${account_id}:`, balanceError);
+          continue;
+      } else {
+          // RPC succeeded, still need to update recurring_last_posted
+          const { error: stampErr } = await supabase
+              .from('accounts')
+              .update({ recurring_last_posted: today })
+              .eq('id', account_id);
+          if (stampErr) console.error(`Failed to stamp recurring_last_posted for ${account_id}:`, stampErr);
       }
 
       processed++;

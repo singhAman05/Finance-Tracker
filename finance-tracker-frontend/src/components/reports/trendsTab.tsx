@@ -13,16 +13,12 @@ import { MonthlyData } from "@/types/interfaces";
 
 import { TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCurrency } from "@/hooks/useCurrency";
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0,
-  }).format(val);
+
 
 // Custom tooltip for charts
-const GlassTooltip = ({ active, payload, label }: any) => {
+const GlassTooltip = ({ active, payload, label, formatCurrency, symbol }: any) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-card/80 backdrop-blur-md border border-border p-4 rounded-2xl shadow-xl">
@@ -72,6 +68,7 @@ interface TrendsTabProps {
 }
 
 export default function TrendsTab({ monthlyData }: TrendsTabProps) {
+  const { formatCurrency, formatAxis, symbol } = useCurrency();
   return (
     <Card className="rounded-3xl border border-border bg-card shadow-sm group hover:border-primary/20 transition-all duration-300">
       <CardHeader>
@@ -100,9 +97,9 @@ export default function TrendsTab({ monthlyData }: TrendsTabProps) {
                 axisLine={false} 
                 tickLine={false} 
                 tick={{ fontSize: 11, fontWeight: 700, fill: "var(--text-secondary)" }}
-                tickFormatter={(val) => `₹${val / 1000}k`}
+                tickFormatter={formatAxis}
               />
-              <Tooltip content={<GlassTooltip />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
+              <Tooltip content={<GlassTooltip formatCurrency={formatCurrency} symbol={symbol} />} cursor={{ fill: 'var(--muted)', opacity: 0.4 }} />
               <Legend 
                 verticalAlign="top" 
                 align="right"

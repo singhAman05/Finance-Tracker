@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
+import { useDateFormat } from "@/hooks/useDateFormat";
 
 // UI Components
 import {
@@ -64,7 +65,9 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
+  const { formatDate } = useDateFormat();
 
+  const SYMBOL_MAP: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [type, setType] = useState<"expense" | "income">("expense");
   const [category, setCategory] = useState("");
@@ -74,6 +77,12 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // Symbol for the currently selected account
+  const selectedAcctCurrency = accounts.find((a) => a.id === accountId)?.currency;
+  const activeSymbol = selectedAcctCurrency
+    ? (SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency)
+    : SYMBOL_MAP["INR"];
 
   useEffect(() => {
     let isMounted = true;
@@ -102,7 +111,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
         dispatch(setCategories(categoriesList));
 
         if (accountsList.length > 0) {
-          setAccountId((prev) => prev || accountsList[0].id);
+          setAccountId((prev: string) => prev || String(accountsList[0].id));
         }
       } catch (err) {
         if (isMounted) {
@@ -144,12 +153,12 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
       };
 
       const result = await createTransaction(payload);
-      if (!result?.error) {
+      if (result?.data) {
         dispatch(addTransaction(result.data));
-        if (onClose) onClose();
       }
+      if (onClose) onClose();
     } catch (err) {
-      console.error("Submission error", err);
+      // Error already handled by route/apiClient
     } finally {
       setSubmitting(false);
     }
@@ -186,7 +195,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                 variant="ghost"
                 size="icon"
                 onClick={onClose}
-                className="rounded-full hover:bg-muted text-text-secondary"
+                className="rounded-full hover:bg-muted text-text-secondary cursor-pointer"
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -208,7 +217,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
               type="button"
               onClick={() => setType("expense")}
               className={cn(
-                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors cursor-pointer",
                 type === "expense" ? "text-text-primary" : "text-text-secondary"
               )}
             >
@@ -218,7 +227,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
               type="button"
               onClick={() => setType("income")}
               className={cn(
-                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors",
+                "flex-1 flex items-center justify-center py-2 text-sm font-semibold z-10 transition-colors cursor-pointer",
                 type === "income" ? "text-white" : "text-text-secondary"
               )}
             >
@@ -263,12 +272,13 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                       {accounts.map((a) => (
                         <SelectItem key={a.id} value={a.id} className="py-3">
                           <div className="flex justify-between w-full gap-2">
-                            <span className="font-semibold text-text-primary">
-                              {a.name}
-                            </span>
-                            <span className="text-text-secondary/60 text-xs">
-                              •••• {a.lastDigits}
-                            </span>
+                            <span className="font-semibold text-text-primary">{a.name}</span>
+                            <div className="flex items-center gap-1.5">
+                              {a.currency && a.currency !== "INR" && (
+                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">{SYMBOL_MAP[a.currency] ?? a.currency}</span>
+                              )}
+                              <span className="text-text-secondary/60 text-xs">•••• {a.lastDigits}</span>
+                            </div>
                           </div>
                         </SelectItem>
                       ))}
@@ -288,7 +298,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                         variant="outline"
                         className="h-12 w-full justify-start bg-muted border border-border rounded-xl font-medium text-text-primary hover:bg-muted/80 focus:ring-1 focus:ring-ring"
                       >
-                        {date ? format(date, "PPP") : "Select date"}
+                        {date ? formatDate(date) : "Select date"}
                         <ChevronDown className="ml-auto h-4 w-4 opacity-50" />
                       </Button>
                     </PopoverTrigger>
@@ -333,7 +343,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                   </Label>
                   <div className="relative">
                     <div className="absolute left-0 inset-y-0 flex items-center px-4 pointer-events-none text-text-secondary font-bold text-sm border-r border-border mr-4">
-                      {accounts.find((a) => a.id === accountId)?.currency || "INR"}
+                      {activeSymbol}
                     </div>
                     <Input
                       type="number"
@@ -365,7 +375,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                 type="submit"
                 disabled={submitting || !amount || !category}
                 className={cn(
-                  "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98] mt-2",
+                  "w-full h-14 rounded-2xl text-lg font-bold transition-all shadow-lg active:scale-[0.98] mt-2 cursor-pointer",
                   type === "expense"
                     ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-primary/20"
                     : "bg-success text-white hover:bg-success/90 shadow-success/20"
