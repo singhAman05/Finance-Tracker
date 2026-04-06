@@ -1,70 +1,72 @@
 # Finance Tracker
 
-A full-stack personal finance management application with a **Next.js frontend** and an **Express + TypeScript backend**. It helps users track accounts, transactions, budgets, bills, categories, and profile information in one dashboard-driven experience.
+Finance Tracker is a full-stack personal finance platform designed to help people manage money with clarity, consistency, and control.
 
-## What this repository contains
+It combines a modern frontend experience with a scalable backend foundation so users can track day-to-day spending, monitor account health, plan budgets, and stay ahead of bills from one place.
 
-This monorepo includes two main applications:
+## Why this project exists
 
-- `finance-tracker-frontend` — Next.js 15 app (React 19, Redux Toolkit, Tailwind, Radix UI, NextAuth).
-- `finance-tracker-backend` — Express API server (TypeScript) with Supabase and Redis integration.
+Most finance apps either feel too basic or too complex. Finance Tracker is built to stay in the middle:
 
-There are also SQL files under `finance-tracker-backend/database/` for bill and budget schema/aggregation setup.
+- Simple enough to use every day.
+- Powerful enough to give meaningful financial insight.
+- Structured enough to scale into a complete money operating system.
 
-## Core features
+## What Finance Tracker does well
 
-- Authentication flows:
-  - Phone-based login (custom backend endpoint)
-  - Google OAuth login via NextAuth
-- User profile onboarding/completion
-- Account management (create, list, delete)
-- Transaction management (add, list, delete)
-- Category management (create custom categories + fetch system categories)
-- Budget management (create, list, update, delete, summary)
-- Bills and bill instances (create bills, list bills, list bill instances, mark paid)
-- Dashboard and reporting views in the frontend
+- Unified financial visibility across accounts, transactions, budgets, and bills.
+- Clear dashboard and reporting workflows for monthly trends and spending patterns.
+- Practical budgeting and bill tracking for real-world financial planning.
+- Clean, modern UI built for both desktop and mobile use.
+- Modular architecture that supports fast iteration and future expansion.
 
-## High-level architecture
+## Current capabilities
 
-### Frontend
+- Secure authentication and onboarding flows.
+- Account management for multiple account types.
+- Income and expense transaction tracking.
+- Category-based financial organization.
+- Budget setup, monitoring, and summary tracking.
+- Bill management with recurring behavior support.
+- Dashboard + reports for financial insights.
+- Performance-minded caching in core backend flows.
+- Rate limiting implemented in the backend for better API protection and abuse control.
 
-- Built using the Next.js App Router.
-- Uses Redux Toolkit for client-side state slices (`auth`, `accounts`, `transactions`, `budgets`, `bills`, `categories`, and modal state).
-- Uses component-driven UI under `src/components/*` (dashboard, reports, budgets, bills, transactions, profile, auth, shared UI).
-- Uses NextAuth for Google sign-in (`src/app/api/auth/[...nextauth]/route.ts`).
+## Tech stack
 
-### Backend
+- Frontend: Next.js, React, Redux Toolkit, Tailwind CSS, Radix UI, NextAuth
+- Backend: Express, TypeScript, Supabase, Redis
+- Repository: Monorepo with separate frontend and backend applications
 
-- Express server exposed on port `8000`.
-- JWT middleware protects most API resources.
-- Route/controller/service layering under:
-  - `routes/`
-  - `controllers/`
-  - `services/`
-- Integrates Supabase client and Redis client through `config/`.
+## Project structure
 
-## API route groups (backend)
+```text
+.
+|-- finance-tracker-backend/
+|   |-- config/
+|   |-- controllers/
+|   |-- database/
+|   |-- middleware/
+|   |-- routes/
+|   |-- services/
+|   `-- server.ts
+|-- finance-tracker-frontend/
+|   |-- src/app/
+|   |-- src/components/
+|   |-- src/routes/
+|   |-- src/service/
+|   `-- src/types/
+`-- design.drawio
+```
 
-Base URL: `http://localhost:8000`
+## Local setup
 
-- `/api/auth` — phone login, Google login exchange
-- `/api/profile` — profile completion
-- `/api/accounts` — account CRUD actions
-- `/api/category` — category endpoints
-- `/api/transactions` — transaction endpoints
-- `/api/budgets` — budget endpoints
-- `/api/bills` — bill + bill-instance endpoints
-
-## Quick start
-
-## 1) Prerequisites
+### Prerequisites
 
 - Node.js 18+
 - npm
 
-## 2) Install dependencies
-
-From repository root:
+### Install
 
 ```bash
 npm install
@@ -72,62 +74,40 @@ npm --prefix finance-tracker-backend install
 npm --prefix finance-tracker-frontend install
 ```
 
-## 3) Run backend
-
-From repo root:
+### Run backend
 
 ```bash
 cd finance-tracker-backend
 npx ts-node-dev --respawn --transpile-only server.ts
 ```
 
-Backend starts on `http://localhost:8000`.
-
-## 4) Run frontend
-
-In a separate terminal:
+### Run frontend
 
 ```bash
 cd finance-tracker-frontend
 npm run dev
 ```
 
-Frontend starts on `http://localhost:3000`.
+## Environment notes
 
-## Environment configuration notes
-
-The codebase currently references several config values directly in source and also expects OAuth-related environment variables in the frontend.
-
-For local setup, you will typically need to define NextAuth-related variables in the frontend environment (for example `.env.local` in `finance-tracker-frontend`):
+For local auth-related flows, configure required frontend environment variables (for example in `.env.local`) such as:
 
 - `GOOGLE_CLIENT_ID`
 - `GOOGLE_CLIENT_SECRET`
 - `NEXTAUTH_SECRET`
 - `NEXTAUTH_URL`
 
-You may also want to move backend credentials/secrets to environment variables for safer configuration management.
+## What to expect next
 
-## Repository structure
+Finance Tracker is under active development. Upcoming improvements are focused on:
 
-```text
-.
-├── finance-tracker-backend/
-│   ├── config/
-│   ├── controllers/
-│   ├── database/
-│   ├── middleware/
-│   ├── routes/
-│   ├── services/
-│   └── server.ts
-├── finance-tracker-frontend/
-│   ├── src/app/
-│   ├── src/components/
-│   ├── src/routes/
-│   ├── src/service/
-│   └── src/types/
-└── design.drawio
-```
+- smarter analytics and forecasting
+- richer monthly/weekly financial insights
+- better personalization of dashboard cards
+- stronger notification and reminder workflows
+- more automation around recurring bills and budget alerts
+- continued security hardening and performance optimization
 
-## Current status
+## Vision
 
-This appears to be an actively developed project with a solid feature base for personal finance tracking, organized around a clear frontend/backend separation and modular domain-based routes/services.
+Finance Tracker is being built as a reliable daily companion for personal finance, not just a transaction logger. The goal is to help users understand money behavior, make better financial decisions, and build long-term financial confidence.
