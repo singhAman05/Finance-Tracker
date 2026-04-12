@@ -1,128 +1,105 @@
-import { Request, Response } from "express";
-import { fetchTransactions, createTransaction, deleteTransaction } from "../services/service_transactions";
-import { validateTransactionPayload } from "../utils/validationUtils";
-import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
-import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
+﻿import { Request, Response } from 'express';
+import { fetchTransactions, createTransaction, deleteTransaction } from '../services/service_transactions';
+import { validateTransactionPayload } from '../utils/validationUtils';
+import {
+  CacheKey,
+  getCache,
+  setCache,
+  invalidateTransactions,
+  invalidateAccounts,
+  invalidateBudgets,
+} from '../utils/cacheUtils';
+import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
+import { asyncHandler } from '../utils/asyncHandler';
+import { getUser } from '../middleware/jwt';
+import { AppError } from '../utils/AppError';
+import { CACHE_TTL, RECURRENCE_VALUES } from '../types';
 
-export const handleTransactionsAdd = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
+export const handleTransactionsAdd = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { account_id, category_id, amount, type } = validateTransactionPayload(req.body);
 
-    const validation = validateTransactionPayload({ ...req.body, client_id });
+  const {
+    date,
+    description,
+    is_recurring,
+    recurrence_rule,
+  } = req.body as Record<string, unknown>;
 
-    if (!validation.valid) {
-        res.status(400).json({ success: false, message: validation.message });
-        return;
-    }
+  const payload = {
+    client_id: user.id,
+    account_id,
+    category_id,
+    amount,
+    type,
+    date: typeof date === 'string' && date ? date : new Date().toISOString().split('T')[0],
+    description: typeof description === 'string' ? description : undefined,
+    is_recurring: typeof is_recurring === 'boolean' ? is_recurring : false,
+    recurrence_rule:
+      typeof recurrence_rule === 'string' &&
+      RECURRENCE_VALUES.includes(recurrence_rule as (typeof RECURRENCE_VALUES)[number])
+        ? (recurrence_rule as (typeof RECURRENCE_VALUES)[number])
+        : undefined,
+  };
 
-    const {
-        account_id,
-        category_id,
-        amount,
-        type,
-        date,
-        description,
-        is_recurring,
-        recurrence_rule,
-    } = req.body;
+  const result = await createTransaction(payload);
+  if (result.error || !result.data) {
+    throw AppError.internal('Failed to add transaction', result.error);
+  }
 
-    const payload = {
-        client_id,
-        account_id,
-        category_id,
-        amount,
-        type,
-        date: date || new Date().toISOString().split("T")[0],
-        description: description || null,
-        is_recurring: is_recurring ?? false,
-        recurrence_rule: recurrence_rule || null,
-    };
+  await invalidateTransactions(user.id);
+  await invalidateAccounts(user.id);
+  await invalidateBudgets(user.id);
 
-    try {
-        const result = await createTransaction(payload);
+  res.status(201).json({
+    success: true,
+    message: 'Transaction added',
+    data: result.data,
+  });
+});
 
-        if (result.error) {
-            console.error("Transaction creation error:", result.error);
-            res.status(500).json({ success: false, message: "Failed to add transaction." });
-            return;
-        }
+export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { page, limit, from, to } = parsePagination(req);
+  const cacheKey = CacheKey.transactions(user.id, page, limit);
 
-        // Invalidate cache after successful insert
-        await deleteCacheByPrefix(`transactions:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
-        await deleteCacheByPrefix(`accounts:${client_id}:`);
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    res.status(200).json({ success: true, message: 'Transactions from cache', ...(cached as object) });
+    return;
+  }
 
-        res.status(201).json({ message: "Transaction added", data: result.data });
-    } catch (err) {
-        console.error("Transaction creation error:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
+  const result = await fetchTransactions(user.id, { from, to });
+  if (result.error) {
+    throw AppError.internal('Failed to fetch transactions', result.error);
+  }
 
-export const handleTransactionsFetch = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-    const { page, limit, from, to } = parsePagination(req);
-    const cacheKey = `transactions:${client_id}:${page}:${limit}`;
+  const responseBody = {
+    data: result.data ?? [],
+    pagination: buildPaginationMeta(page, limit, result.count),
+  };
 
-    try {
-        const cached = await getCache(cacheKey);
-        if (cached) {
-            res.status(200).json({ message: "Transactions from Cache", ...cached });
-            return;
-        }
+  await setCache(cacheKey, responseBody, CACHE_TTL.long);
 
-        const result = await fetchTransactions(client_id, { from, to });
+  res.status(200).json({ success: true, message: 'Transactions fetched', ...responseBody });
+});
 
-        if (result.data && result.data.length === 0) {
-            res.status(200).json({ message: "No Transactions made", data: result.data, pagination: buildPaginationMeta(page, limit, result.count) });
-            return;
-        }
+export const handleTransactionDelete = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { transaction_id } = req.params;
 
-        // --- #17/#18: Don't leak Supabase error details ---
-        if (result.error) {
-            console.error("Cannot Fetch Transactions from DB:", result.error);
-            res.status(500).json({ success: false, message: "Failed to fetch transactions" });
-            return;
-        }
+  const result = await deleteTransaction(transaction_id, user.id);
+  if (result.error) {
+    throw AppError.notFound('Transaction not found or unauthorized');
+  }
 
-        const responseBody = {
-            data: result.data,
-            pagination: buildPaginationMeta(page, limit, result.count),
-        };
+  await invalidateTransactions(user.id);
+  await invalidateAccounts(user.id);
+  await invalidateBudgets(user.id);
 
-        await setCache(cacheKey, responseBody, 3600); // 1 hour TTL
-
-        res.status(200).json({ message: "Transactions fetched", ...responseBody });
-    } catch (err) {
-        console.error("Transaction fetch error:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
-
-export const handleTransactionDelete = async (req: Request, res: Response) => {
-    const { transaction_id } = req.params;
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-    try {
-        const result = await deleteTransaction(transaction_id, client_id);
-
-        if (result.error) {
-            console.error("Transaction deletion error:", result.error);
-            res.status(404).json({ success: false, message: "Transaction not found or unauthorized" });
-            return;
-        }
-
-        await deleteCacheByPrefix(`transactions:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
-        await deleteCacheByPrefix(`accounts:${client_id}:`);
-
-        res.status(200).json({
-            message: "Transaction deleted successfully",
-            data: { transaction_id },
-        });
-    } catch (err) {
-        console.error("Transaction deletion failed:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-}
+  res.status(200).json({
+    success: true,
+    message: 'Transaction deleted successfully',
+    data: { transaction_id },
+  });
+});

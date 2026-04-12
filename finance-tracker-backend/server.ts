@@ -1,59 +1,110 @@
-import express from 'express'
-import http from 'http'
-import cors from 'cors'
-import helmet from 'helmet'
-import dotenv from 'dotenv'
-import loginRoute from "./routes/route_auth"
-import billRoute from "./routes/route_bills";
-import budgetRoute from "./routes/route_budgets";
-import profileRoute from "./routes/route_profile"
-import accountsRoute from "./routes/route_accounts"
-import categoryRoute from "./routes/route_categories"
-import transactionRoute from "./routes/route_transactions";
-import settingsRoute from "./routes/route_settings";
+﻿import express from 'express';
+import http from 'http';
+import cors from 'cors';
+import helmet from 'helmet';
+import dotenv from 'dotenv';
+
+import loginRoute from './routes/route_auth';
+import billRoute from './routes/route_bills';
+import budgetRoute from './routes/route_budgets';
+import profileRoute from './routes/route_profile';
+import accountsRoute from './routes/route_accounts';
+import categoryRoute from './routes/route_categories';
+import transactionRoute from './routes/route_transactions';
+import settingsRoute from './routes/route_settings';
+
+import { apiLimiter } from './middleware/rateLimiter';
+import { errorHandler } from './middleware/errorHandler';
+import { logger } from './utils/logger';
+import { connectRedis } from './config/redisClient';
 
 dotenv.config();
 
-const app = express()
-const server = http.createServer(app)
+const app = express();
+const server = http.createServer(app);
 
-// --- #24: Security headers ---
-app.use(helmet());
+const allowedOrigins = ['http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean) as string[];
 
-// --- #3: Body size limit (protects against payload-based DoS) ---
-app.use(express.json({ limit: '10kb' }));
-
-// --- #2: CORS whitelist (no longer allows any origin) ---
-const allowedOrigins = [
-    'http://localhost:3000',
-    process.env.FRONTEND_URL,
-].filter(Boolean) as string[];
-
-app.use(cors({
-    origin: allowedOrigins,
-    credentials: true,
-}));
-
-app.get('/', (_req, res) => {
-    res.send("Hi!! from server side")
-})
-
-app.use('/api/auth', loginRoute);
-app.use(`/api/profile`, profileRoute);
-app.use(`/api/accounts`, accountsRoute);
-app.use(`/api/category`, categoryRoute);
-app.use(`/api/transactions`, transactionRoute)
-app.use(`/api/budgets`, budgetRoute)
-app.use(`/api/bills`, billRoute)
-app.use(`/api/settings`, settingsRoute)
-
-// --- #23: Global error handler (catches unhandled async errors) ---
-app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
-    console.error('Unhandled error:', err.stack);
-    res.status(500).json({ success: false, message: 'Internal Server Error' });
+app.use((req, res, next) => {
+  const started = Date.now();
+  res.on('finish', () => {
+    logger.info('request_completed', {
+      method: req.method,
+      path: req.originalUrl,
+      status: res.statusCode,
+      durationMs: Date.now() - started,
+    });
+  });
+  next();
 });
 
-const PORT = process.env.PORT || 8000;
-server.listen(PORT, () => {
-    console.log(`The server is listening at ${PORT}`);
-})
+app.use(helmet());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+app.use(express.json({ limit: '10kb' }));
+
+app.get('/health', (_req, res) => {
+  res.status(200).json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
+});
+
+app.use('/api', apiLimiter);
+
+app.use('/api/auth', loginRoute);
+app.use('/api/profile', profileRoute);
+app.use('/api/accounts', accountsRoute);
+app.use('/api/category', categoryRoute);
+app.use('/api/transactions', transactionRoute);
+app.use('/api/budgets', budgetRoute);
+app.use('/api/bills', billRoute);
+app.use('/api/settings', settingsRoute);
+
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
+});
+
+app.use(errorHandler);
+
+const PORT = Number(process.env.PORT || 8000);
+
+async function bootstrap() {
+  await connectRedis();
+  server.listen(PORT, () => {
+    logger.info('server_started', { port: PORT });
+  });
+}
+
+let isShuttingDown = false;
+function gracefulShutdown(signal: string) {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+  logger.warn('shutdown_initiated', { signal });
+
+  server.close(() => {
+    logger.info('server_stopped');
+    process.exit(0);
+  });
+
+  setTimeout(() => {
+    logger.error('shutdown_forced_timeout');
+    process.exit(1);
+  }, 15000).unref();
+}
+
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('unhandledRejection', (reason) => {
+  logger.error('unhandled_rejection', { reason: String(reason) });
+});
+process.on('uncaughtException', (err) => {
+  logger.error('uncaught_exception', { message: err.message, stack: err.stack });
+  gracefulShutdown('uncaughtException');
+});
+
+bootstrap().catch((err) => {
+  logger.error('bootstrap_failed', { error: err instanceof Error ? err.message : String(err) });
+  process.exit(1);
+});
