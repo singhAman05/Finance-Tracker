@@ -9,6 +9,10 @@ import { Menu, Wallet } from "lucide-react";
 import { RootState } from "@/app/store";
 import { fetchSettings } from "@/service/service_settings";
 import { setSettings } from "@/components/redux/slices/slice_settings";
+import { fetchAccounts } from "@/service/service_accounts";
+import { fetchCategories } from "@/service/service_categories";
+import { setAccounts } from "@/components/redux/slices/slice_accounts";
+import { setCategories } from "@/components/redux/slices/slice_categories";
 
 export default function DashboardLayout({
   children,
@@ -21,6 +25,8 @@ export default function DashboardLayout({
   const [isHydrated, setIsHydrated] = useState(false);
   const token = useSelector((state: RootState) => state.auth.token);
   const existingSettings = useSelector((state: RootState) => state.settings.settings);
+  const existingAccounts = useSelector((state: RootState) => state.accounts.accounts);
+  const existingCategories = useSelector((state: RootState) => state.categories.categories);
 
   useEffect(() => {
     setIsHydrated(true);
@@ -33,16 +39,54 @@ export default function DashboardLayout({
     }
   }, [isHydrated, token, router]);
 
-  // Load user settings on first mount so useCurrency/useDateFormat
-  // work on every page without requiring a visit to /settings first.
   useEffect(() => {
-    if (!existingSettings && token) {
-      fetchSettings().then((res) => {
-        const settings = res?.data ?? res;
-        if (settings) dispatch(setSettings(settings as any));
-      });
+    if (!token) return;
+
+    const tasks: Promise<void>[] = [];
+
+    if (!existingSettings) {
+      tasks.push(
+        fetchSettings()
+          .then((res) => {
+            const settings = res?.data;
+            if (settings) dispatch(setSettings(settings as any));
+          })
+          .catch(() => undefined)
+      );
     }
-  }, [dispatch, existingSettings, token]);
+
+    if (existingAccounts.length === 0) {
+      tasks.push(
+        fetchAccounts()
+          .then((res) => {
+            const payload = Array.isArray(res?.data) ? res.data : [];
+            dispatch(setAccounts(payload));
+          })
+          .catch(() => undefined)
+      );
+    }
+
+    if (existingCategories.length === 0) {
+      tasks.push(
+        fetchCategories()
+          .then((res) => {
+            const payload = Array.isArray(res?.data) ? res.data : [];
+            dispatch(setCategories(payload));
+          })
+          .catch(() => undefined)
+      );
+    }
+
+    if (tasks.length > 0) {
+      void Promise.allSettled(tasks);
+    }
+  }, [
+    dispatch,
+    existingAccounts.length,
+    existingCategories.length,
+    existingSettings,
+    token,
+  ]);
 
   // Show nothing while redirecting unauthenticated users
   if (!isHydrated || !token) {

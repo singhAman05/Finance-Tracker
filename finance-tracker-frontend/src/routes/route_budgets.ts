@@ -28,51 +28,51 @@ export interface CreateBudgetPayload {
 }
 
 export const createBudgetRoute = async (payload: CreateBudgetPayload) => {
-    const data = await apiClient<BudgetResponse>("/api/budgets/create-budget", {
+    const res = await apiClient<BudgetResponse>("/api/budgets/create-budget", {
         method: "POST",
         body: JSON.stringify(payload),
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const fetchBudgetsRoute = async () => {
-    const data = await apiClient<BudgetsListResponse>("/api/budgets/fetch-budgets", {
+    const res = await apiClient<BudgetsListResponse>("/api/budgets/fetch-budgets", {
         method: "GET",
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const fetchBudgetSummaryRoute = async () => {
-    const data = await apiClient<BudgetSummaryListResponse>("/api/budgets/fetch-budget-summary", {
+    const res = await apiClient<BudgetSummaryListResponse>("/api/budgets/fetch-budget-summary", {
         method: "GET",
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const updateBudgetRoute = async (budget_id: string, payload: Partial<CreateBudgetPayload>) => {
-    const data = await apiClient<BudgetResponse>(`/api/budgets/update-budget/${budget_id}`, {
+    const res = await apiClient<BudgetResponse>(`/api/budgets/update-budget/${budget_id}`, {
         method: "PUT",
         body: JSON.stringify(payload),
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const deleteBudgetRoute = async (budget_id: string) => {
-    const data = await apiClient<{ message: string }>(`/api/budgets/delete-budget/${budget_id}`, {
+    const res = await apiClient<{ message: string }>(`/api/budgets/delete-budget/${budget_id}`, {
         method: "DELETE",
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const expireBudgetRoute = async (budget_id: string) => {
-    const data = await apiClient<{ message: string }>(`/api/budgets/expire-budget/${budget_id}`, {
+    const res = await apiClient<{ message: string }>(`/api/budgets/expire-budget/${budget_id}`, {
         method: "PUT",
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };

@@ -7,12 +7,12 @@ interface CategoriesResponse {
 }
 
 export const fetchCategoriesRoute = async () => {
-  const data = await apiClient<CategoriesResponse>(
+  const res = await apiClient<CategoriesResponse>(
     "/api/category/get-system-categories",
     {
       method: "GET",
     }
   );
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
