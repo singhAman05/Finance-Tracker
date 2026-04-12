@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { motion, AnimatePresence } from "framer-motion";
-import { format } from "date-fns";
+import { motion } from "framer-motion";
 import { RootState } from "@/app/store";
 import { cn } from "@/lib/utils";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
-// UI Components
 import {
   Card,
   CardContent,
@@ -44,20 +42,32 @@ import {
   AlignLeft,
 } from "lucide-react";
 
-// Redux & Services
-import { setAccounts } from "../redux/slices/slice_accounts";
-import { setCategories } from "../redux/slices/slice_categories";
 import { addTransaction } from "../redux/slices/slice_transactions";
-import {
-  fetchCategories,
-  filterCategoriesByType,
-} from "@/service/service_categories";
-import { fetchAccounts } from "@/service/service_accounts";
+import { filterCategoriesByType } from "@/service/service_categories";
 import { createTransaction } from "@/service/service_transactions";
 
 interface AddTransactionProps {
   onClose?: () => void;
 }
+
+const SYMBOL_MAP: Record<string, string> = {
+  INR: "Rs",
+  USD: "$",
+  EUR: "EUR",
+  GBP: "GBP",
+};
+
+const localToday = () => {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+};
+
+const toLocalDateString = (input: Date) => {
+  const y = input.getFullYear();
+  const m = String(input.getMonth() + 1).padStart(2, "0");
+  const d = String(input.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+};
 
 export default function AddTransaction({ onClose }: AddTransactionProps) {
   const dispatch = useDispatch();
@@ -67,69 +77,29 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   );
   const { formatDate } = useDateFormat();
 
-  const SYMBOL_MAP: Record<string, string> = { INR: "₹", USD: "$", EUR: "€", GBP: "£" };
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(localToday);
   const [type, setType] = useState<"expense" | "income">("expense");
   const [category, setCategory] = useState("");
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [accountId, setAccountId] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Symbol for the currently selected account
   const selectedAcctCurrency = accounts.find((a) => a.id === accountId)?.currency;
   const activeSymbol = selectedAcctCurrency
-    ? (SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency)
-    : SYMBOL_MAP["INR"];
+    ? SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency
+    : SYMBOL_MAP.INR;
 
   useEffect(() => {
-    let isMounted = true;
+    if (!accountId && accounts.length > 0) {
+      setAccountId(String(accounts[0].id));
+    }
+  }, [accountId, accounts]);
 
-    const loadInitialData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        const [accountsRes, categoriesRes] = await Promise.all([
-          fetchAccounts(),
-          fetchCategories(),
-        ]);
-
-        const accountsList = Array.isArray(accountsRes?.data)
-          ? accountsRes.data
-          : [];
-
-        const categoriesList = Array.isArray(categoriesRes?.data)
-          ? categoriesRes.data
-          : [];
-
-        if (!isMounted) return;
-
-        dispatch(setAccounts(accountsList));
-        dispatch(setCategories(categoriesList));
-
-        if (accountsList.length > 0) {
-          setAccountId((prev: string) => prev || String(accountsList[0].id));
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError("Failed to sync your financial data.");
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadInitialData();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [dispatch]);
+  const isBootstrapping = useMemo(
+    () => accounts.length === 0 && categories.length === 0,
+    [accounts.length, categories.length]
+  );
 
   const filteredCategories = filterCategoriesByType(categories, type);
 
@@ -145,9 +115,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
         category_id: category,
         amount: numericAmount,
         type,
-        date:
-          date?.toISOString().split("T")[0] ??
-          new Date().toISOString().split("T")[0],
+        date: date ? toLocalDateString(date) : toLocalDateString(localToday()),
         description: description.trim() || undefined,
         is_recurring: false,
       };
@@ -157,8 +125,8 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
         dispatch(addTransaction(result.data));
       }
       if (onClose) onClose();
-    } catch (err) {
-      // Error already handled by route/apiClient
+    } catch {
+      // Error handled by route/apiClient
     } finally {
       setSubmitting(false);
     }
@@ -174,7 +142,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
             backgroundSize: "24px 24px",
           }}
         />
-        {/* Header Section */}
+
         <div className="bg-muted/30 border-b border-border p-5 sm:p-8 relative z-10">
           <div className="flex justify-between items-start">
             <div className="flex gap-4">
@@ -202,7 +170,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
             )}
           </div>
 
-          {/* Enhanced Toggle */}
           <div className="mt-8 flex p-1 bg-muted rounded-xl relative border border-border">
             <motion.div
               layoutId="type-toggle"
@@ -237,21 +204,17 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
         </div>
 
         <CardContent className="p-5 sm:p-8">
-          {loading ? (
+          {isBootstrapping ? (
             <div className="flex flex-col items-center justify-center py-12 gap-4">
               <Loader2 className="h-8 w-8 animate-spin text-text-secondary/20" />
-              <p className="text-sm text-text-secondary">
-                Fetching financial data...
-              </p>
+              <p className="text-sm text-text-secondary">Fetching financial data...</p>
             </div>
           ) : accounts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="bg-muted p-4 rounded-full mb-4">
                 <Plus className="h-8 w-8 text-text-secondary" />
               </div>
-              <h3 className="text-lg font-semibold text-text-primary">
-                No accounts found
-              </h3>
+              <h3 className="text-lg font-semibold text-text-primary">No accounts found</h3>
               <p className="text-text-secondary text-sm max-w-[280px] mt-2">
                 You need to add at least one account before recording a transaction.
               </p>
@@ -259,7 +222,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
           ) : (
             <form onSubmit={onSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-5">
-                {/* Account Selection */}
                 <div className="md:col-span-2 space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
                     <CreditCard className="h-3 w-3" /> Source Account
@@ -275,9 +237,11 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                             <span className="font-semibold text-text-primary">{a.name}</span>
                             <div className="flex items-center gap-1.5">
                               {a.currency && a.currency !== "INR" && (
-                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">{SYMBOL_MAP[a.currency] ?? a.currency}</span>
+                                <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">
+                                  {SYMBOL_MAP[a.currency] ?? a.currency}
+                                </span>
                               )}
-                              <span className="text-text-secondary/60 text-xs">•••• {a.lastDigits}</span>
+                              <span className="text-text-secondary/60 text-xs">**** {a.lastDigits}</span>
                             </div>
                           </div>
                         </SelectItem>
@@ -286,7 +250,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                   </Select>
                 </div>
 
-                {/* Date Picker */}
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
                     <CalendarIcon className="h-3 w-3" /> Date
@@ -317,7 +280,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                   </Popover>
                 </div>
 
-                {/* Category */}
                 <div className="space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
                     <Tag className="h-3 w-3" /> Category
@@ -336,7 +298,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                   </Select>
                 </div>
 
-                {/* Amount */}
                 <div className="md:col-span-2 space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary ml-1">
                     Amount
@@ -357,7 +318,6 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                   </div>
                 </div>
 
-                {/* Description */}
                 <div className="md:col-span-2 space-y-2">
                   <Label className="text-xs font-bold uppercase tracking-wider text-text-secondary flex items-center gap-2 ml-1">
                     <AlignLeft className="h-3 w-3" /> Description

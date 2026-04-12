@@ -4,46 +4,58 @@ import type { User } from "@/types/interfaces";
 // --- Response types for auth endpoints ---
 interface AuthResponse {
   message: string;
+  data: {
+    token: string;
+    user: User;
+  };
+}
+
+interface AuthPayload {
   token: string;
   user: User;
+}
+
+interface ErrorResponse {
+  message: string;
+  details?: unknown;
 }
 
 // --- Route functions ---
 // Auth routes use raw fetch (NOT apiClient) because apiClient requires
 // a JWT token, and auth endpoints are what ISSUE the token.
 
-export const phoneLoginRoute = async (phone: string): Promise<AuthResponse> => {
+export const phoneLoginRoute = async (phone: string): Promise<AuthPayload> => {
   const response = await fetch(`${baseUrl}/api/auth/phone`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone }),
   });
 
-  const data = await response.json();
+  const body = (await response.json()) as AuthResponse | ErrorResponse;
 
   if (!response.ok) {
-    throw new Error(data?.message || "Login failed. Please try again.");
+    throw new Error(body?.message || "Login failed. Please try again.");
   }
 
-  return data as AuthResponse;
+  return (body as AuthResponse).data;
 };
 
 export const loginGoogleRoute = async (
   email: string,
   name: string,
   idToken?: string
-): Promise<AuthResponse> => {
+): Promise<AuthPayload> => {
   const response = await fetch(`${baseUrl}/api/auth/google-login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, name, idToken }),
   });
 
-  const data = await response.json();
+  const body = (await response.json()) as AuthResponse | ErrorResponse;
 
   if (!response.ok) {
-    throw new Error(data?.message || "Login failed. Please try again.");
+    throw new Error(body?.message || "Login failed. Please try again.");
   }
 
-  return data as AuthResponse;
+  return (body as AuthResponse).data;
 };

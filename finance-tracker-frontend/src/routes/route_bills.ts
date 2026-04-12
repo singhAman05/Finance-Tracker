@@ -31,37 +31,37 @@ export interface CreateBillPayload {
 }
 
 export const createBillRoute = async (payload: CreateBillPayload) => {
-    const data = await apiClient<BillResponse>("/api/bills/create-bill", {
+    const res = await apiClient<BillResponse>("/api/bills/create-bill", {
         method: "POST",
         body: JSON.stringify(payload),
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const fetchBillsRoute = async () => {
-    const data = await apiClient<BillsListResponse>("/api/bills/fetch-bills", {
+    const res = await apiClient<BillsListResponse>("/api/bills/fetch-bills", {
         method: "GET",
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const fetchBillInstancesRoute = async () => {
-    const data = await apiClient<BillInstancesResponse>("/api/bills/fetch-bill-instances", {
+    const res = await apiClient<BillInstancesResponse>("/api/bills/fetch-bill-instances?limit=500", {
         method: "GET",
     });
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const payBillInstanceRoute = async (bill_instance_id: string) => {
-    const data = await apiClient<{ message: string }>(
+    const res = await apiClient<{ message: string }>(
         `/api/bills/pay-bill/${bill_instance_id}`,
         {
             method: "POST",
         }
     );
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };

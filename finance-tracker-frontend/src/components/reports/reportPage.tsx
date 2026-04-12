@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { setAccounts } from "../redux/slices/slice_accounts";
@@ -46,6 +46,8 @@ export default function ReportPage() {
     (state: RootState) => state.categories.categories
   );
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const hasLoadedOnce = useRef(false);
 
   const accountLookup = accounts.reduce((map, acc) => {
     map[acc.id] = acc;
@@ -61,8 +63,11 @@ export default function ReportPage() {
     let mounted = true;
 
     const loadData = async () => {
-      setIsLoading(true);
-      dispatch(setTransactions([]));
+      if (hasLoadedOnce.current) {
+        setIsRefreshing(true);
+      } else {
+        setIsLoading(true);
+      }
       const tasks: Promise<void>[] = [
         fetchAccounts()
           .then((data) => {
@@ -89,7 +94,11 @@ export default function ReportPage() {
       ];
 
       await Promise.allSettled(tasks);
-      if (mounted) setIsLoading(false);
+      if (mounted) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+        hasLoadedOnce.current = true;
+      }
     };
 
     loadData();
@@ -155,6 +164,11 @@ export default function ReportPage() {
         animate="visible"
         className="relative w-full p-2 md:p-6 space-y-6 mx-auto z-10"
       >
+        {isRefreshing && (
+          <div className="pointer-events-none absolute inset-0 z-20 rounded-2xl bg-background/35 backdrop-blur-[1px] flex items-center justify-center">
+            <Loader size="sm" text="Refreshing report..." />
+          </div>
+        )}
         <ReportHeader
           title="Financial Reports"
           subtitle="Analyze your income, expenses, and financial trends"

@@ -6,7 +6,7 @@ import { signIn, signOut } from "next-auth/react";
 export const loginService = async (phone: string, dispatch: AppDispatch) => {
   try {
     const data = await phoneLoginRoute(phone);
-    const { message, token, user } = data;
+    const { token, user } = data;
 
     sessionStorage.setItem("jwt", token);
     sessionStorage.setItem("user", JSON.stringify(user));

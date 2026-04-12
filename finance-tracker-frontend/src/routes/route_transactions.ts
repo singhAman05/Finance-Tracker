@@ -23,35 +23,35 @@ export const addTransactionRoute = async (
         recurrence_rule?: string;
     }
 ) => {
-    const data = await apiClient<SingleTransactionResponse>(
+    const res = await apiClient<SingleTransactionResponse>(
         "/api/transactions/add-transaction",
         {
             method: "POST",
             body: JSON.stringify(payload),
         }
     );
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const fetchTransactionsRoute = async () => {
-    const data = await apiClient<TransactionResponse>(
-        "/api/transactions/fetch-transactions",
+    const res = await apiClient<TransactionResponse>(
+        "/api/transactions/fetch-transactions?limit=500",
         {
             method: "GET",
         }
     );
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
 
 export const deleteTransactionRoute = async (transaction_id: string) => {
-    const data = await apiClient<{ message: string }>(
+    const res = await apiClient<{ message: string }>(
         `/api/transactions/delete-transaction/${transaction_id}`,
         {
             method: "DELETE",
         }
     );
-    if (data.error) throw new Error(data.error.message);
-    return data.result;
+    if (res.error) throw new Error(res.error.message);
+    return res.result;
 };
