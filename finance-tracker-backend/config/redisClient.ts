@@ -1,41 +1,55 @@
-// config/redisClient.ts
-import { createClient } from 'redis';
+﻿import { createClient } from 'redis';
 import dotenv from 'dotenv';
+import { logger } from '../utils/logger';
+
 dotenv.config();
 
-const redisClient = createClient({
-    url: process.env.REDIS_URL
+const redisUrl = process.env.REDIS_URL;
+const redisClient = createClient(
+  redisUrl
+    ? { url: redisUrl }
+    : {
+        socket: {
+          reconnectStrategy(retries: number) {
+            if (retries >= 6) {
+              logger.error('Redis reconnect retries exhausted', { retries });
+              return false;
+            }
+            return Math.min(1000 * 2 ** retries, 15000);
+          },
+        },
+      }
+);
+
+let isRedisReady = false;
+
+redisClient.on('ready', () => {
+  isRedisReady = true;
+  logger.info('Redis ready');
+});
+
+redisClient.on('end', () => {
+  isRedisReady = false;
+  logger.warn('Redis connection ended');
 });
 
 redisClient.on('error', (err) => {
-    console.error('Redis error:', err);
+  isRedisReady = false;
+  logger.error('Redis error', { error: err instanceof Error ? err.message : String(err) });
 });
 
-// --- #19: Graceful Redis connection with retry ---
-let isRedisReady = false;
-
-async function connectRedis(retries = 3, delayMs = 2000) {
-    for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            await redisClient.connect();
-            isRedisReady = true;
-            console.log('Redis connected successfully');
-            return;
-        } catch (err) {
-            console.error(`Redis connection attempt ${attempt}/${retries} failed:`, err);
-            if (attempt < retries) {
-                await new Promise(resolve => setTimeout(resolve, delayMs));
-            }
-        }
-    }
-    console.error('Redis failed to connect after all retries. Cache operations will be skipped.');
+export async function connectRedis() {
+  try {
+    await redisClient.connect();
+  } catch (err) {
+    logger.warn('Redis unavailable, continuing without cache', {
+      error: err instanceof Error ? err.message : String(err),
+    });
+  }
 }
 
-// Non-blocking — server starts even if Redis fails
-connectRedis();
+export function getRedisReady() {
+  return isRedisReady;
+}
 
-redisClient.on('ready', () => { isRedisReady = true; });
-redisClient.on('end', () => { isRedisReady = false; });
-
-export { isRedisReady };
 export default redisClient;

@@ -1,154 +1,147 @@
-const ALLOWED_CURRENCIES = ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD', 'CHF', 'CNY', 'SGD', 'AED', 'SAR'];
+﻿import {
+  ACCOUNT_TYPE_VALUES,
+  BILL_RECURRENCE_VALUES,
+  CATEGORY_TYPE_VALUES,
+  CURRENCY_VALUES,
+  DATE_FORMAT_VALUES,
+  RECURRENCE_VALUES,
+  TX_TYPE_VALUES,
+} from '../types';
+import { AppError } from './AppError';
 
-export const validatePhone = async (phone: string) => {
-    if (!phone || typeof phone !== 'string' || phone.trim() === '') {
-        return {
-            valid: false,
-            message: "Phone number is required"
-        };
-    }
-
-    // E.164 format
-    const phoneRegex = /^\+[1-9]\d{1,14}$/;
-    if (!phoneRegex.test(phone)) {
-        return {
-            valid: false,
-            message: "Phone number must be in international format (e.g. +1234567890)"
-        };
-    }
-
-    // Minimum digit length
-    if (phone.replace(/\D/g, '').length < 8) {
-        return {
-            valid: false,
-            message: "Phone number is too short"
-        };
-    }
-
-    return { valid: true };
+const asString = (value: unknown, field: string) => {
+  if (typeof value !== 'string' || value.trim() === '') {
+    throw AppError.validation(`${field} is required`);
+  }
+  return value.trim();
 };
 
-export const validateEmail = async (email: string) => {
-    if (!email || typeof email !== 'string' || email.trim() === '') {
-        return {
-        valid: false,
-        message: "Email is required"
-        };
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailRegex.test(email)) {
-        return {
-        valid: false,
-        message: "Invalid email format"
-        };
-    }
-
-    return { valid: true };
+export const validatePhone = (phone: unknown) => {
+  const parsed = asString(phone, 'Phone number');
+  const phoneRegex = /^\+[1-9]\d{1,14}$/;
+  if (!phoneRegex.test(parsed)) {
+    throw AppError.validation('Phone number must be in E.164 format (e.g. +1234567890)');
+  }
+  if (parsed.replace(/\D/g, '').length < 8) {
+    throw AppError.validation('Phone number is too short');
+  }
+  return parsed;
 };
 
-export const validateAccount = async (name: string, type: string) => {
-    const validTypes = ['savings', 'current', 'digital_wallet', 'loan', 'credit_card', 'cash', 'investment'];
-
-    if (!name || typeof name !== 'string' || name.trim() === '') {
-        return {
-        valid: false,
-        message: 'Name is required and must be a non-empty string.',
-        };
-    }
-
-    if (!type || typeof type !== 'string' || !validTypes.includes(type)) {
-        return {
-        valid: false,
-        message: `Type must be one of: ${validTypes.join(', ')}`,
-        };
-    }
-
-    return { valid: true };
+export const validateEmail = (email: unknown) => {
+  const parsed = asString(email, 'Email');
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(parsed)) {
+    throw AppError.validation('Invalid email format');
+  }
+  return parsed;
 };
 
-// --- #16: Validate balance, currency, account_number_last4 ---
-export const validateAccountDetails = (balance: unknown, currency: string, accountNumberLast4: string) => {
-    const parsedBalance = parseFloat(balance as string);
-    if (isNaN(parsedBalance) || parsedBalance < 0) {
-        return { valid: false, message: "Balance must be a non-negative number." };
-    }
-
-    if (currency && !ALLOWED_CURRENCIES.includes(currency)) {
-        return { valid: false, message: `Currency must be one of: ${ALLOWED_CURRENCIES.join(', ')}` };
-    }
-
-    if (accountNumberLast4 && (typeof accountNumberLast4 !== 'string' || accountNumberLast4.length !== 4 || !/^\d{4}$/.test(accountNumberLast4))) {
-        return { valid: false, message: "Account number last 4 digits must be exactly 4 digits." };
-    }
-
-    return { valid: true };
+export const validateAccount = (name: unknown, type: unknown) => {
+  const parsedName = asString(name, 'Bank name');
+  const parsedType = asString(type, 'Account type');
+  if (!ACCOUNT_TYPE_VALUES.includes(parsedType as (typeof ACCOUNT_TYPE_VALUES)[number])) {
+    throw AppError.validation(`Account type must be one of: ${ACCOUNT_TYPE_VALUES.join(', ')}`);
+  }
+  return { name: parsedName, type: parsedType as (typeof ACCOUNT_TYPE_VALUES)[number] };
 };
 
-export const validateCategory = async (name: string, type: string) => {
-    const validTypes = ['income', 'expense'];
+export const validateAccountDetails = (balance: unknown, currency: unknown, accountNumberLast4: unknown) => {
+  const parsedBalance = Number(balance);
+  if (Number.isNaN(parsedBalance) || parsedBalance < 0) {
+    throw AppError.validation('Balance must be a non-negative number');
+  }
 
-    if (!name || typeof name !== 'string' || name.trim() === '') {
-        return {
-        valid: false,
-        message: 'Name is required and must be a non-empty string.',
-        };
-    }
+  const parsedCurrency = currency ? String(currency) : 'INR';
+  if (!CURRENCY_VALUES.includes(parsedCurrency as (typeof CURRENCY_VALUES)[number])) {
+    throw AppError.validation(`Currency must be one of: ${CURRENCY_VALUES.join(', ')}`);
+  }
 
-    if (!type || typeof type !== 'string' || !validTypes.includes(type)) {
-        return {
-        valid: false,
-        message: `Type must be one of: ${validTypes.join(', ')}`,
-        };
-    }
+  const last4 = accountNumberLast4 ? String(accountNumberLast4).trim() : '';
+  if (last4 && !/^\d{4}$/.test(last4)) {
+    throw AppError.validation('Account number last 4 digits must be exactly 4 digits');
+  }
 
-    return { valid: true };
+  return { balance: parsedBalance, currency: parsedCurrency, accountNumberLast4: last4 };
 };
 
-// --- #15: Added transaction type validation ---
+export const validateCategory = (name: unknown, type: unknown) => {
+  const parsedName = asString(name, 'Category name');
+  const parsedType = asString(type, 'Category type');
+  if (!CATEGORY_TYPE_VALUES.includes(parsedType as (typeof CATEGORY_TYPE_VALUES)[number])) {
+    throw AppError.validation(`Category type must be one of: ${CATEGORY_TYPE_VALUES.join(', ')}`);
+  }
+  return { name: parsedName, type: parsedType as (typeof CATEGORY_TYPE_VALUES)[number] };
+};
+
 export const validateTransactionPayload = (body: Record<string, unknown>) => {
-  const validRecurrenceRules = ["weekly", "bi-weekly", "monthly", "quarterly", "yearly"];
-  const validTypes = ["income", "expense"];
+  const account_id = asString(body.account_id, 'Account ID');
+  const category_id = asString(body.category_id, 'Category ID');
+  const amount = Number(body.amount);
+  const type = asString(body.type, 'Type');
 
-  if (!body.account_id || typeof body.account_id !== "string") {
-    return {
-      valid: false,
-      message: "Account ID is required and must be a string.",
-    };
+  if (Number.isNaN(amount) || amount <= 0) {
+    throw AppError.validation('Amount must be a positive number');
   }
 
-  if (!body.category_id || typeof body.category_id !== "string") {
-    return {
-      valid: false,
-      message: "Category ID is required and must be a string.",
-    };
+  if (!TX_TYPE_VALUES.includes(type as (typeof TX_TYPE_VALUES)[number])) {
+    throw AppError.validation(`Type must be one of: ${TX_TYPE_VALUES.join(', ')}`);
   }
 
-  if (typeof body.amount !== "number" || isNaN(body.amount) || body.amount <= 0) {
-    return {
-      valid: false,
-      message: "Amount must be a positive number.",
-    };
+  if (body.recurrence_rule && !RECURRENCE_VALUES.includes(String(body.recurrence_rule) as (typeof RECURRENCE_VALUES)[number])) {
+    throw AppError.validation(`Recurrence rule must be one of: ${RECURRENCE_VALUES.join(', ')}`);
   }
 
-  // --- #15: Type must be "income" or "expense" ---
-  if (!body.type || typeof body.type !== "string" || !validTypes.includes(body.type)) {
-    return {
-      valid: false,
-      message: `Type must be one of: ${validTypes.join(", ")}`,
-    };
+  return { account_id, category_id, amount, type };
+};
+
+export const validateSettingsPayload = (input: Record<string, unknown>) => {
+  const validated: Record<string, unknown> = {};
+
+  if (input.currency !== undefined) {
+    const currency = String(input.currency);
+    if (!CURRENCY_VALUES.includes(currency as (typeof CURRENCY_VALUES)[number])) {
+      throw AppError.validation(`Invalid currency. Allowed: ${CURRENCY_VALUES.join(', ')}`);
+    }
+    validated.currency = currency;
   }
 
-  if (
-    body.recurrence_rule &&
-    !validRecurrenceRules.includes(body.recurrence_rule as string)
-  ) {
-    return {
-      valid: false,
-      message: `Recurrence rule must be one of: ${validRecurrenceRules.join(", ")}`,
-    };
+  if (input.date_format !== undefined) {
+    const dateFormat = String(input.date_format);
+    if (!DATE_FORMAT_VALUES.includes(dateFormat as (typeof DATE_FORMAT_VALUES)[number])) {
+      throw AppError.validation(`Invalid date format. Allowed: ${DATE_FORMAT_VALUES.join(', ')}`);
+    }
+    validated.date_format = dateFormat;
   }
 
-  return { valid: true };
+  for (const key of ['notify_bills', 'notify_budgets', 'notify_recurring'] as const) {
+    if (input[key] !== undefined) {
+      if (typeof input[key] !== 'boolean') {
+        throw AppError.validation(`${key} must be a boolean`);
+      }
+      validated[key] = input[key];
+    }
+  }
+
+  return validated;
+};
+
+export const validateBillPayload = (input: Record<string, unknown>) => {
+  const system_category_id = asString(input.system_category_id, 'System category id');
+  const name = asString(input.name, 'Bill name');
+  const amount = Number(input.amount);
+  const start_date = asString(input.start_date, 'Start date');
+
+  if (Number.isNaN(amount) || amount <= 0) {
+    throw AppError.validation('Amount must be greater than 0');
+  }
+
+  if (input.recurrence_type !== undefined && input.recurrence_type !== null) {
+    const recurrenceType = String(input.recurrence_type);
+    if (!BILL_RECURRENCE_VALUES.includes(recurrenceType as (typeof BILL_RECURRENCE_VALUES)[number])) {
+      throw AppError.validation(`recurrence_type must be one of: ${BILL_RECURRENCE_VALUES.join(', ')}`);
+    }
+  }
+
+  return { system_category_id, name, amount, start_date };
 };
