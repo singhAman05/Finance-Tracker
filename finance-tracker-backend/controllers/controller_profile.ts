@@ -1,53 +1,43 @@
-import { Request, Response } from "express";
-import { updatingProfile } from "../services/service_profile";
-import { validateEmail, validatePhone } from "../utils/validationUtils";
+﻿import { Request, Response } from 'express';
+import { updatingProfile } from '../services/service_profile';
+import { validateEmail, validatePhone } from '../utils/validationUtils';
+import { asyncHandler } from '../utils/asyncHandler';
+import { AppError } from '../utils/AppError';
+import { getUser } from '../middleware/jwt';
 
-export const handleProfile = async (req: Request, res: Response) => {
-    const { full_name, email, phone, profession, profile_complete } = req.body;
+export const handleProfile = asyncHandler(async (req: Request, res: Response) => {
+  const { full_name, email, phone, profession, profile_complete } = req.body as {
+    full_name?: string;
+    email?: string;
+    phone?: string;
+    profession?: string;
+    profile_complete?: boolean;
+  };
 
-    // --- #6: Extract client_id from JWT (scope update to authenticated user) ---
-    const user = (req as any).user?.payload;
-    if (!user?.id) {
-        res.status(401).json({ success: false, message: "Unauthorized" });
-        return;
-    }
-    const client_id = user.id;
+  const user = getUser(req);
 
-    if (!full_name || !email || !phone || !profession) {
-        res.status(400).json({ success: false, message: "All fields are required" });
-        return;
-    }
+  if (!full_name || !profession) {
+    throw AppError.validation('full_name and profession are required');
+  }
 
-    const phoneValidation = await validatePhone(phone);
-    if (!phoneValidation.valid) {
-        res.status(400).json({ success: false, message: phoneValidation.message });
-        return;
-    }
+  const normalizedEmail = validateEmail(email);
+  const normalizedPhone = validatePhone(phone);
 
-    const emailValidation = await validateEmail(email);
-    if (!emailValidation.valid) {
-        res.status(400).json({ success: false, message: emailValidation.message });
-        return;
-    }
+  const result = await updatingProfile(user.id, {
+    full_name: String(full_name).trim(),
+    email: normalizedEmail,
+    phone: normalizedPhone,
+    profession: String(profession).trim(),
+    profile_complete: Boolean(profile_complete),
+  });
 
-    try {
-        const result = await updatingProfile(client_id, {
-            full_name,
-            email,
-            phone,
-            profession,
-            profile_complete
-        });
+  if (result.error || !result.data) {
+    throw AppError.internal('Failed to update profile', result.error);
+  }
 
-        if (result.error) {
-            console.error("Profile update error:", result.error);
-            res.status(500).json({ success: false, message: "Internal Server Error" });
-            return;
-        }
-
-        res.status(201).json({ message: "Profile Updated Successfully", user: result.data });
-    } catch (err) {
-        console.error("Profile update failed:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    user: result.data,
+  });
+});

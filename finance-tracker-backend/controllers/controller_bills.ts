@@ -1,187 +1,120 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from 'express';
 import {
-    createBill,
-    fetchBills,
-    fetchBillInstances,
-    markBillInstanceAsPaid,
-} from "../services/service_bills";
-import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
-import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
+  createBill,
+  fetchBills,
+  fetchBillInstances,
+  markBillInstanceAsPaid,
+} from '../services/service_bills';
+import {
+  CacheKey,
+  getCache,
+  setCache,
+  invalidateBills,
+  invalidateBillInstances,
+  invalidateBillPayment,
+} from '../utils/cacheUtils';
+import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
+import { asyncHandler } from '../utils/asyncHandler';
+import { getUser } from '../middleware/jwt';
+import { validateBillPayload } from '../utils/validationUtils';
+import { AppError } from '../utils/AppError';
+import { CACHE_TTL } from '../types';
 
-/* ==============================
-   Create Bill
-============================== */
+export const handleBillCreation = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const valid = validateBillPayload(req.body);
 
-export const handleBillCreation = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
+  const {
+    account_id,
+    is_recurring,
+    recurrence_type,
+    recurrence_interval,
+    end_date,
+    reminder_days_before,
+    notes,
+  } = req.body as Record<string, unknown>;
 
-    const {
-        account_id,
-        system_category_id,
-        name,
-        amount,
-        is_recurring,
-        recurrence_type,
-        recurrence_interval,
-        start_date,
-        end_date,
-        reminder_days_before,
-        notes,
-    } = req.body;
+  const bill = await createBill({
+    client_id: user.id,
+    account_id: typeof account_id === 'string' ? account_id : undefined,
+    system_category_id: valid.system_category_id,
+    name: valid.name,
+    amount: valid.amount,
+    is_recurring: Boolean(is_recurring),
+    recurrence_type: typeof recurrence_type === 'string' ? (recurrence_type as 'weekly' | 'monthly' | 'quarterly' | 'yearly') : undefined,
+    recurrence_interval: Number.isFinite(Number(recurrence_interval)) ? Number(recurrence_interval) : undefined,
+    start_date: valid.start_date,
+    end_date: typeof end_date === 'string' ? end_date : undefined,
+    reminder_days_before: Number.isFinite(Number(reminder_days_before)) ? Number(reminder_days_before) : undefined,
+    notes: typeof notes === 'string' ? notes : undefined,
+  });
 
-    if (!system_category_id || !name || !amount || !start_date) {
-        res.status(400).json({ message: "Missing required fields" });
-        return;
-    }
+  await invalidateBills(user.id);
+  await invalidateBillInstances(user.id);
 
-    try {
-        const payload = {
-            client_id,
-            account_id: account_id || null,
-            system_category_id,
-            name: name.trim(),
-            amount: parseFloat(amount),
-            is_recurring: is_recurring ?? false,
-            recurrence_type: recurrence_type || null,
-            recurrence_interval: recurrence_interval || 1,
-            start_date,
-            end_date: end_date || null,
-            reminder_days_before: reminder_days_before ?? 0,
-            notes: notes?.trim() || null,
-        };
+  res.status(201).json({ success: true, message: 'Bill created successfully', data: bill });
+});
 
-        const bill = await createBill(payload);
+export const handleBillsFetch = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { page, limit, from, to } = parsePagination(req);
+  const cacheKey = CacheKey.bills(user.id, page, limit);
 
-        // Invalidate related caches
-        await deleteCacheByPrefix(`bills:${client_id}:`);
-        await deleteCacheByPrefix(`bill_instances:${client_id}:`);
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    res.status(200).json({ success: true, message: 'Bills from cache', ...(cached as object) });
+    return;
+  }
 
-        res.status(201).json({
-            message: "Bill created successfully",
-            data: bill,
-        });
-    } catch (err: any) {
-        console.error("Bill creation failed:", err);
-        res.status(500).json({ success: false, message: "Failed to create bill" });
-    }
-};
+  const result = await fetchBills(user.id, { from, to });
 
-/* ==============================
-   Fetch Bills
-============================== */
+  const responseBody = {
+    data: result.data,
+    pagination: buildPaginationMeta(page, limit, result.count),
+  };
 
-export const handleBillsFetch = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-    const { page, limit, from, to } = parsePagination(req);
-    const cacheKey = `bills:${client_id}:${page}:${limit}`;
+  await setCache(cacheKey, responseBody, CACHE_TTL.bills);
 
-    try {
-        const cached = await getCache(cacheKey);
-        if (cached) {
-            res.status(200).json({
-                message: "Bills from Cache",
-                ...cached,
-            });
-            return;
-        }
+  res.status(200).json({ success: true, message: 'Bills fetched', ...responseBody });
+});
 
-        const result = await fetchBills(client_id, { from, to });
+export const handleBillInstancesFetch = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { page, limit, from, to } = parsePagination(req);
+  const cacheKey = CacheKey.billInstances(user.id, page, limit);
 
-        const responseBody = {
-            data: result.data,
-            pagination: buildPaginationMeta(page, limit, result.count),
-        };
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    res.status(200).json({ success: true, message: 'Bill instances from cache', ...(cached as object) });
+    return;
+  }
 
-        await setCache(cacheKey, responseBody, 3600);
+  const result = await fetchBillInstances(user.id, { from, to });
 
-        res.status(200).json({
-            message: "Bills fetched",
-            ...responseBody,
-        });
-    } catch (err) {
-        console.error("Fetch bills failed:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
+  const responseBody = {
+    data: result.data,
+    pagination: buildPaginationMeta(page, limit, result.count),
+  };
 
-/* ==============================
-   Fetch Bill Instances
-============================== */
+  await setCache(cacheKey, responseBody, CACHE_TTL.billInstances);
 
-export const handleBillInstancesFetch = async (
-    req: Request,
-    res: Response
-) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-    const { page, limit, from, to } = parsePagination(req);
-    const cacheKey = `bill_instances:${client_id}:${page}:${limit}`;
+  res.status(200).json({ success: true, message: 'Bill instances fetched', ...responseBody });
+});
 
-    try {
-        const cached = await getCache(cacheKey);
-        if (cached) {
-            res.status(200).json({
-                message: "Bill instances from Cache",
-                ...cached,
-            });
-            return;
-        }
+export const handleBillInstancePayment = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { bill_instance_id } = req.params;
 
-        const result = await fetchBillInstances(client_id, { from, to });
+  if (!bill_instance_id) {
+    throw AppError.validation('Bill instance id is required');
+  }
 
-        const responseBody = {
-            data: result.data,
-            pagination: buildPaginationMeta(page, limit, result.count),
-        };
+  await markBillInstanceAsPaid(bill_instance_id, user.id);
+  await invalidateBillPayment(user.id);
 
-        await setCache(cacheKey, responseBody, 1800); // 30 mins
-
-        res.status(200).json({
-            message: "Bill instances fetched",
-            ...responseBody,
-        });
-    } catch (err) {
-        console.error("Fetch bill instances failed:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
-
-/* ==============================
-   Mark Bill Instance as Paid
-============================== */
-
-export const handleBillInstancePayment = async (
-    req: Request,
-    res: Response
-) => {
-    const { bill_instance_id } = req.params;
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-
-    if (!bill_instance_id) {
-        res.status(400).json({ message: "Bill instance id is required" });
-        return;
-    }
-
-    try {
-        await markBillInstanceAsPaid(bill_instance_id, client_id);
-
-        // Invalidate caches
-        await deleteCacheByPrefix(`bill_instances:${client_id}:`);
-        await deleteCacheByPrefix(`transactions:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
-        await deleteCacheByPrefix(`accounts:${client_id}:`);
-
-        res.status(200).json({
-            message: "Bill marked as paid successfully",
-            data: { bill_instance_id },
-        });
-    } catch (err: any) {
-        console.error("Bill payment failed:", err);
-        res.status(400).json({
-            message: err.message || "Failed to mark bill as paid",
-        });
-    }
-};
+  res.status(200).json({
+    success: true,
+    message: 'Bill marked as paid successfully',
+    data: { bill_instance_id },
+  });
+});

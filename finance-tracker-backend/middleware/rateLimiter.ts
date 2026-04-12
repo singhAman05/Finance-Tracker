@@ -1,69 +1,65 @@
-import { Request, Response, NextFunction } from "express";
-import { getClientIp } from "../utils/Ip";
+﻿import { Request, Response, NextFunction } from 'express';
+import redisClient, { getRedisReady } from '../config/redisClient';
+import { getClientIp } from '../utils/Ip';
 
-/**
- * Token-bucket rate limiter (adapted from user's Rate_limiter project).
- * In-memory — suitable for single-instance deployments.
- * For multi-instance, migrate the bucket store to Redis.
- */
+const memoryStore = new Map<string, number[]>();
 
-type Bucket = {
-    tokens: number;
-    lastRefill: number;
-};
-
-const pool = new Map<string, Bucket>();
-
-// Clean up stale entries every 10 minutes to prevent memory leaks
-setInterval(() => {
-    const now = Date.now();
-    for (const [key, bucket] of pool) {
-        // Remove entries idle for > 30 minutes
-        if (now - bucket.lastRefill > 30 * 60 * 1000) {
-            pool.delete(key);
-        }
+const cleanup = setInterval(() => {
+  const now = Date.now();
+  for (const [key, hits] of memoryStore) {
+    const fresh = hits.filter((ts) => now - ts <= 30 * 60 * 1000);
+    if (fresh.length === 0) {
+      memoryStore.delete(key);
+      continue;
     }
+    memoryStore.set(key, fresh);
+  }
 }, 10 * 60 * 1000);
+cleanup.unref();
 
-function createLimiter(maxTokens: number, refillRatePerSecond: number) {
-    return (req: Request, res: Response, next: NextFunction) => {
-        const ip = getClientIp(req);
-        const currentTime = Date.now();
-        let bucket = pool.get(ip);
+async function consumeRedisWindow(key: string, maxHits: number, windowMs: number): Promise<boolean> {
+  const now = Date.now();
+  const min = now - windowMs;
+  const member = `${now}-${Math.random().toString(36).slice(2)}`;
 
-        if (!bucket) {
-            bucket = {
-                tokens: maxTokens,
-                lastRefill: currentTime,
-            };
-            pool.set(ip, bucket);
-            bucket.tokens -= 1;
-            return next();
-        }
-
-        const timeElapsed = (currentTime - bucket.lastRefill) / 1000;
-        const refill = timeElapsed * refillRatePerSecond;
-
-        bucket.tokens = Math.min(maxTokens, bucket.tokens + refill);
-        bucket.lastRefill = currentTime;
-
-        if (bucket.tokens < 1) {
-            res.status(429).json({
-                success: false,
-                message: "Too many requests. Please try again later.",
-            });
-            return;
-        }
-
-        bucket.tokens -= 1;
-        next();
-    };
+  await redisClient.zRemRangeByScore(key, 0, min);
+  await redisClient.zAdd(key, [{ score: now, value: member }]);
+  const count = await redisClient.zCard(key);
+  await redisClient.expire(key, Math.ceil(windowMs / 1000) + 5);
+  return count <= maxHits;
 }
 
-// Strict limiter for auth endpoints: 10 requests per 15 minutes
-// refillRate = 10 / (15 * 60) ≈ 0.011 per second
-export const authLimiter = createLimiter(10, 10 / (15 * 60));
+function consumeMemoryWindow(key: string, maxHits: number, windowMs: number): boolean {
+  const now = Date.now();
+  const hits = memoryStore.get(key) ?? [];
+  const fresh = hits.filter((ts) => now - ts <= windowMs);
+  fresh.push(now);
+  memoryStore.set(key, fresh);
+  return fresh.length <= maxHits;
+}
 
-// General API limiter: 100 requests per minute
-// refillRate = 100 / 60 ≈ 1.67 per second
-export const apiLimiter = createLimiter(100, 100 / 60);
+function createLimiter(scope: string, maxHits: number, windowMs: number) {
+  return async (req: Request, res: Response, next: NextFunction) => {
+    const ip = getClientIp(req);
+    const key = `rl:${scope}:${ip}`;
+
+    try {
+      const allowed = getRedisReady()
+        ? await consumeRedisWindow(key, maxHits, windowMs)
+        : consumeMemoryWindow(key, maxHits, windowMs);
+
+      if (!allowed) {
+        res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+        return;
+      }
+
+      next();
+    } catch {
+      // Fail-open to avoid blocking traffic due to limiter infra failures
+      next();
+    }
+  };
+}
+
+export const authLimiter = createLimiter('auth', 10, 15 * 60 * 1000);
+export const apiLimiter = createLimiter('api', 100, 60 * 1000);
