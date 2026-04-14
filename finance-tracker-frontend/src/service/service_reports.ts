@@ -1,393 +1,435 @@
-import { Account, Category, Transaction, CategoryAnalysis, AccountAnalysis, MonthlyData, ChartDataInput, BillInstance } from "@/types/interfaces";
-import type { Budget } from "@/components/redux/slices/slice_budgets";
+"use client";
 
-export const getBudgetVsActual = (
-  categories: Category[],
-  budgets: Budget[],
-  categoryMap: Record<string, { income: number; expenses: number; count: number }>
-) => {
-  const budgetMap = Object.fromEntries(
-    budgets.map(b => [b.category_id, b])
-  );
+import type { Account, BillInstance, Category, Transaction } from "@/types/interfaces";
+import type { BudgetSummary } from "@/components/redux/slices/slice_budgets";
 
-  return categories.map(category => {
-    const stats = categoryMap[category.id];
-    const budget = budgetMap[category.id];
+export type ReportPeriod =
+  | "thisMonth"
+  | "lastMonth"
+  | "last3Months"
+  | "last6Months"
+  | "allTime"
+  | "custom";
 
-    const actual = stats?.expenses || 0;
-    const limit = budget?.amount || 0;
-    const remaining = limit - actual;
-    const percentage = limit > 0 ? (actual / limit) * 100 : 0;
+export interface KpiSummary {
+  totalBalance: number;
+  totalIncome: number;
+  totalExpenses: number;
+  netCashFlow: number;
+  savingsRate: number | null;
+  burnRateWeekly: number;
+  runwayDays: number | null;
+  netTrendPercent: number | null;
+}
 
-    return {
-      category_id: category.id,
-      category_name: category.name,
-      limit,
-      actual,
-      remaining,
-      percentage,
-      overspent: limit > 0 && actual > limit,
-    };
-  });
+export interface MonthlyInsight {
+  month: string;
+  income: number;
+  expenses: number;
+  net: number;
+}
+
+export interface CategoryInsight {
+  [key: string]: string | number;
+  id: string;
+  name: string;
+  color: string;
+  income: number;
+  expenses: number;
+  net: number;
+  txCount: number;
+  shareOfExpense: number;
+}
+
+export interface AccountInsight {
+  [key: string]: string | number;
+  id: string;
+  name: string;
+  bankName: string;
+  balance: number;
+  income: number;
+  expenses: number;
+  net: number;
+  txCount: number;
+}
+
+export interface BudgetInsight extends BudgetSummary {
+  health: "healthy" | "warning" | "exceeded";
+}
+
+export interface ForecastPoint {
+  date: string;
+  projectedBalance: number;
+  projectedIncome: number;
+  projectedExpense: number;
+  dueBillsTotal: number;
+  confidence: "high" | "medium" | "low";
+}
+
+const toNumber = (value: unknown): number => {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
 };
 
-export const calculateSummaryFromAggregation = (
-  accounts: Account[],
-  categoryMap: Record<string, { income: number; expenses: number; count: number }>
+const toDate = (value: unknown): Date | null => {
+  if (!value) return null;
+  const d = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(d.getTime()) ? null : d;
+};
+
+const getMonthKey = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+
+const monthStart = (date: Date) => new Date(date.getFullYear(), date.getMonth(), 1);
+
+const percentageChange = (current: number, previous: number): number | null => {
+  if (previous === 0) return null;
+  return ((current - previous) / Math.abs(previous)) * 100;
+};
+
+export const filterTransactionsByPeriod = (
+  transactions: Transaction[],
+  period: ReportPeriod,
+  customStart?: string,
+  customEnd?: string,
+  referenceDate: Date = new Date()
 ) => {
-  const totalBalance = accounts.reduce(
-    (sum, acc) => sum + (acc.balance || 0),
-    0
-  );
+  const ref = new Date(referenceDate);
+  const refMonthStart = monthStart(ref);
 
-  let totalIncome = 0;
-  let totalExpenses = 0;
+  let start: Date | null = null;
+  let end: Date | null = null;
 
-  Object.values(categoryMap).forEach(stat => {
-    totalIncome += stat.income;
-    totalExpenses += stat.expenses;
+  if (period === "thisMonth") {
+    start = refMonthStart;
+    end = new Date(ref.getFullYear(), ref.getMonth() + 1, 1);
+  } else if (period === "lastMonth") {
+    start = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+    end = refMonthStart;
+  } else if (period === "last3Months") {
+    start = new Date(ref.getFullYear(), ref.getMonth() - 2, 1);
+    end = new Date(ref.getFullYear(), ref.getMonth() + 1, 1);
+  } else if (period === "last6Months") {
+    start = new Date(ref.getFullYear(), ref.getMonth() - 5, 1);
+    end = new Date(ref.getFullYear(), ref.getMonth() + 1, 1);
+  } else if (period === "custom") {
+    start = customStart ? toDate(customStart) : null;
+    end = customEnd ? toDate(customEnd) : null;
+    if (end) end = new Date(end.getFullYear(), end.getMonth(), end.getDate() + 1);
+  }
+
+  if (period === "allTime") return transactions.slice();
+
+  return transactions.filter((tx) => {
+    const d = toDate(tx.date);
+    if (!d) return false;
+    if (start && d < start) return false;
+    if (end && d >= end) return false;
+    return true;
   });
-
-  return {
-    totalBalance,
-    totalIncome,
-    totalExpenses,
-    netWorthChange: totalIncome - totalExpenses,
-  };
 };
 
 export const aggregateTransactions = (transactions: Transaction[]) => {
   const categoryMap: Record<string, { income: number; expenses: number; count: number }> = {};
   const accountMap: Record<string, { income: number; expenses: number; count: number }> = {};
-  // Key: "YYYY-M" (e.g. "2026-3" for April 2026)
   const monthlyMap: Record<string, { income: number; expenses: number }> = {};
 
   for (const tx of transactions) {
-    const dateObj = tx.date instanceof Date ? tx.date : new Date(tx.date);
-
-    // Guard: skip invalid dates
-    if (isNaN(dateObj.getTime())) continue;
-
-    // Use YYYY-M as key so getMonthlyData can reliably reconstruct it
-    const monthKey = `${dateObj.getFullYear()}-${dateObj.getMonth()}`;
-
-    if (!monthlyMap[monthKey]) {
-      monthlyMap[monthKey] = { income: 0, expenses: 0 };
-    }
-
+    const d = toDate(tx.date);
+    if (!d) continue;
+    const amount = toNumber(tx.amount);
     const isIncome = tx.type === "income";
-    const absAmount = Math.abs(tx.amount);
+    const monthKey = getMonthKey(d);
 
-    if (isIncome) monthlyMap[monthKey].income += absAmount;
-    else monthlyMap[monthKey].expenses += absAmount;
+    if (!monthlyMap[monthKey]) monthlyMap[monthKey] = { income: 0, expenses: 0 };
+    if (isIncome) monthlyMap[monthKey].income += amount;
+    else monthlyMap[monthKey].expenses += amount;
 
-    // Category
-    if (tx.category_id) {
-      if (!categoryMap[tx.category_id]) {
-        categoryMap[tx.category_id] = { income: 0, expenses: 0, count: 0 };
-      }
-      if (isIncome) categoryMap[tx.category_id].income += absAmount;
-      else categoryMap[tx.category_id].expenses += absAmount;
-      categoryMap[tx.category_id].count++;
-    }
+    const categoryId = tx.category_id || "unknown-category";
+    if (!categoryMap[categoryId]) categoryMap[categoryId] = { income: 0, expenses: 0, count: 0 };
+    if (isIncome) categoryMap[categoryId].income += amount;
+    else categoryMap[categoryId].expenses += amount;
+    categoryMap[categoryId].count += 1;
 
-    // Account
-    if (tx.account_id) {
-      if (!accountMap[tx.account_id]) {
-        accountMap[tx.account_id] = { income: 0, expenses: 0, count: 0 };
-      }
-      if (isIncome) accountMap[tx.account_id].income += absAmount;
-      else accountMap[tx.account_id].expenses += absAmount;
-      accountMap[tx.account_id].count++;
-    }
+    const accountId = tx.account_id || "unknown-account";
+    if (!accountMap[accountId]) accountMap[accountId] = { income: 0, expenses: 0, count: 0 };
+    if (isIncome) accountMap[accountId].income += amount;
+    else accountMap[accountId].expenses += amount;
+    accountMap[accountId].count += 1;
   }
 
   return { categoryMap, accountMap, monthlyMap };
 };
 
-export const getCategoryData = (
-  categories: Category[],
-  categoryMap: Record<string, { income: number; expenses: number; count: number }>
-): CategoryAnalysis[] => {
-  return categories
-    .map(category => {
-      const stats = categoryMap[category.id];
-      if (!stats) return null;
-      return {
-        id: category.id,
-        name: category.name,
-        income: stats.income,
-        expenses: stats.expenses,
-        net: stats.income - stats.expenses,
-        count: stats.count,
-        color: category.color,
-      };
-    })
-    .filter(Boolean) as CategoryAnalysis[];
-};
-
-export const getAccountData = (
-  accounts: Account[],
-  accountMap: Record<string, { income: number; expenses: number; count: number }>
-): AccountAnalysis[] => {
-  return accounts
-    .map(account => {
-      const stats = accountMap[account.id];
-      if (!stats) return null;
-      return {
-        id: account.id,
-        name: account.name,
-        bankName: account.bankName,
-        income: stats.income,
-        expenses: stats.expenses,
-        net: stats.income - stats.expenses,
-        count: stats.count,
-        currentBalance: account.balance || 0,
-      };
-    })
-    .filter(Boolean) as AccountAnalysis[];
-};
-
-/**
- * Converts the monthlyMap (keys like "2026-3") into sorted MonthlyData array.
- * Month index 0 = January, so new Date(year, month) works correctly.
- */
-export const getMonthlyData = (
-  monthlyMap: Record<string, { income: number; expenses: number }>
-): MonthlyData[] => {
+export const getMonthlyInsights = (transactions: Transaction[]): MonthlyInsight[] => {
+  const { monthlyMap } = aggregateTransactions(transactions);
   return Object.entries(monthlyMap)
-    .map(([key, value]) => {
-      const parts = key.split("-");
-      const year = parseInt(parts[0], 10);
-      const month = parseInt(parts[1], 10); // 0-indexed
-
-      if (isNaN(year) || isNaN(month)) return null;
-
-      const date = new Date(year, month);
+    .map(([monthKey, values]) => {
+      const [year, month] = monthKey.split("-").map((x) => Number(x));
+      const date = new Date(year, month - 1, 1);
       return {
-        month: date.toLocaleString("default", {
-          month: "short",
-          year: "numeric",
-        }),
-        income: value.income,
-        expenses: value.expenses,
-        sortKey: date.getTime(),
+        sortKey: monthKey,
+        month: date.toLocaleString("default", { month: "short", year: "numeric" }),
+        income: values.income,
+        expenses: values.expenses,
+        net: values.income - values.expenses,
       };
     })
-    .filter(Boolean)
-    .sort((a: any, b: any) => a.sortKey - b.sortKey)
-    .map(({ sortKey, ...rest }: any) => rest) as MonthlyData[];
+    .sort((a, b) => a.sortKey.localeCompare(b.sortKey))
+    .map(({ sortKey, ...rest }) => rest);
 };
 
-export const getUpcomingBillsSummary = (bills: BillInstance[], daysAhead = 30) => {
-  const now = new Date();
-  const future = new Date();
-  future.setDate(now.getDate() + daysAhead);
+export const getCategoryInsights = (
+  categories: Category[],
+  transactions: Transaction[]
+): CategoryInsight[] => {
+  const { categoryMap } = aggregateTransactions(transactions);
+  const totalExpenses = Object.values(categoryMap).reduce((sum, c) => sum + c.expenses, 0);
+  const lookup = categories.reduce((map, cat) => {
+    map[cat.id] = cat;
+    return map;
+  }, {} as Record<string, Category>);
 
-  const upcoming = bills.filter(
-    bill =>
-      bill.status !== "paid" &&
-      new Date(bill.due_date) >= now &&
-      new Date(bill.due_date) <= future
-  );
+  return Object.entries(categoryMap)
+    .map(([id, stats]) => {
+      const cat = lookup[id];
+      const expenses = stats.expenses;
+      return {
+        id,
+        name: cat?.name || "Unknown Category",
+        color: cat?.color || "#94a3b8",
+        income: stats.income,
+        expenses,
+        net: stats.income - stats.expenses,
+        txCount: stats.count,
+        shareOfExpense: totalExpenses > 0 ? (expenses / totalExpenses) * 100 : 0,
+      };
+    })
+    .sort((a, b) => b.expenses - a.expenses);
+};
 
-  const totalDue = upcoming.reduce((sum, bill) => sum + bill.amount, 0);
+export const getAccountInsights = (
+  accounts: Account[],
+  transactions: Transaction[]
+): AccountInsight[] => {
+  const { accountMap } = aggregateTransactions(transactions);
+  const lookup = accounts.reduce((map, acc) => {
+    map[acc.id] = acc;
+    return map;
+  }, {} as Record<string, Account>);
+
+  return Object.entries(accountMap)
+    .map(([id, stats]) => {
+      const acc = lookup[id];
+      return {
+        id,
+        name: acc?.name || "Unknown Account",
+        bankName: acc?.bankName || "Unknown Bank",
+        balance: toNumber(acc?.balance),
+        income: stats.income,
+        expenses: stats.expenses,
+        net: stats.income - stats.expenses,
+        txCount: stats.count,
+      };
+    })
+    .sort((a, b) => b.balance - a.balance);
+};
+
+export const getBudgetInsights = (budgetSummary: BudgetSummary[]): BudgetInsight[] =>
+  (budgetSummary || [])
+    .map((b) => {
+      const usage = toNumber(b.percentage_used);
+      let health: BudgetInsight["health"] = "healthy";
+      if (usage >= 100) health = "exceeded";
+      else if (usage >= 80) health = "warning";
+      return { ...b, health };
+    })
+    .sort((a, b) => Number(b.is_active) - Number(a.is_active) || b.percentage_used - a.percentage_used);
+
+export const calculateKpis = (
+  accounts: Account[],
+  allTransactions: Transaction[],
+  periodTransactions: Transaction[],
+  referenceDate: Date = new Date()
+): KpiSummary => {
+  const totalBalance = accounts.reduce((sum, acc) => sum + toNumber(acc.balance), 0);
+
+  const totalIncome = periodTransactions
+    .filter((tx) => tx.type === "income")
+    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+  const totalExpenses = periodTransactions
+    .filter((tx) => tx.type !== "income")
+    .reduce((sum, tx) => sum + toNumber(tx.amount), 0);
+  const netCashFlow = totalIncome - totalExpenses;
+  const savingsRate = totalIncome > 0 ? ((totalIncome - totalExpenses) / totalIncome) * 100 : null;
+
+  const last30Start = new Date(referenceDate);
+  last30Start.setDate(last30Start.getDate() - 30);
+  const last30Expense = allTransactions.reduce((sum, tx) => {
+    const d = toDate(tx.date);
+    if (!d || d < last30Start || tx.type === "income") return sum;
+    return sum + toNumber(tx.amount);
+  }, 0);
+  const burnRateWeekly = (last30Expense / 30) * 7;
+  const runwayDays = burnRateWeekly > 0 ? totalBalance / (burnRateWeekly / 7) : null;
+
+  const thisMonthTx = filterTransactionsByPeriod(allTransactions, "thisMonth", undefined, undefined, referenceDate);
+  const prevMonthTx = filterTransactionsByPeriod(allTransactions, "lastMonth", undefined, undefined, referenceDate);
+  const currentMonthNet =
+    thisMonthTx.filter((t) => t.type === "income").reduce((s, t) => s + toNumber(t.amount), 0) -
+    thisMonthTx.filter((t) => t.type !== "income").reduce((s, t) => s + toNumber(t.amount), 0);
+  const previousMonthNet =
+    prevMonthTx.filter((t) => t.type === "income").reduce((s, t) => s + toNumber(t.amount), 0) -
+    prevMonthTx.filter((t) => t.type !== "income").reduce((s, t) => s + toNumber(t.amount), 0);
+
+  const netTrendPercent = percentageChange(currentMonthNet, previousMonthNet);
 
   return {
-    count: upcoming.length,
-    totalDue,
-    upcoming,
+    totalBalance,
+    totalIncome,
+    totalExpenses,
+    netCashFlow,
+    savingsRate: savingsRate !== null ? Number(savingsRate.toFixed(1)) : null,
+    burnRateWeekly: Number(burnRateWeekly.toFixed(2)),
+    runwayDays: runwayDays !== null ? Number(runwayDays.toFixed(0)) : null,
+    netTrendPercent: netTrendPercent !== null ? Number(netTrendPercent.toFixed(1)) : null,
   };
-};
-
-export const getTopSpendingCategories = (categoryData: CategoryAnalysis[], limit = 5) => {
-  return categoryData
-    .filter(c => c.expenses > 0)
-    .toSorted((a, b) => b.expenses - a.expenses)
-    .slice(0, limit);
-};
-
-export const getTopIncomeCategories = (categoryData: CategoryAnalysis[], limit = 5) => {
-  return categoryData
-    .filter(c => c.income > 0)
-    .toSorted((a, b) => b.income - a.income)
-    .slice(0, limit);
-};
-
-export const getTopAccountsByBalance = (accountData: AccountAnalysis[], limit = 5) => {
-  return accountData
-    .toSorted((a, b) => b.currentBalance - a.currentBalance)
-    .slice(0, limit);
-};
-
-export const convertToChartData = (data: CategoryAnalysis[]): ChartDataInput[] => {
-  return data
-    .filter(item => item.expenses > 0)
-    .map(item => ({
-      name: item.name,
-      value: item.expenses,
-      color: item.color,
-    }));
-};
-
-export const convertToIncomeChartData = (data: CategoryAnalysis[]): ChartDataInput[] => {
-  return data
-    .filter(item => item.income > 0)
-    .map(item => ({
-      name: item.name,
-      value: item.income,
-      color: item.color,
-    }));
-};
-
-export const exportCategoryDataToCSV = (
-  categoryData: CategoryAnalysis[],
-  filename: string = "financial-report.csv"
-) => {
-  const sanitize = (val: string) =>
-    /^[=+\-@]/.test(val) ? `\t${val}` : val;
-  const header = "Category,Income,Expenses,Net,Transactions\n";
-  const rows = categoryData
-    .map(
-      category =>
-        `"${sanitize(category.name.replace(/"/g, '""'))}",${category.income},${category.expenses},${category.net},${category.count}`
-    )
-    .join("\n");
-
-  const csv = header + rows;
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const link = document.createElement("a");
-  const url = URL.createObjectURL(blob);
-  link.setAttribute("href", url);
-  link.setAttribute("download", filename);
-  link.style.visibility = "hidden";
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 };
 
 export const getDailyCumulativeFlow = (
   transactions: Transaction[],
   targetDate: Date = new Date()
 ) => {
-  const targetYear = targetDate.getFullYear();
-  const targetMonth = targetDate.getMonth();
-  const daysInMonth = new Date(targetYear, targetMonth + 1, 0).getDate();
+  const year = targetDate.getFullYear();
+  const month = targetDate.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
 
-  const monthTransactions = transactions.filter(tx => {
-    const d = tx.date instanceof Date ? tx.date : new Date(tx.date);
-    return (
-      !isNaN(d.getTime()) &&
-      d.getFullYear() === targetYear &&
-      d.getMonth() === targetMonth
-    );
-  });
-
-  const dailyData = Array.from({ length: daysInMonth }, (_, i) => ({
-    day: i + 1,
-    date: new Date(targetYear, targetMonth, i + 1).toLocaleDateString(
-      "default",
-      { day: "numeric", month: "short" }
-    ),
+  const daily = Array.from({ length: daysInMonth }, (_, i) => ({
+    date: new Date(year, month, i + 1).toLocaleDateString("default", { day: "numeric", month: "short" }),
+    cumulative: 0,
     income: 0,
     expenses: 0,
-    cumulative: 0,
   }));
 
-  monthTransactions.forEach(tx => {
-    const d = tx.date instanceof Date ? tx.date : new Date(tx.date);
-    const dayIndex = d.getDate() - 1;
-    const isIncome = tx.type === "income";
-    const absAmount = Math.abs(tx.amount);
-
-    if (dayIndex >= 0 && dayIndex < daysInMonth) {
-      if (isIncome) dailyData[dayIndex].income += absAmount;
-      else dailyData[dayIndex].expenses += absAmount;
-    }
+  transactions.forEach((tx) => {
+    const d = toDate(tx.date);
+    if (!d || d.getFullYear() !== year || d.getMonth() !== month) return;
+    const idx = d.getDate() - 1;
+    const amount = toNumber(tx.amount);
+    if (tx.type === "income") daily[idx].income += amount;
+    else daily[idx].expenses += amount;
   });
 
-  let runningTotal = 0;
-  dailyData.forEach(day => {
-    runningTotal += day.income - day.expenses;
-    day.cumulative = runningTotal;
+  let running = 0;
+  daily.forEach((row) => {
+    running += row.income - row.expenses;
+    row.cumulative = running;
   });
 
-  return dailyData;
+  return daily;
 };
 
-export const getCashFlowForecast = (
-  monthlyData: MonthlyData[],
-  monthsToForecast = 3
-) => {
-  if (monthlyData.length === 0) return [];
+export const getForecast = (
+  accounts: Account[],
+  transactions: Transaction[],
+  billInstances: BillInstance[],
+  horizonDays: number = 60,
+  referenceDate: Date = new Date()
+): ForecastPoint[] => {
+  const now = new Date(referenceDate);
+  const startBalance = accounts.reduce((sum, acc) => sum + toNumber(acc.balance), 0);
 
-  const totalHistoricalIncome = monthlyData.reduce(
-    (sum, d) => sum + d.income,
-    0
-  );
-  const totalHistoricalExpenses = monthlyData.reduce(
-    (sum, d) => sum + d.expenses,
-    0
-  );
-  const avgIncome = totalHistoricalIncome / monthlyData.length;
-  const avgExpenses = totalHistoricalExpenses / monthlyData.length;
+  const historyStart = new Date(now);
+  historyStart.setDate(historyStart.getDate() - 90);
 
-  // Start from the month after the latest data point
-  const latestDataPoint = monthlyData[monthlyData.length - 1];
-  let startYear: number;
-  let startMonth: number;
+  let historyIncome = 0;
+  let historyExpense = 0;
+  transactions.forEach((tx) => {
+    const d = toDate(tx.date);
+    if (!d || d < historyStart || d > now) return;
+    const amount = toNumber(tx.amount);
+    if (tx.type === "income") historyIncome += amount;
+    else historyExpense += amount;
+  });
+  const avgDailyIncome = historyIncome / 90;
+  const avgDailyExpense = historyExpense / 90;
 
-  if (latestDataPoint?.month) {
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
-    ];
-    const parts = latestDataPoint.month.split(" ");
-    const monthIdx = months.indexOf(parts[0]);
-    const year = parseInt(parts[1], 10);
+  const billsByDate = billInstances.reduce((map, bill) => {
+    if (bill.status === "paid") return map;
+    const key = String(bill.due_date).slice(0, 10);
+    map[key] = (map[key] || 0) + toNumber(bill.amount);
+    return map;
+  }, {} as Record<string, number>);
 
-    if (monthIdx !== -1 && !isNaN(year)) {
-      // Next month after latest data
-      startMonth = monthIdx + 1;
-      startYear = year;
-      if (startMonth > 11) {
-        startMonth = 0;
-        startYear += 1;
-      }
-    } else {
-      const now = new Date();
-      startYear = now.getFullYear();
-      startMonth = now.getMonth() + 1;
-    }
-  } else {
-    const now = new Date();
-    startYear = now.getFullYear();
-    startMonth = now.getMonth() + 1;
-  }
+  let balance = startBalance;
+  const points: ForecastPoint[] = [
+    {
+      date: now.toISOString().slice(0, 10),
+      projectedBalance: Number(balance.toFixed(2)),
+      projectedIncome: 0,
+      projectedExpense: 0,
+      dueBillsTotal: 0,
+      confidence: "high",
+    },
+  ];
 
-  const forecastData = [];
+  for (let i = 1; i <= horizonDays; i += 1) {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    const key = d.toISOString().slice(0, 10);
+    const dueBillsTotal = billsByDate[key] || 0;
+    const projectedIncome = avgDailyIncome;
+    const projectedExpense = avgDailyExpense + dueBillsTotal;
+    balance += projectedIncome - projectedExpense;
 
-  for (let i = 0; i < monthsToForecast; i++) {
-    let m = startMonth + i;
-    let y = startYear;
-
-    if (m > 11) {
-      m = m % 12;
-      y += 1;
-    }
-
-    const d = new Date(y, m);
-    forecastData.push({
-      month: d.toLocaleString("default", {
-        month: "short",
-        year: "numeric",
-      }),
-      income: Math.round(avgIncome),
-      expenses: Math.round(avgExpenses),
-      isForecast: true,
+    points.push({
+      date: key,
+      projectedBalance: Number(balance.toFixed(2)),
+      projectedIncome: Number(projectedIncome.toFixed(2)),
+      projectedExpense: Number(projectedExpense.toFixed(2)),
+      dueBillsTotal: Number(dueBillsTotal.toFixed(2)),
+      confidence: i <= 14 ? "high" : i <= 45 ? "medium" : "low",
     });
   }
 
-  return forecastData;
+  return points;
+};
+
+const sanitizeForCsv = (value: string) => (/^[=+\-@]/.test(value) ? `\t${value}` : value);
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const link = document.createElement("a");
+  const url = URL.createObjectURL(blob);
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
+export const exportCsv = (
+  filename: string,
+  headers: string[],
+  rows: Array<Array<string | number | null | undefined>>
+) => {
+  const headerLine = `${headers.join(",")}\n`;
+  const lines = rows
+    .map((row) =>
+      row
+        .map((cell) => {
+          const raw = cell === null || cell === undefined ? "" : String(cell);
+          const escaped = sanitizeForCsv(raw.replace(/"/g, '""'));
+          return `"${escaped}"`;
+        })
+        .join(",")
+    )
+    .join("\n");
+
+  downloadBlob(new Blob([headerLine + lines], { type: "text/csv;charset=utf-8;" }), filename);
+};
+
+export const exportJson = (filename: string, payload: unknown) => {
+  const json = JSON.stringify(payload, null, 2);
+  downloadBlob(new Blob([json], { type: "application/json;charset=utf-8;" }), filename);
 };

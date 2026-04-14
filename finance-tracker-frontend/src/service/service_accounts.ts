@@ -29,6 +29,7 @@ interface MappedAccount {
   balance: number;
   lastDigits: string;
   bank: string;
+  bankName: string;
   currency: string;
   status: string;
   is_recurring: boolean;
@@ -40,6 +41,11 @@ interface MappedAccount {
   recurring_last_posted: string | null;
 }
 
+const toNumber = (value: unknown): number => {
+  const n = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(n) ? n : 0;
+};
+
 export const fetchAccounts = async () => {
   const result = await fetchAccountsRoute();
   if (!result || !result.data) return { data: [] as MappedAccount[], message: "" };
@@ -48,16 +54,23 @@ export const fetchAccounts = async () => {
     id: acc.id as string,
     name: `${acc.account_holder_name} Account`,
     type: acc.account_type as string,
-    balance: acc.balance as number,
+    balance: toNumber(acc.balance),
     lastDigits: acc.account_number_last4 as string,
     bank: acc.bank_name as string,
+    bankName: acc.bank_name as string,
     currency: acc.currency as string,
     status: acc.status as string,
     is_recurring: (acc.is_recurring as boolean) ?? false,
-    recurring_amount: (acc.recurring_amount as number) ?? null,
+    recurring_amount:
+      acc.recurring_amount !== null && acc.recurring_amount !== undefined
+        ? toNumber(acc.recurring_amount)
+        : null,
     recurring_type: (acc.recurring_type as string) ?? null,
     recurring_frequency: (acc.recurring_frequency as string) ?? null,
-    recurring_day_of_month: (acc.recurring_day_of_month as number) ?? null,
+    recurring_day_of_month:
+      acc.recurring_day_of_month !== null && acc.recurring_day_of_month !== undefined
+        ? toNumber(acc.recurring_day_of_month)
+        : null,
     recurring_description: (acc.recurring_description as string) ?? null,
     recurring_last_posted: (acc.recurring_last_posted as string) ?? null,
   }));

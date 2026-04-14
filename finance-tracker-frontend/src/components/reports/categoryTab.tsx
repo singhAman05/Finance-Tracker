@@ -1,82 +1,50 @@
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { LayoutGrid } from "lucide-react";
-import { cn } from "@/lib/utils";
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useCurrency } from "@/hooks/useCurrency";
-import {
-  Table,
-  TableHeader,
-  TableRow,
-  TableHead,
-  TableBody,
-  TableCell,
-} from "@/components/ui/table";
-import { CategoryAnalysis } from "@/types/interfaces";
+import type { CategoryInsight } from "@/service/service_reports";
 
 interface CategoriesTabProps {
-  categoryData: CategoryAnalysis[];
+  categoryData: CategoryInsight[];
 }
-
-
 
 export default function CategoriesTab({ categoryData }: CategoriesTabProps) {
   const { formatCurrency } = useCurrency();
+
   return (
-    <Card className="rounded-3xl border border-border bg-card shadow-sm">
-      <CardHeader className="flex flex-row items-center justify-between">
-        <CardTitle className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-primary/10">
-            <LayoutGrid className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <span className="block font-bold text-text-primary">Category Breakdown</span>
-            <span className="block text-[10px] text-text-secondary font-medium uppercase tracking-widest mt-0.5">Full distribution list</span>
-          </div>
-        </CardTitle>
+    <Card className="border-border bg-card">
+      <CardHeader>
+        <CardTitle className="text-base">Category Breakdown</CardTitle>
       </CardHeader>
       <CardContent className="px-0">
         <Table>
           <TableHeader>
-            <TableRow className="hover:bg-transparent border-b border-border bg-transparent">
-              <TableHead className="pl-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-left">Category</TableHead>
-              <TableHead className="py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Income</TableHead>
-              <TableHead className="py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Expenses</TableHead>
-              <TableHead className="py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Net Flow</TableHead>
-              <TableHead className="pr-8 py-5 text-[10px] font-black uppercase tracking-[0.2em] text-text-secondary text-right">Transactions</TableHead>
+            <TableRow>
+              <TableHead className="pl-6">Category</TableHead>
+              <TableHead className="text-right">Income</TableHead>
+              <TableHead className="text-right">Expense</TableHead>
+              <TableHead className="text-right">Net</TableHead>
+              <TableHead className="text-right">Share</TableHead>
+              <TableHead className="text-right pr-6">Tx Count</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {categoryData
-              .toSorted((a, b) => b.expenses - a.expenses)
-              .map((category) => (
-                <TableRow key={category.id} className="group hover:bg-muted transition-colors border-b border-border last:border-0">
-                  <TableCell className="pl-8 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: category.color || "var(--primary)" }} />
-                      <span className="font-bold text-sm tracking-tight text-text-primary truncate max-w-[150px]">{category.name}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className="font-mono text-sm font-medium text-success">
-                      {formatCurrency(category.income)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className="font-mono text-sm font-medium text-danger">
-                      {formatCurrency(category.expenses)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span className={`font-mono text-sm font-bold ${category.net >= 0 ? "text-success" : "text-danger"}`}>
-                      {category.net >= 0 ? "+" : ""}{formatCurrency(category.net)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right pr-8">
-                    <span className="text-xs font-bold text-text-secondary">
-                      {category.count} <span className="font-normal opacity-60 ml-0.5 text-[10px] uppercase tracking-wider">txns</span>
-                    </span>
-                  </TableCell>
-                </TableRow>
-              ))}
+            {categoryData.map((cat) => (
+              <TableRow key={cat.id}>
+                <TableCell className="pl-6">
+                  <div className="flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: cat.color }} />
+                    <span>{cat.name}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-right text-success">{formatCurrency(cat.income)}</TableCell>
+                <TableCell className="text-right text-danger">{formatCurrency(cat.expenses)}</TableCell>
+                <TableCell className="text-right">{formatCurrency(cat.net)}</TableCell>
+                <TableCell className="text-right">{cat.shareOfExpense.toFixed(1)}%</TableCell>
+                <TableCell className="text-right pr-6">{cat.txCount}</TableCell>
+              </TableRow>
+            ))}
           </TableBody>
         </Table>
       </CardContent>

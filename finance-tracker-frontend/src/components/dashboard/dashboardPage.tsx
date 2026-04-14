@@ -12,6 +12,7 @@ import {
 import { RootState } from "@/app/store";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import Loader from "@/utils/loader";
 import {
   ArrowUpDown,
   ArrowDownLeft,
@@ -40,7 +41,12 @@ import { useRouter } from "next/navigation";
 // Services and Actions
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
 import { fetchAccounts } from "@/service/service_accounts";
-import { getCategoryData, aggregateTransactions, getMonthlyData } from "@/service/service_reports";
+import {
+  calculateKpis,
+  filterTransactionsByPeriod,
+  getCategoryInsights,
+  getMonthlyInsights,
+} from "@/service/service_reports";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
 import { fetchBillInstances, fetchBills } from "@/service/service_bills";
@@ -219,15 +225,10 @@ export default function DashboardPage() {
   );
 
   const categoryData = useMemo(() => {
-    if (
-      !Array.isArray(categories) ||
-      !Array.isArray(transactions) ||
-      transactions.length === 0
-    ) {
+    if (!Array.isArray(categories) || !Array.isArray(transactions) || transactions.length === 0) {
       return [];
     }
-    const { categoryMap } = aggregateTransactions(transactions);
-    return getCategoryData(categories, categoryMap);
+    return getCategoryInsights(categories, transactions);
   }, [categories, transactions]);
 
   const activeBudgetSummary = useMemo(
@@ -275,10 +276,17 @@ export default function DashboardPage() {
   }, [billInstances]);
 
   // Charts — memoized
-  const monthlyData = useMemo(() => {
-    const { monthlyMap } = aggregateTransactions(transactions);
-    return getMonthlyData(monthlyMap).slice(-6);
-  }, [transactions]);
+  const monthlyData = useMemo(() => getMonthlyInsights(transactions).slice(-6), [transactions]);
+
+  const thisMonthTransactions = useMemo(
+    () => filterTransactionsByPeriod(transactions, "thisMonth"),
+    [transactions]
+  );
+
+  const dashboardKpis = useMemo(
+    () => calculateKpis(accounts, transactions, thisMonthTransactions),
+    [accounts, transactions, thisMonthTransactions]
+  );
 
   const spendingChartData = useMemo(() => {
     if (!Array.isArray(categoryData)) return [];
@@ -312,6 +320,14 @@ export default function DashboardPage() {
   const renderTooltip = (props: any) => (
     <GlassTooltip {...props} currencySymbol={symbol} />
   );
+
+  if (loading && transactions.length === 0) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center">
+        <Loader size="md" text="Loading dashboard insights..." />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
@@ -465,10 +481,7 @@ export default function DashboardPage() {
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
                 <AnimatedCounter
-                  target={Math.min(
-                    100,
-                    Math.round(budgetStats.overallPercentage)
-                  )}
+                  target={budgetStats.overallPercentage}
                 />
                 <span>%</span>
               </div>
@@ -479,7 +492,7 @@ export default function DashboardPage() {
                 of {formatCurrency(budgetStats.totalBudget)} used
               </p>
               <Progress
-                value={budgetStats.overallPercentage}
+                value={Math.min(100, budgetStats.overallPercentage)}
                 className="h-1.5 mt-3 bg-muted"
               />
             </CardContent>
@@ -617,8 +630,8 @@ export default function DashboardPage() {
           <div className="lg:col-span-5">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
-                <CardTitle className="text-lg">Net Worth Trend</CardTitle>
-                <CardDescription>Monthly progression</CardDescription>
+                <CardTitle className="text-lg">Net Cash Flow Trend</CardTitle>
+                <CardDescription>Monthly income minus expenses</CardDescription>
               </CardHeader>
               <CardContent className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
@@ -759,12 +772,12 @@ export default function DashboardPage() {
                       <div className="flex items-center">
                         <div
                           className={`p-2.5 rounded-xl mr-4 transition-colors ${
-                            transaction.amount > 0
+                            transaction.type === "income"
                               ? "bg-success/10 text-success"
                               : "bg-danger/10 text-danger"
                           }`}
                         >
-                          {transaction.amount > 0 ? (
+                          {transaction.type === "income" ? (
                             <ArrowUpRight className="h-4 w-4" />
                           ) : (
                             <ArrowDownLeft className="h-4 w-4" />
@@ -780,14 +793,14 @@ export default function DashboardPage() {
                           </div>
                         </div>
                       </div>
-                      <div
-                        className={`font-semibold tracking-tight flex-shrink-0 ${
-                          transaction.amount > 0
-                            ? "text-success"
-                            : "text-danger"
-                        }`}
-                      >
-                        {transaction.amount < 0 ? "-" : "+"}
+                        <div
+                          className={`font-semibold tracking-tight flex-shrink-0 ${
+                            transaction.type === "income"
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                        {transaction.type === "expense" ? "-" : "+"}
                         {formatCurrency(Math.abs(transaction.amount))}
                       </div>
                     </div>
@@ -846,7 +859,7 @@ export default function DashboardPage() {
                         })
                       ) : (
                         <p className="text-xs text-muted-foreground">
-                          No overdue bills. 🎉
+                          No overdue bills.
                         </p>
                       )}
                     </div>
@@ -898,25 +911,39 @@ export default function DashboardPage() {
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="pb-6">
                 <CardTitle className="text-lg">Financial Overview</CardTitle>
-                <CardDescription>Monthly Analysis</CardDescription>
+                <CardDescription>Actionable health indicators</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div>
                     <div className="flex justify-between text-sm mb-2">
                       <span className="font-semibold tracking-tight text-text-primary">
-                        Savings Goal Progress
+                        Savings Rate (This Month)
                       </span>
                       <span className="text-text-secondary font-medium">
-                        Inactive
+                        {dashboardKpis.savingsRate !== null
+                          ? `${dashboardKpis.savingsRate}%`
+                          : "N/A"}
                       </span>
                     </div>
                     <Progress
-                      value={0}
+                      value={Math.max(
+                        0,
+                        Math.min(100, dashboardKpis.savingsRate ?? 0)
+                      )}
                       className="h-2.5 rounded-full bg-muted"
                     />
                     <div className="flex justify-between text-xs text-text-secondary mt-2 font-medium">
-                      <span>Module disabled in settings</span>
+                      <span>
+                        Burn Rate: {formatCurrency(dashboardKpis.burnRateWeekly)}
+                        /week
+                      </span>
+                      <span>
+                        Runway:{" "}
+                        {dashboardKpis.runwayDays !== null
+                          ? `${dashboardKpis.runwayDays} days`
+                          : "N/A"}
+                      </span>
                     </div>
                   </div>
                 </div>
