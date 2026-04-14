@@ -10,6 +10,7 @@ import {
   setAccounts,
   removeAccount,
 } from "@/components/redux/slices/slice_accounts";
+import { setTransactions } from "@/components/redux/slices/slice_transactions";
 import { AddAccount } from "./addAccount";
 import {
   fetchAccounts,
@@ -17,7 +18,7 @@ import {
   deleteAccount,
   processRecurringAccounts,
 } from "@/service/service_accounts";
-import { getFinancialHealth } from "@/service/service_transactions";
+import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
 import { RootState as TxRootState } from "@/app/store";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -117,8 +118,14 @@ export default function AccountsPage() {
         if (isRefresh) setIsRefreshing(true);
         else setLoading(true);
 
-        const data = await fetchAccounts();
-        dispatch(setAccounts(data.data));
+        const [accountsRes, transactionsRes] = await Promise.all([
+          fetchAccounts(),
+          transactions.length === 0 || isRefresh
+            ? fetchTransactions()
+            : Promise.resolve({ data: transactions }),
+        ]);
+        dispatch(setAccounts(accountsRes?.data ?? []));
+        dispatch(setTransactions(transactionsRes?.data ?? []));
       } catch (err) {
         console.error("Error fetching accounts:", err);
       } finally {
@@ -126,7 +133,7 @@ export default function AccountsPage() {
         setIsRefreshing(false);
       }
     },
-    [dispatch]
+    [dispatch, transactions, transactions.length]
   );
 
   // --- Refresh on Modal Close ---

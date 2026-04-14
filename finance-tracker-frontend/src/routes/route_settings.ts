@@ -23,34 +23,34 @@ interface ClearHistoryResponse {
 }
 
 export const fetchSettingsRoute = async () => {
-  const data = await apiClient<SettingsResponse>("/api/settings", {
+  const res = await apiClient<SettingsResponse>("/api/settings", {
     method: "GET",
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
 
 export const updateSettingsRoute = async (payload: Record<string, unknown>) => {
-  const data = await apiClient<SettingsResponse>("/api/settings", {
+  const res = await apiClient<SettingsResponse>("/api/settings", {
     method: "PUT",
     body: JSON.stringify(payload),
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
 
 export const exportDataRoute = async () => {
-  const data = await apiClient<ExportDataResponse>("/api/settings/export", {
+  const res = await apiClient<ExportDataResponse>("/api/settings/export", {
     method: "GET",
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
 
 export const clearHistoryRoute = async () => {
-  const data = await apiClient<ClearHistoryResponse>("/api/settings/history", {
+  const res = await apiClient<ClearHistoryResponse>("/api/settings/history", {
     method: "DELETE",
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };

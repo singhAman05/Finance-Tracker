@@ -1,67 +1,46 @@
-import { Request, Response } from "express";
-import { addingCategory, getSystemCategories } from "../services/service_categories";
-import { validateCategory } from "../utils/validationUtils";
+﻿import { Request, Response } from 'express';
+import { addingCategory, getSystemCategories } from '../services/service_categories';
+import { validateCategory } from '../utils/validationUtils';
+import { asyncHandler } from '../utils/asyncHandler';
+import { getUser } from '../middleware/jwt';
+import { AppError } from '../utils/AppError';
 
-export const handleCategoryCreation = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const { name, type, color, icon, parent_id, is_default } = req.body;
+export const handleCategoryCreation = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { name, type, color, icon, parent_id, is_default } = req.body as Record<string, unknown>;
 
-    try {
-        const isValid = await validateCategory(name, type);
-        if (!isValid.valid) {
-            res.status(400).json({ message: isValid.message });
-            return;
-        }
+  const valid = validateCategory(name, type);
 
-        const category_payload = {
-            client_id: user.id,
-            name: name.trim(),
-            type,
-            color,
-            icon,
-            parent_id,
-            is_default,
-        };
+  const result = await addingCategory({
+    client_id: user.id,
+    name: valid.name,
+    type: valid.type,
+    color: typeof color === 'string' ? color : undefined,
+    icon: typeof icon === 'string' ? icon : undefined,
+    parent_id: typeof parent_id === 'string' ? parent_id : undefined,
+    is_default: typeof is_default === 'boolean' ? is_default : undefined,
+  });
 
-        const result = await addingCategory(category_payload);
+  if (result.error || !result.data) {
+    throw AppError.internal('Failed to create category', result.error);
+  }
 
-        if (result.error) {
-            console.error("DB insert error:", result.error);
-            res.status(500).json({ message: "Internal Server Error" });
-            return
-        }
+  res.status(201).json({
+    success: true,
+    message: 'Category added successfully',
+    category: result.data,
+  });
+});
 
-        res.status(201).json({
-            message: "Category added successfully",
-            category: result.data,
-        });
-        return;
-    } catch (err) {
-        console.error("Category addition failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
-        return
-    }
-};
+export const handleSystemCategoryfetch = asyncHandler(async (_req: Request, res: Response) => {
+  const result = await getSystemCategories();
+  if (result.error) {
+    throw AppError.internal('Cannot fetch system categories', result.error);
+  }
 
-export const handleSystemCategoryfetch = async(req : Request, res : Response)=>{
-    try{
-        // console.log("he;;o")
-        const result = await getSystemCategories();
-
-        if(result.data && result.data.length===0){
-            res.status(404).json({message : `No System Categories`});
-            return;
-        }
-        if(result.error){
-            console.log(`Cannot Fetch System Categories from DB : ${result.error}`)
-            res.status(405).json({message : `Cannot Fetch System Categories from DB`})
-            return;
-        }
-
-        res.status(200).json({message : `System Categories fetched`, data : result.data})
-    }catch(err){
-        console.log(`System Category fetch failed : ${err}`);
-        res.status(500).json({message: `Internal Server Error`});
-        return;
-    }
-}
+  res.status(200).json({
+    success: true,
+    message: 'System categories fetched',
+    data: result.data ?? [],
+  });
+});

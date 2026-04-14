@@ -1,292 +1,169 @@
-import { Request, Response } from "express";
+﻿import { Request, Response } from 'express';
 import {
-    createBudget,
-    fetchBudgets,
-    deleteBudget,
-    updateBudget,
-    fetchBudgetSummary
-} from "../services/service_budgets";
-import { getCache, setCache, deleteCache, deleteCacheByPrefix } from "../utils/cacheUtils";
-import { parsePagination, buildPaginationMeta } from "../utils/paginationUtils";
+  createBudget,
+  fetchBudgets,
+  deleteBudget,
+  updateBudget,
+  fetchBudgetSummary,
+} from '../services/service_budgets';
+import { getCache, setCache, CacheKey, invalidateBudgets } from '../utils/cacheUtils';
+import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
+import { asyncHandler } from '../utils/asyncHandler';
+import { getUser } from '../middleware/jwt';
+import { AppError } from '../utils/AppError';
+import { CACHE_TTL } from '../types';
 
-export const handleBudgetCreation = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
+const allowedPeriods = ['weekly', 'monthly', 'quarterly', 'yearly', 'custom'];
 
-    const {
-        category_id,
-        name,
-        amount,
-        period_type,
-        start_date,
-        end_date,
-        notes,
-    } = req.body;
+export const handleBudgetCreation = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { category_id, name, amount, period_type, start_date, end_date, notes } = req.body as Record<string, unknown>;
 
-    // Basic validation (you can move this to validationUtils later)
-    if (!category_id || amount === undefined || !period_type || !start_date || !end_date) {
-        res.status(400).json({ message: "Missing required fields" });
-        return;
-    }
+  if (!category_id || !period_type || !start_date || !end_date) {
+    throw AppError.validation('Missing required fields');
+  }
 
-    const parsedAmount = Number(amount);
-    const allowedPeriods = ["weekly", "monthly", "quarterly", "yearly", "custom"];
+  const parsedAmount = Number(amount);
+  if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+    throw AppError.validation('Invalid amount');
+  }
 
-    if (!allowedPeriods.includes(period_type)) {
-        res.status(400).json({ message: "Invalid period type" });
-        return;
-    }
+  if (!allowedPeriods.includes(String(period_type))) {
+    throw AppError.validation('Invalid period type');
+  }
 
-    if (isNaN(parsedAmount) || parsedAmount < 0) {
-        res.status(400).json({ message: "Invalid amount" });
-        return;
-    }
-    if (new Date(start_date) >= new Date(end_date)) {
-        res.status(400).json({
-            message: "End date must be after start date"
-        });
-        return;
-    }
+  if (new Date(String(start_date)) >= new Date(String(end_date))) {
+    throw AppError.validation('End date must be after start date');
+  }
 
-    try {
-        const payload = {
-            client_id,
-            category_id,
-            name: name?.trim() || null,
-            amount: parsedAmount,
-            period_type,
-            start_date,
-            end_date,
-            notes: notes?.trim() || null,
-        };
+  const result = await createBudget({
+    client_id: user.id,
+    category_id: String(category_id),
+    name: typeof name === 'string' ? name.trim() : undefined,
+    amount: parsedAmount,
+    period_type: String(period_type) as 'weekly' | 'monthly' | 'quarterly' | 'yearly' | 'custom',
+    start_date: String(start_date),
+    end_date: String(end_date),
+    notes: typeof notes === 'string' ? notes.trim() : undefined,
+  });
 
-        const result = await createBudget(payload);
+  if (result.error?.message?.includes('exclusion')) {
+    throw AppError.validation('Budget overlaps with an existing budget for this category');
+  }
+  if (result.error || !result.data) {
+    throw AppError.internal('Failed to create budget', result.error);
+  }
 
-        if (result.error?.message.includes("exclusion")) {
-            res.status(400).json({
-                message: "Budget overlaps with an existing budget for this category"
-            });
-            return;
-        }
+  await invalidateBudgets(user.id);
 
-        if (result.error) {
-            console.error("Budget creation error:", result.error);
-            res.status(500).json({ message: "Failed to create budget" });
-            return;
-        }
+  res.status(201).json({ success: true, message: 'Budget created successfully', data: result.data });
+});
 
-        // Invalidate cache
-        await deleteCacheByPrefix(`budgets:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
+export const handleBudgetFetch = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { page, limit, from, to } = parsePagination(req);
+  const cacheKey = CacheKey.budgets(user.id, page, limit);
 
-        res.status(201).json({
-            message: "Budget created successfully",
-            data: result.data,
-        });
-    } catch (err) {
-        console.error("Unexpected budget creation error:", err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    res.status(200).json({ success: true, message: 'Budgets from cache', ...(cached as object) });
+    return;
+  }
 
-export const handleBudgetFetch = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-    const { page, limit, from, to } = parsePagination(req);
-    const cacheKey = `budgets:${client_id}:${page}:${limit}`;
+  const result = await fetchBudgets(user.id, { from, to });
+  if (result.error) {
+    throw AppError.internal('Failed to fetch budgets', result.error);
+  }
 
-    try {
-        // Check cache first
-        const cached = await getCache(cacheKey);
-        if (cached) {
-            res.status(200).json({
-                message: "Budgets from Cache",
-                ...cached,
-            });
-            return;
-        }
+  const responseBody = {
+    data: result.data ?? [],
+    pagination: buildPaginationMeta(page, limit, result.count),
+  };
 
-        const result = await fetchBudgets(client_id, { from, to });
+  await setCache(cacheKey, responseBody, CACHE_TTL.long);
 
-        if (result.data && result.data.length === 0) {
-            res.status(200).json({
-                message: "No Budgets Found",
-                data: result.data,
-                pagination: buildPaginationMeta(page, limit, result.count),
-            });
-            return;
-        }
+  res.status(200).json({ success: true, message: 'Budgets fetched', ...responseBody });
+});
 
-        if (result.error) {
-            console.error("Budget fetch error:", result.error);
-            res.status(500).json({ success: false, message: "Failed to fetch budgets" });
-            return;
-        }
+export const handleBudgetDeletion = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { budget_id } = req.params;
 
-        const responseBody = {
-            data: result.data,
-            pagination: buildPaginationMeta(page, limit, result.count),
-        };
+  const result = await deleteBudget(budget_id, user.id);
+  if (result.error) {
+    throw AppError.notFound('Budget not found or unauthorized');
+  }
 
-        // Cache for 1 hour
-        await setCache(cacheKey, responseBody, 3600);
+  await invalidateBudgets(user.id);
 
-        res.status(200).json({
-            message: "Budgets fetched",
-            ...responseBody,
-        });
-    } catch (err) {
-        console.error("Budget fetch failed:", err);
-        res.status(500).json({ success: false, message: "Internal Server Error" });
-    }
-};
+  res.status(200).json({
+    success: true,
+    message: 'Budget deleted successfully',
+    data: { budget_id },
+  });
+});
 
-export const handleBudgetDeletion = async (req: Request, res: Response) => {
-    const { budget_id } = req.params;
-    const user = (req as any).user.payload;
-    const client_id = user.id;
+export const handleBudgetUpdate = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { budget_id } = req.params;
 
-    try {
-        const result = await deleteBudget(budget_id, client_id);
+  const existing = await fetchBudgets(user.id);
+  const budget = existing.data?.find((b: { id: string; is_active: boolean }) => b.id === budget_id);
+  if (budget && budget.is_active === false) {
+    throw AppError.validation('Cannot update an expired budget');
+  }
 
-        if (result.error) {
-            console.error("Budget deletion error:", result.error);
-            res.status(404).json({
-                message: "Budget not found or unauthorized",
-            });
-            return;
-        }
+  const { amount, period_type, start_date, end_date, notes, name } = req.body as Record<string, unknown>;
+  const safeUpdates: Record<string, unknown> = {};
+  if (amount !== undefined) safeUpdates.amount = amount;
+  if (period_type !== undefined) safeUpdates.period_type = period_type;
+  if (start_date !== undefined) safeUpdates.start_date = start_date;
+  if (end_date !== undefined) safeUpdates.end_date = end_date;
+  if (notes !== undefined) safeUpdates.notes = notes;
+  if (name !== undefined) safeUpdates.name = name;
 
-        await deleteCacheByPrefix(`budgets:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
+  const result = await updateBudget(budget_id, user.id, safeUpdates);
+  if (result.error || !result.data) {
+    throw AppError.notFound('Budget not found or unauthorized');
+  }
 
-        res.status(200).json({
-            message: "Budget deleted successfully",
-            data: { budget_id },
-        });
-    } catch (err) {
-        console.error("Budget deletion failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};
+  await invalidateBudgets(user.id);
 
-export const handleBudgetUpdate = async (req: Request, res: Response) => {
-    const { budget_id } = req.params;
-    const user = (req as any).user.payload;
-    const client_id = user.id;
+  res.status(200).json({ success: true, message: 'Budget updated successfully', data: result.data });
+});
 
-    try {
-        const existingBudgets = await fetchBudgets(client_id);
-        const budgetToUpdate = existingBudgets.data?.find((b: any) => b.id === budget_id);
+export const handleBudgetExpire = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const { budget_id } = req.params;
 
-        if (budgetToUpdate && budgetToUpdate.is_active === false) {
-            res.status(400).json({ message: "Cannot update an expired budget" });
-            return;
-        }
+  const updates = { end_date: new Date().toISOString().split('T')[0], is_active: false };
+  const result = await updateBudget(budget_id, user.id, updates);
 
-        // --- #8: Whitelist allowed fields (prevent mass-assignment) ---
-        const { amount, period_type, start_date, end_date, notes, name } = req.body;
-        const safeUpdates: Record<string, unknown> = {};
-        if (amount !== undefined) safeUpdates.amount = amount;
-        if (period_type !== undefined) safeUpdates.period_type = period_type;
-        if (start_date !== undefined) safeUpdates.start_date = start_date;
-        if (end_date !== undefined) safeUpdates.end_date = end_date;
-        if (notes !== undefined) safeUpdates.notes = notes;
-        if (name !== undefined) safeUpdates.name = name;
+  if (result.error || !result.data) {
+    throw AppError.notFound('Budget not found or unauthorized');
+  }
 
-        const result = await updateBudget(budget_id, client_id, safeUpdates);
+  await invalidateBudgets(user.id);
 
-        if (result.error) {
-            console.error("Budget update error:", result.error);
-            res.status(404).json({
-                message: "Budget not found or unauthorized",
-            });
-            return;
-        }
+  res.status(200).json({ success: true, message: 'Budget ended early', data: result.data });
+});
 
-        await deleteCacheByPrefix(`budgets:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
+export const handleBudgetSummary = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const cacheKey = CacheKey.budgetSummary(user.id);
 
-        res.status(200).json({
-            message: "Budget updated successfully",
-            data: result.data,
-        });
-    } catch (err) {
-        console.error("Budget update failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};
+  const cached = await getCache(cacheKey);
+  if (cached) {
+    res.status(200).json({ success: true, message: 'Budget summary from cache', data: cached });
+    return;
+  }
 
-export const handleBudgetExpire = async (req: Request, res: Response) => {
-    const { budget_id } = req.params;
-    const user = (req as any).user.payload;
-    const client_id = user.id;
+  const result = await fetchBudgetSummary(user.id);
+  if (result.error) {
+    throw AppError.internal('Failed to fetch budget summary', result.error);
+  }
 
-    try {
-        const today = new Date().toISOString().split("T")[0];
+  await setCache(cacheKey, result.data ?? [], CACHE_TTL.medium);
 
-        // Update both end_date and is_active explicitly to end the budget early
-        const updates = {
-            end_date: today,
-            is_active: false
-        };
-
-        const result = await updateBudget(budget_id, client_id, updates);
-
-        if (result.error) {
-            console.error("Budget expire error:", result.error);
-            res.status(404).json({
-                message: "Budget not found or unauthorized",
-            });
-            return;
-        }
-
-        await deleteCacheByPrefix(`budgets:${client_id}:`);
-        await deleteCache(`budgets:summary:${client_id}`);
-
-        res.status(200).json({
-            message: "Budget successfully ended early",
-            data: result.data,
-        });
-    } catch (err) {
-        console.error("Budget expire failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};
-
-export const handleBudgetSummary = async (req: Request, res: Response) => {
-    const user = (req as any).user.payload;
-    const client_id = user.id;
-    const cacheKey = `budgets:summary:${client_id}`;
-
-    try {
-        // --- #21: Re-enabled budget summary cache read ---
-        const cached = await getCache(cacheKey);
-        if (cached) {
-            res.status(200).json({
-                message: "Budget summary from cache",
-                data: cached,
-            });
-            return;
-        }
-
-        const result = await fetchBudgetSummary(client_id);
-
-        if (result.error) {
-            console.error("Budget summary error:", result.error);
-            res.status(500).json({
-                message: "Failed to fetch budget summary",
-            });
-            return;
-        }
-        await setCache(cacheKey, result.data, 900); // 15 mins
-
-        res.status(200).json({
-            message: "Budget summary fetched",
-            data: result.data,
-        });
-    } catch (err) {
-        console.error("Budget summary failed:", err);
-        res.status(500).json({ message: "Internal Server Error" });
-    }
-};
+  res.status(200).json({ success: true, message: 'Budget summary fetched', data: result.data ?? [] });
+});

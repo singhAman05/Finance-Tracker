@@ -11,34 +11,34 @@ interface SingleAccountResponse {
 }
 
 export const createAccountRoute = async (payload: object) => {
-  const data = await apiClient<SingleAccountResponse>("/api/accounts/creating-account", {
+  const res = await apiClient<SingleAccountResponse>("/api/accounts/creating-account", {
     method: "POST",
     body: JSON.stringify(payload),
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
 
 export const fetchAccountsRoute = async () => {
-  const data = await apiClient<AccountResponse>("/api/accounts/fetch-accounts", {
+  const res = await apiClient<AccountResponse>("/api/accounts/fetch-accounts", {
     method: "GET",
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
 
 export const deleteAccountRoute = async (accountId: string) => {
-  const data = await apiClient<{ message: string }>(`/api/accounts/delete-account/${accountId}`, {
+  const res = await apiClient<{ message: string }>(`/api/accounts/delete-account/${accountId}`, {
     method: "DELETE",
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };
 
 export const processRecurringRoute = async () => {
-  const data = await apiClient<{ message: string }>("/api/accounts/process-recurring", {
+  const res = await apiClient<{ message: string }>("/api/accounts/process-recurring", {
     method: "POST",
   });
-  if (data.error) throw new Error(data.error.message);
-  return data.result;
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
 };

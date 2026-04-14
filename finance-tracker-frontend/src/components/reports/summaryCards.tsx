@@ -1,124 +1,59 @@
-import { useEffect, useState } from "react";
-import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Wallet, ArrowDownLeft, ArrowUpRight, ArrowRightLeft, TrendingUp, TrendingDown, Target } from "lucide-react";
-import { cn } from "@/lib/utils";
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCurrency } from "@/hooks/useCurrency";
-
-function AnimatedCounter({ target, duration = 1.5 }: { target: number; duration?: number }) {
-  const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString("en-IN"));
-  const [display, setDisplay] = useState("0");
-
-  useEffect(() => {
-    const controls = animate(count, target, { duration });
-    const unsubscribe = rounded.on("change", (v) => setDisplay(v));
-    return () => {
-      controls.stop();
-      unsubscribe();
-    };
-  }, [count, target, duration, rounded]);
-
-  return <span>{display}</span>;
-}
+import type { KpiSummary } from "@/service/service_reports";
+import { Activity, ArrowDownUp, PiggyBank, Wallet } from "lucide-react";
 
 interface SummaryCardsProps {
-  totalBalance: number;
-  totalIncome: number;
-  totalExpenses: number;
-  netWorthChange: number;
+  kpis: KpiSummary;
 }
 
-export default function SummaryCards({
-  totalBalance,
-  totalIncome,
-  totalExpenses,
-  netWorthChange,
-}: SummaryCardsProps) {
-  const { symbol } = useCurrency();
-  const stats = [
+const pct = (val: number | null) => (val === null ? "N/A" : `${val > 0 ? "+" : ""}${val}%`);
+
+export default function SummaryCards({ kpis }: SummaryCardsProps) {
+  const { formatCurrency } = useCurrency();
+  console.log(kpis);
+  const cards = [
     {
-      label: "Total Balance",
-      value: totalBalance,
+      title: "Net Position",
+      value: formatCurrency(kpis.totalBalance),
+      sub: `MoM Net Trend: ${pct(kpis.netTrendPercent)}`,
       icon: Wallet,
-      pattern: Target,
-      color: "text-primary-foreground",
-      bgColor: "bg-primary shadow-xl shadow-primary/20",
-      description: "Across all accounts",
-      isHero: true
     },
     {
-      label: "Total Income",
-      value: totalIncome,
-      icon: ArrowDownLeft,
-      color: "text-emerald-500",
-      bgColor: "bg-emerald-500/5 border-emerald-500/20",
-      description: "This period"
+      title: "Period Cash Flow",
+      value: `${kpis.netCashFlow >= 0 ? "+" : "-"}${formatCurrency(Math.abs(kpis.netCashFlow))}`,
+      sub: `${formatCurrency(kpis.totalIncome)} in / ${formatCurrency(kpis.totalExpenses)} out`,
+      icon: ArrowDownUp,
     },
     {
-      label: "Total Expenses",
-      value: totalExpenses,
-      icon: ArrowUpRight,
-      color: "text-amber-500",
-      bgColor: "bg-amber-500/5 border-amber-500/20",
-      description: "This period"
+      title: "Savings Rate",
+      value: kpis.savingsRate === null ? "N/A" : `${kpis.savingsRate}%`,
+      sub: `Burn Rate: ${formatCurrency(kpis.burnRateWeekly)}/week`,
+      icon: PiggyBank,
     },
     {
-      label: "Net Cash Flow",
-      value: netWorthChange,
-      icon: netWorthChange >= 0 ? TrendingUp : TrendingDown,
-      color: netWorthChange >= 0 ? "text-success" : "text-danger",
-      bgColor: netWorthChange >= 0 ? "bg-success/5 border-success/20" : "bg-danger/5 border-danger/20",
-      description: netWorthChange >= 0 ? "Positive cash flow" : "Negative cash flow"
-    }
+      title: "Runway",
+      value: kpis.runwayDays === null ? "N/A" : `${kpis.runwayDays} days`,
+      sub: "Based on last 30-day spending",
+      icon: Activity,
+    },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-      {stats.map((stat, idx) => (
-        <Card 
-          key={idx} 
-          className={cn(
-            "rounded-3xl border transition-all duration-300 overflow-hidden relative group",
-            stat.bgColor,
-            !stat.isHero && "hover:border-primary/20 shadow-sm"
-          )}
-        >
-          {stat.isHero && stat.pattern && (
-            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-500">
-                <stat.pattern className="w-24 h-24" />
-            </div>
-          )}
-          <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative z-10">
-            <CardTitle className={cn(
-              "text-[10px] font-black uppercase tracking-widest",
-              stat.isHero ? "text-primary-foreground/70" : "text-text-secondary",
-              stat.label === "Total Income" && "text-emerald-500",
-              stat.label === "Total Expenses" && "text-amber-500"
-            )}>
-              {stat.label}
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      {cards.map((card) => (
+        <Card key={card.title} className="border-border bg-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-xs uppercase tracking-wider text-text-secondary flex items-center justify-between">
+              <span>{card.title}</span>
+              <card.icon className="h-4 w-4 text-primary" />
             </CardTitle>
-            <div className={cn(
-              "p-2 rounded-xl", 
-              stat.isHero ? "bg-primary-foreground/10" : "bg-card border border-border"
-            )}>
-              <stat.icon className={cn("h-4 w-4", stat.isHero ? "text-primary-foreground" : stat.color)} />
-            </div>
           </CardHeader>
-          <CardContent className="relative z-10">
-            <div className={cn(
-              "text-2xl sm:text-3xl font-black tracking-tighter",
-              stat.isHero ? "text-primary-foreground" : "text-text-primary"
-            )}>
-              {stat.label === "Net Cash Flow" && (stat.value >= 0 ? "+" : "-")}
-              {symbol}<AnimatedCounter target={Math.abs(stat.value)} />
-            </div>
-            <p className={cn(
-              "text-xs mt-2 font-medium",
-              stat.isHero ? "text-primary-foreground/60" : "text-text-secondary"
-            )}>
-              {stat.description}
-            </p>
+          <CardContent>
+            <div className="text-2xl font-bold tracking-tight text-text-primary">{card.value}</div>
+            <p className="text-xs text-text-secondary mt-1">{card.sub}</p>
           </CardContent>
         </Card>
       ))}

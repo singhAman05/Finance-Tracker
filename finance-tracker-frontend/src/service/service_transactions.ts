@@ -19,7 +19,16 @@ export const createTransaction = async (payload: {
 
 export const fetchTransactions = async () => {
     const result = await fetchTransactionsRoute();
-    return result;
+    if (!result || !Array.isArray(result.data)) {
+        return { message: result?.message || "", data: [] as Transaction[] };
+    }
+
+    const mappedData = result.data.map((tx: any) => ({
+        ...tx,
+        amount: Number.isFinite(Number(tx?.amount)) ? Number(tx.amount) : 0,
+    })) as Transaction[];
+
+    return { ...result, data: mappedData };
 };
 
 export const deleteTransaction = async (transaction_id: string) => {
@@ -49,6 +58,8 @@ export function getTransactionStats(
 
     let income = 0;
     let expense = 0;
+    let currentIncome = 0;
+    let currentExpense = 0;
     let prevIncome = 0;
     let prevExpense = 0;
 
@@ -57,20 +68,21 @@ export function getTransactionStats(
         const amt = Math.abs(tx.amount);
         if (tx.type === "income") {
             income += amt;
+            if (key === currentMonthKey) currentIncome += amt;
             if (key === prevMonthKey) prevIncome += amt;
         } else {
             expense += amt;
+            if (key === currentMonthKey) currentExpense += amt;
             if (key === prevMonthKey) prevExpense += amt;
         }
     });
 
-    // Net = total balance + current cash flow
-    const totalBalance = accounts.reduce((sum, acc) => sum + (acc.balance ?? 0), 0);
-    const net = totalBalance + income - expense;
-
-    // Growth compared to previous month's actual net
-    const prevNet = totalBalance + prevIncome - prevExpense;
-    const growthPercent = percentageChange(net, prevNet);
+    // Net flow for the currently viewed list
+    const net = income - expense;
+    // Month-over-month growth should compare current month net flow vs previous month net flow
+    const currentMonthNet = currentIncome - currentExpense;
+    const prevNet = prevIncome - prevExpense;
+    const growthPercent = percentageChange(currentMonthNet, prevNet);
 
     const trend =
         growthPercent === null
@@ -86,9 +98,8 @@ export function getTransactionStats(
         expense,
         net,
         count: transactions.length,
-        growthPercent: growthPercent
-            ? Number(growthPercent.toFixed(2))
-            : null,
+        growthPercent:
+            growthPercent !== null ? Number(growthPercent.toFixed(2)) : null,
         trend,
     };
 }
@@ -115,12 +126,13 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
 
     transactions.forEach((tx) => {
         const key = getMonthKey(tx.date as string | Date);
+        const amt = Math.abs(tx.amount);
         if (key === currentMonthKey) {
-            if (tx.type === "income") currentIncome += tx.amount;
-            else currentExpense += Math.abs(tx.amount);
+            if (tx.type === "income") currentIncome += amt;
+            else currentExpense += amt;
         } else if (key === prevMonthKey) {
-            if (tx.type === "income") prevIncome += tx.amount;
-            else prevExpense += Math.abs(tx.amount);
+            if (tx.type === "income") prevIncome += amt;
+            else prevExpense += amt;
         }
     });
 
@@ -128,14 +140,15 @@ export function getFinancialHealth(transactions: Transaction[], accounts: Accoun
     // Accounts balance already reflects posted transactions, so net worth = current balances.
     const netWorth = totalBalances;
     const cashFlow = currentIncome - currentExpense;
+    const prevCashFlow = prevIncome - prevExpense;
 
     // Percent changes — use null check (not truthy) so 0% growth is preserved
     const incomeGrowth = percentageChange(currentIncome, prevIncome);
     const expenseGrowth = percentageChange(currentExpense, prevExpense);
 
-    // Estimate previous month net worth by removing current-month cash flow from current net worth.
-    const previousNetWorth = netWorth - cashFlow;
-    const netWorthGrowth = percentageChange(netWorth, previousNetWorth);
+    // Net worth trend proxy: compare this month's net movement to previous month's net movement.
+    // This is based on previous-month transaction data (not just current-month reconstructed balance).
+    const netWorthGrowth = percentageChange(cashFlow, prevCashFlow);
 
     return {
         netWorth,

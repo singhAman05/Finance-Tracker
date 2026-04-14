@@ -10,6 +10,8 @@ export interface ApiResult<T> {
     } | null;
 }
 
+const TOKEN_EXPIRY_BUFFER_MS = 30_000;
+
 function notifyApiError(error: ApiResult<any>["error"]) {
     if (!error) return;
 
@@ -45,7 +47,7 @@ export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 function isTokenExpired(token: string): boolean {
     try {
         const payload = JSON.parse(atob(token.split(".")[1]));
-        return payload.exp * 1000 < Date.now();
+        return payload.exp * 1000 <= Date.now() + TOKEN_EXPIRY_BUFFER_MS;
     } catch {
         return true;
     }

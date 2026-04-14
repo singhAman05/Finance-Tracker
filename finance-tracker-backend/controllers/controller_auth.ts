@@ -1,71 +1,46 @@
-import { Request, Response } from 'express';
-import { loginWithPhone, loginWithGoogle } from "../services/service_auth"
-import { validatePhone } from '../utils/validationUtils';
+﻿import { Request, Response } from 'express';
 import { OAuth2Client } from 'google-auth-library';
+import { loginWithPhone, loginWithGoogle } from '../services/service_auth';
+import { validatePhone } from '../utils/validationUtils';
+import { asyncHandler } from '../utils/asyncHandler';
+import { AppError } from '../utils/AppError';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-export const handleAuth = async (req: Request, res: Response) => {
-    try {
-        const { phone } = req.body;
-        const isvalid = await validatePhone(phone)
-        if (!isvalid.valid) {
-            res.status(400).json({
-                success: false,
-                message: isvalid.message
-            })
-            return;
-        }
+export const handleAuth = asyncHandler(async (req: Request, res: Response) => {
+  const phone = validatePhone(req.body.phone);
+  const authData = await loginWithPhone(phone);
 
-        const authData = await loginWithPhone(phone);
+  res.status(200).json({
+    success: true,
+    message: 'Authentication successful',
+    user: authData.user,
+    token: authData.token,
+  });
+});
 
-        res.status(200).json({
-            message: "Authentication successful",
-            user: authData.user,
-            token: authData.token
-        });
-    } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Authentication failed";
-        const statusCode = message.includes('create') ? 500 : 401;
-        res.status(statusCode).json({ success: false, message });
-    }
-};
+export const handleGoogleAuth = asyncHandler(async (req: Request, res: Response) => {
+  const { idToken, name } = req.body as { idToken?: string; name?: string };
+  if (!idToken) {
+    throw AppError.validation('Google ID token is required');
+  }
 
-// --- #7: Google Auth now validates ID token server-side ---
-export const handleGoogleAuth = async (req: Request, res: Response) => {
-    try {
-        const { idToken, name } = req.body;
+  const ticket = await googleClient.verifyIdToken({
+    idToken,
+    audience: process.env.GOOGLE_CLIENT_ID,
+  });
 
-        let verifiedEmail: string;
-        let verifiedName: string;
+  const payload = ticket.getPayload();
+  if (!payload?.email) {
+    throw AppError.unauthorized('Invalid Google ID token');
+  }
 
-        if (!idToken) {
-            res.status(400).json({ success: false, message: "Google ID token is required" });
-            return;
-        }
+  const authData = await loginWithGoogle(payload.email, payload.name || name || '');
 
-        const ticket = await googleClient.verifyIdToken({
-            idToken,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        if (!payload || !payload.email) {
-            res.status(401).json({ success: false, message: "Invalid Google ID token" });
-            return;
-        }
-        verifiedEmail = payload.email;
-        verifiedName = payload.name || name || "";
-
-        const authData = await loginWithGoogle(verifiedEmail, verifiedName);
-
-        res.status(200).json({
-            message: "Google Authentication successful",
-            user: authData.user,
-            token: authData.token
-        });
-    } catch (err: unknown) {
-        const message = err instanceof Error ? err.message : "Google Authentication failed";
-        const statusCode = message.includes('create') ? 500 : 401;
-        res.status(statusCode).json({ success: false, message });
-    }
-}
+  res.status(200).json({
+    success: true,
+    message: 'Google authentication successful',
+    user: authData.user,
+    token: authData.token,
+  });
+});

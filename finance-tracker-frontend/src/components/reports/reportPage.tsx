@@ -1,229 +1,347 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import { PieChart } from "lucide-react";
+
+import { RootState } from "@/app/store";
 import { setAccounts } from "../redux/slices/slice_accounts";
 import { setTransactions } from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
-import { RootState } from "@/app/store";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
+import { fetchAccounts } from "@/service/service_accounts";
 import { fetchTransactions } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
-import { fetchAccounts } from "@/service/service_accounts";
-import { PieChart } from "lucide-react";
-import Loader from "@/utils/loader";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
+import { fetchBudgetSummary } from "@/service/service_budgets";
+import { fetchBillInstances, fetchBills } from "@/service/service_bills";
 
-// Import our new components and services
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import Loader from "@/utils/loader";
+
 import ReportHeader from "@/components/reports/reportHeader";
 import SummaryCards from "@/components/reports/summaryCards";
 import OverviewTab from "@/components/reports/overviewTab";
+import CashFlowTab from "@/components/reports/cashFlowTab";
 import CategoriesTab from "@/components/reports/categoryTab";
 import AccountsTab from "@/components/reports/accountsTab";
 import TrendsTab from "@/components/reports/trendsTab";
 import TransactionsTab from "@/components/reports/transactionTab";
-import CashFlowTab from "@/components/reports/cashFlowTab";
+import BudgetTab from "@/components/reports/budgetTab";
+
 import {
-  aggregateTransactions,
-  getCategoryData,
-  getAccountData,
-  getMonthlyData,
-  calculateSummaryFromAggregation,
-  exportCategoryDataToCSV,
+  calculateKpis,
+  exportCsv,
+  exportJson,
+  filterTransactionsByPeriod,
+  getAccountInsights,
+  getBudgetInsights,
+  getCategoryInsights,
+  getDailyCumulativeFlow,
+  getForecast,
+  getMonthlyInsights,
+  type ReportPeriod,
 } from "@/service/service_reports";
 
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.4 },
+  },
+};
 
 export default function ReportPage() {
   const dispatch = useDispatch();
   const router = useRouter();
+
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
-  const transactions = useSelector(
-    (state: RootState) => state.transactions.transactions
-  );
-  const categories = useSelector(
-    (state: RootState) => state.categories.categories
-  );
+  const transactions = useSelector((state: RootState) => state.transactions.transactions);
+  const categories = useSelector((state: RootState) => state.categories.categories);
+
+  const [budgetSummary, setBudgetSummary] = useState<any[]>([]);
+  const [bills, setBills] = useState<any[]>([]);
+  const [billInstances, setBillInstances] = useState<any[]>([]);
+
   const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [period, setPeriod] = useState<ReportPeriod>("thisMonth");
+  const [horizonDays, setHorizonDays] = useState(60);
+  const [activeTab, setActiveTab] = useState("overview");
 
-  const accountLookup = accounts.reduce((map, acc) => {
-    map[acc.id] = acc;
-    return map;
-  }, {} as Record<string, any>);
+  const accountLookup = useMemo(
+    () => accounts.reduce((map, acc) => ({ ...map, [acc.id]: acc }), {} as Record<string, any>),
+    [accounts]
+  );
 
-  const categoryLookup = categories.reduce((map, cat) => {
-    map[cat.id] = cat;
-    return map;
-  }, {} as Record<string, any>);
+  const categoryLookup = useMemo(
+    () => categories.reduce((map, cat) => ({ ...map, [cat.id]: cat }), {} as Record<string, any>),
+    [categories]
+  );
+
+  const loadData = async (isRefresh = false) => {
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
+
+    try {
+      const [accRes, txRes, catRes, budgetRes, billsRes, billInstancesRes] = await Promise.allSettled([
+        fetchAccounts(),
+        fetchTransactions(),
+        fetchCategories(),
+        fetchBudgetSummary(),
+        fetchBills(),
+        fetchBillInstances(),
+      ]);
+
+      if (accRes.status === "fulfilled") dispatch(setAccounts(accRes.value?.data || []));
+      if (txRes.status === "fulfilled") dispatch(setTransactions(txRes.value?.data || []));
+      if (catRes.status === "fulfilled") dispatch(setCategories(catRes.value?.data || []));
+      if (budgetRes.status === "fulfilled") setBudgetSummary(budgetRes.value?.data || []);
+      if (billsRes.status === "fulfilled") setBills(billsRes.value?.data || []);
+      if (billInstancesRes.status === "fulfilled") setBillInstances(billInstancesRes.value?.data || []);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
+    loadData(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    const loadData = async () => {
-      setIsLoading(true);
-      dispatch(setTransactions([]));
-      const tasks: Promise<void>[] = [
-        fetchAccounts()
-          .then((data) => {
-            const payload = data?.data || data;
-            dispatch(setAccounts(Array.isArray(payload) ? payload : []));
-          })
-          .catch((err) => console.error(err)),
-        fetchTransactions()
-          .then((res) => {
-            const txArray = res?.data || res;
-            if (Array.isArray(txArray)) {
-              dispatch(setTransactions(txArray));
-            } else {
-              dispatch(setTransactions([]));
-            }
-          })
-          .catch((err) => console.error(err)),
-        fetchCategories()
-          .then((data) => {
-            const payload = data?.data || data;
-            dispatch(setCategories(Array.isArray(payload) ? payload : []));
-          })
-          .catch((err) => console.error(err)),
-      ];
+  const periodTransactions = useMemo(
+    () => filterTransactionsByPeriod(transactions, period),
+    [transactions, period]
+  );
 
-      await Promise.allSettled(tasks);
-      if (mounted) setIsLoading(false);
-    };
+  const monthlyData = useMemo(() => getMonthlyInsights(transactions), [transactions]);
+  const dailyData = useMemo(() => getDailyCumulativeFlow(transactions), [transactions]);
+  const categoryData = useMemo(
+    () => getCategoryInsights(categories, periodTransactions),
+    [categories, periodTransactions]
+  );
+  const accountData = useMemo(
+    () => getAccountInsights(accounts, periodTransactions),
+    [accounts, periodTransactions]
+  );
+  const budgetData = useMemo(() => getBudgetInsights(budgetSummary), [budgetSummary]);
+  const forecastData = useMemo(
+    () => getForecast(accounts, transactions, billInstances, horizonDays),
+    [accounts, transactions, billInstances, horizonDays]
+  );
 
-    loadData();
-    return () => {
-      mounted = false;
-    };
-  }, [dispatch]);
+  const kpis = useMemo(
+    () => calculateKpis(accounts, transactions, periodTransactions),
+    [accounts, transactions, periodTransactions]
+  );
 
-  // Calculate all data using our service functions
-  const currentMonthTransactions = transactions.filter(tx => {
-    const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
-    const now = new Date();
-    return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
-  });
+  const exportCurrent = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    if (activeTab === "categories") {
+      exportCsv(
+        `report-categories-${date}.csv`,
+        ["Category", "Income", "Expense", "Net", "Share(%)", "TxCount"],
+        categoryData.map((r) => [r.name, r.income, r.expenses, r.net, r.shareOfExpense.toFixed(2), r.txCount])
+      );
+      return;
+    }
 
-  const { categoryMap, accountMap: aggregatedAccountMap, monthlyMap } =
-  aggregateTransactions(transactions); // Use all transactions for historical trends
+    if (activeTab === "accounts") {
+      exportCsv(
+        `report-accounts-${date}.csv`,
+        ["Account", "Bank", "Income", "Expense", "Net", "Balance", "TxCount"],
+        accountData.map((r) => [r.name, r.bankName, r.income, r.expenses, r.net, r.balance, r.txCount])
+      );
+      return;
+    }
 
-  const { categoryMap: currentCategoryMap } = aggregateTransactions(currentMonthTransactions);
+    if (activeTab === "budgets") {
+      exportCsv(
+        `report-budgets-${date}.csv`,
+        ["Category", "Budget", "Spent", "Remaining", "Usage(%)", "Health"],
+        budgetData.map((r) => [
+          r.category_name,
+          r.budget_amount,
+          r.total_spent,
+          r.remaining,
+          r.percentage_used.toFixed(2),
+          r.health,
+        ])
+      );
+      return;
+    }
 
-  const categoryData = getCategoryData(categories, currentCategoryMap);
-  const accountData = getAccountData(accounts, aggregatedAccountMap);
-  const monthlyData = getMonthlyData(monthlyMap);
+    if (activeTab === "transactions") {
+      exportCsv(
+        `report-transactions-${date}.csv`,
+        ["Date", "Type", "Category", "Account", "Amount", "Description"],
+        periodTransactions.map((r) => [
+          String(r.date),
+          r.type || "expense",
+          categoryLookup[r.category_id]?.name || "Unknown",
+          accountLookup[r.account_id]?.name || "Unknown",
+          r.amount,
+          r.description || "",
+        ])
+      );
+      return;
+    }
 
-  const summary = calculateSummaryFromAggregation(accounts, currentCategoryMap);
-
-  const handleExport = () => {
-    const today = new Date();
-    const dateStr = today.toISOString().split("T")[0];
-    exportCategoryDataToCSV(categoryData, `financial-report-${dateStr}.csv`);
+    exportCsv(
+      `report-monthly-${date}.csv`,
+      ["Month", "Income", "Expenses", "Net"],
+      monthlyData.map((r) => [r.month, r.income, r.expenses, r.net])
+    );
   };
 
-
-  // --- Animation Variants ---
-  const staggerContainer = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.1 } },
+  const exportFullCsv = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    exportCsv(
+      `report-full-${date}.csv`,
+      ["Section", "Name", "Value1", "Value2", "Value3", "Value4"],
+      [
+        ["kpi", "total_balance", kpis.totalBalance, "", "", ""],
+        ["kpi", "income", kpis.totalIncome, "", "", ""],
+        ["kpi", "expenses", kpis.totalExpenses, "", "", ""],
+        ...monthlyData.map((m) => ["monthly", m.month, m.income, m.expenses, m.net, ""]),
+        ...categoryData.map((c) => ["category", c.name, c.income, c.expenses, c.net, c.txCount]),
+        ...accountData.map((a) => ["account", a.name, a.income, a.expenses, a.net, a.balance]),
+        ...budgetData.map((b) => ["budget", b.category_name, b.budget_amount, b.total_spent, b.remaining, b.percentage_used]),
+      ]
+    );
   };
 
-  const fadeUp = {
-    hidden: { opacity: 0, y: 24 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
-    },
+  const exportSnapshotJson = () => {
+    const date = new Date().toISOString().slice(0, 10);
+    exportJson(`report-snapshot-${date}.json`, {
+      period,
+      horizonDays,
+      kpis,
+      monthlyData,
+      categoryData,
+      accountData,
+      budgetData,
+      forecastData,
+      billsCount: bills.length,
+      billInstancesCount: billInstances.length,
+    });
   };
+
+  const tabs = [
+    { value: "overview", label: "Overview" },
+    { value: "cashflow", label: "Cash Flow" },
+    { value: "budgets", label: "Budgets" },
+    { value: "categories", label: "Categories" },
+    { value: "accounts", label: "Accounts" },
+    { value: "trends", label: "Trends" },
+    { value: "transactions", label: "Transactions" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
-      {/* Background Pattern */}
-      <div
-        className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
           backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
           backgroundSize: "32px 32px",
         }}
       />
 
-      <motion.div
-        variants={staggerContainer}
-        initial="hidden"
-        animate="visible"
-        className="relative w-full p-2 md:p-6 space-y-6 mx-auto z-10"
-      >
-        <ReportHeader
-          title="Financial Reports"
-          subtitle="Analyze your income, expenses, and financial trends"
-          onExport={handleExport}
-        />
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex flex-col gap-6 relative z-10 mx-auto w-full">
+        <motion.div variants={fadeUp}>
+          <ReportHeader
+            title="Financial Reports"
+            subtitle="Present awareness with future cash-flow insights"
+            period={period}
+            horizon={horizonDays}
+            isRefreshing={isRefreshing}
+            onPeriodChange={setPeriod}
+            onHorizonChange={setHorizonDays}
+            onRefresh={() => loadData(true)}
+            onExportCurrent={exportCurrent}
+            onExportFullCsv={exportFullCsv}
+            onExportJson={exportSnapshotJson}
+          />
+        </motion.div>
 
         {isLoading ? (
-          <div className="w-full flex items-center justify-center min-h-[400px]">
-            <Loader size="md" text="Loading your financial data..." />
-          </div>
+          <motion.div variants={fadeUp} className="w-full flex items-center justify-center min-h-[400px]">
+            <Loader size="md" text="Loading report data..." />
+          </motion.div>
         ) : transactions.length === 0 ? (
-          <motion.div variants={fadeUp} className="w-full flex-col flex items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center mt-12 shadow-sm">
-            <PieChart className="h-16 w-16 text-muted-foreground mx-auto mb-6 opacity-50" />
-            <h2 className="text-2xl font-bold mb-3 text-text-primary">Not enough data to generate a report</h2>
-            <p className="text-text-secondary mb-8">
-              Add some transactions to generate meaningful report insights.
+          <motion.div
+            variants={fadeUp}
+            className="flex flex-col items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center shadow-sm"
+          >
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+              <PieChart className="h-10 w-10 text-text-secondary/50" />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">No data to report yet</h2>
+            <p className="text-text-secondary text-sm mb-6 max-w-xs">
+              Add transactions to generate meaningful insights and forecasts.
             </p>
-            <Button 
-              onClick={() => router.push("/dashboard")}
-              className="w-full max-w-[200px] mx-auto h-12 bg-primary text-primary-foreground font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-primary/90 transition-colors"
-            >
+            <Button onClick={() => router.push("/dashboard")} className="rounded-full px-8">
               Go to Dashboard
             </Button>
           </motion.div>
         ) : (
           <>
-            <motion.div variants={fadeUp}>
-              <SummaryCards
-                totalBalance={summary.totalBalance}
-                totalIncome={summary.totalIncome}
-                totalExpenses={summary.totalExpenses}
-                netWorthChange={summary.netWorthChange}
-              />
+            {/* SUMMARY CARDS */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <SummaryCards kpis={kpis} />
             </motion.div>
 
-            <motion.div variants={fadeUp}>
-              <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="flex items-center justify-start p-1 bg-muted/50 backdrop-blur-md rounded-2xl border border-border w-fit mb-6 overflow-x-auto max-w-full no-scrollbar">
-                  {[
-                    { value: "overview", label: "Overview" },
-                    { value: "cashflow", label: "Cash Flow" },
-                    { value: "categories", label: "By Category" },
-                    { value: "accounts", label: "By Account" },
-                    { value: "trends", label: "Trends" },
-                    { value: "transactions", label: "Transactions" }
-                  ].map((tab) => (
-                    <TabsTrigger 
-                      key={tab.value}
-                      value={tab.value} 
-                      className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-[0.1em] text-text-secondary data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap"
-                    >
-                      {tab.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+            {/* POWER CARDS */}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true }}
+            >
+              <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <div className="overflow-x-auto pb-1">
+
+                  <TabsList className="inline-flex items-center p-1 bg-muted/50 rounded-2xl border border-border mb-6 whitespace-nowrap min-w-full sm:min-w-0 w-fit">
+                    {tabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-[0.08em]"
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
 
                 <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
                   <OverviewTab
                     monthlyData={monthlyData}
                     categoryData={categoryData}
-                    totalExpenses={summary.totalExpenses}
+                    budgetData={budgetData}
+                    forecastData={forecastData}
                   />
                 </TabsContent>
 
                 <TabsContent value="cashflow" className="mt-0 focus-visible:outline-none">
-                  <CashFlowTab 
-                    transactions={transactions} 
-                    monthlyData={monthlyData} 
-                  />
+                  <CashFlowTab monthlyData={monthlyData} dailyData={dailyData} forecastData={forecastData} />
+                </TabsContent>
+
+                <TabsContent value="budgets" className="mt-0 focus-visible:outline-none">
+                  <BudgetTab budgetData={budgetData} />
                 </TabsContent>
 
                 <TabsContent value="categories" className="mt-0 focus-visible:outline-none">
@@ -239,11 +357,7 @@ export default function ReportPage() {
                 </TabsContent>
 
                 <TabsContent value="transactions" className="mt-0 focus-visible:outline-none">
-                  <TransactionsTab
-                    transactions={transactions}
-                    accountMap={accountLookup}
-                    categoryMap={categoryLookup}
-                  />
+                  <TransactionsTab transactions={periodTransactions} accountMap={accountLookup} categoryMap={categoryLookup} />
                 </TabsContent>
               </Tabs>
             </motion.div>
