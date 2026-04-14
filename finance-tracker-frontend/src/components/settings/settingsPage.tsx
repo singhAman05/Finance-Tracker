@@ -8,10 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { RootState } from "@/app/store";
 import { fetchSettings, updateSettings, ClientSettings, exportAllData } from "@/service/service_settings";
 import { setSettings, updateLocalSettings, setLoading, setError } from "@/components/redux/slices/slice_settings";
-import { Bell, Globe, Database, Download, Trash2, ArrowLeft } from "lucide-react";
+import { Bell, Globe, Database, Download, Trash2, ArrowLeft, Receipt, TrendingUp, Calendar } from "lucide-react";
 import Loader from "@/utils/loader";
 import { useRouter } from "next/navigation";
 import { openModal } from "@/components/redux/slices/slice_modal";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const dispatch = useDispatch();
@@ -21,7 +22,6 @@ export default function SettingsPage() {
 
   useEffect(() => {
     const loadSettings = async () => {
-      // Fast path: if we already have it in Redux, no need to show initial loader
       if (!settings) dispatch(setLoading(true));
       try {
         const data = await fetchSettings();
@@ -37,14 +37,12 @@ export default function SettingsPage() {
   }, [dispatch, settings]);
 
   const handleUpdate = async (updates: Partial<ClientSettings>) => {
-    // Optimistic update in Redux for immediate UI response
     dispatch(updateLocalSettings(updates));
     setIsSaving(true);
     try {
       await updateSettings(updates);
     } catch (err) {
       console.error(err);
-      // Let the user know it failed (perhaps could revert optimistic update here too)
       dispatch(setError("Failed to save settings"));
     } finally {
       setIsSaving(false);
@@ -89,7 +87,7 @@ export default function SettingsPage() {
 
   const staggerContainer = {
     hidden: {},
-    visible: { transition: { staggerChildren: 0.1 } },
+    visible: { transition: { staggerChildren: 0.08 } },
   };
 
   const fadeUp = {
@@ -97,7 +95,7 @@ export default function SettingsPage() {
     visible: {
       opacity: 1,
       y: 0,
-      transition: { duration: 0.5 },
+      transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
     },
   };
 
@@ -109,7 +107,6 @@ export default function SettingsPage() {
     );
   }
 
-  // Fallback defaults if load fails completely
   const currentSettings = settings || {
     currency: 'INR',
     date_format: 'DD/MM/YYYY',
@@ -117,6 +114,27 @@ export default function SettingsPage() {
     notify_budgets: true,
     notify_recurring: true
   };
+
+  const notificationItems = [
+    {
+      key: "notify_bills" as keyof ClientSettings,
+      label: "Upcoming Bills",
+      description: "Get alerted before bills are due",
+      icon: Receipt,
+    },
+    {
+      key: "notify_budgets" as keyof ClientSettings,
+      label: "Budget Alerts",
+      description: "Warnings when approaching category limits",
+      icon: TrendingUp,
+    },
+    {
+      key: "notify_recurring" as keyof ClientSettings,
+      label: "Recurring Transactions",
+      description: "Summary of auto-processed transactions",
+      icon: Calendar,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
@@ -135,73 +153,75 @@ export default function SettingsPage() {
         animate="visible"
         className="flex flex-col gap-6 relative z-10 mx-auto w-full"
       >
-        {/* Settings Header Block */}
+        {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
           <div className="flex items-center gap-3">
             <button
               onClick={() => router.push("/dashboard")}
-              className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4 inline-flex items-center cursor-pointer"
+              className="rounded-full border border-border bg-card text-text-primary hover:bg-muted h-10 px-4 inline-flex items-center cursor-pointer transition-colors"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </button>
             <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
-              Settings
-            </h1>
-            <p className="text-sm sm:text-base font-medium text-text-secondary mt-1">
-              Manage your preferences, notifications, and account settings
-            </p>
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-text-primary">
+                Settings
+              </h1>
+              <p className="text-sm sm:text-base font-medium text-text-secondary mt-1">
+                Manage your preferences, notifications, and account settings
+              </p>
             </div>
           </div>
           {isSaving && (
-             <div className="flex items-center gap-2 text-primary text-sm font-bold bg-primary/10 px-3 py-1.5 rounded-full">
-                <span className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full" />
-                Saving...
-             </div>
+            <div className="flex items-center gap-2 text-primary text-sm font-bold bg-primary/10 px-3 py-1.5 rounded-full border border-primary/20">
+              <span className="animate-spin h-3 w-3 border-2 border-primary border-t-transparent rounded-full" />
+              Saving changes…
+            </div>
           )}
         </motion.div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column - General & Notifications */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* Preferences Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column */}
+          <div className="lg:col-span-2 space-y-6">
+
+            {/* Preferences */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-                  <CardTitle className="flex items-center gap-3 text-lg">
+                <CardHeader className="border-b border-border/50 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-base">
                     <div className="p-2 rounded-xl bg-primary/10">
-                      <Globe className="h-5 w-5 text-primary" />
+                      <Globe className="h-4 w-4 text-primary" />
                     </div>
                     General Preferences
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-border/50">
+                <CardContent className="p-6 space-y-5">
+                  {/* Currency */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-5 border-b border-border/50">
                     <div>
-                      <h3 className="font-bold text-base text-text-primary mb-1">Currency</h3>
-                      <p className="text-sm text-text-secondary">Used across dashboard and reports</p>
+                      <h3 className="font-semibold text-sm text-text-primary">Currency</h3>
+                      <p className="text-xs text-text-secondary mt-0.5">Used across dashboard and reports</p>
                     </div>
                     <select
-                      className="bg-muted border border-border text-text-primary text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[140px] font-medium"
+                      className="bg-muted border border-border text-text-primary text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-ring/30 appearance-none min-w-[160px] font-medium cursor-pointer transition-colors hover:bg-muted/80"
                       value={currentSettings.currency}
                       onChange={(e) => handleUpdate({ currency: e.target.value })}
                     >
-                      <option value="INR">₹ (INR) Indian Rupee</option>
-                      <option value="USD">$ (USD) US Dollar</option>
-                      <option value="EUR">€ (EUR) Euro</option>
-                      <option value="GBP">£ (GBP) British Pound</option>
+                      <option value="INR">₹ INR — Indian Rupee</option>
+                      <option value="USD">$ USD — US Dollar</option>
+                      <option value="EUR">€ EUR — Euro</option>
+                      <option value="GBP">£ GBP — British Pound</option>
                     </select>
                   </div>
 
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  {/* Date Format */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div>
-                      <h3 className="font-bold text-base text-text-primary mb-1">Date Format</h3>
-                      <p className="text-sm text-text-secondary">How dates are displayed in tables</p>
+                      <h3 className="font-semibold text-sm text-text-primary">Date Format</h3>
+                      <p className="text-xs text-text-secondary mt-0.5">How dates are displayed in tables</p>
                     </div>
                     <select
-                      className="bg-muted border border-border text-text-primary text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-primary/20 appearance-none min-w-[140px] font-medium"
+                      className="bg-muted border border-border text-text-primary text-sm rounded-xl px-4 py-2.5 outline-none focus:ring-2 focus:ring-ring/30 appearance-none min-w-[160px] font-medium cursor-pointer transition-colors hover:bg-muted/80"
                       value={currentSettings.date_format}
                       onChange={(e) => handleUpdate({ date_format: e.target.value })}
                     >
@@ -214,95 +234,92 @@ export default function SettingsPage() {
               </Card>
             </motion.div>
 
-            {/* Notifications Section */}
+            {/* Notifications */}
             <motion.div variants={fadeUp}>
               <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-                  <CardTitle className="flex items-center gap-3 text-lg">
-                    <div className="p-2 rounded-xl bg-indigo-500/10">
-                      <Bell className="h-5 w-5 text-indigo-500" />
+                <CardHeader className="border-b border-border/50 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-base">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <Bell className="h-4 w-4 text-primary" />
                     </div>
                     Notifications
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-6">
-                  <div className="flex items-center justify-between gap-4 pb-6 border-b border-border/50">
-                    <div>
-                      <h3 className="font-bold text-base text-text-primary mb-1">Upcoming Bills</h3>
-                      <p className="text-sm text-text-secondary">Get alerted before bills are due</p>
-                    </div>
-                    <Switch 
-                      checked={currentSettings.notify_bills} 
-                      onCheckedChange={(checked) => handleUpdate({ notify_bills: checked })}
-                      className="data-[state=checked]:bg-indigo-500"
-                    />
-                  </div>
-                  
-                  <div className="flex items-center justify-between gap-4 pb-6 border-b border-border/50">
-                    <div>
-                      <h3 className="font-bold text-base text-text-primary mb-1">Budget Alerts</h3>
-                      <p className="text-sm text-text-secondary">Warnings when approaching category limits</p>
-                    </div>
-                    <Switch 
-                      checked={currentSettings.notify_budgets} 
-                      onCheckedChange={(checked) => handleUpdate({ notify_budgets: checked })}
-                      className="data-[state=checked]:bg-indigo-500"
-                    />
-                  </div>
-
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <h3 className="font-bold text-base text-text-primary mb-1">Recurring Transactions</h3>
-                      <p className="text-sm text-text-secondary">Summary of auto-processed transactions</p>
-                    </div>
-                    <Switch 
-                      checked={currentSettings.notify_recurring} 
-                      onCheckedChange={(checked) => handleUpdate({ notify_recurring: checked })}
-                      className="data-[state=checked]:bg-indigo-500"
-                    />
-                  </div>
+                <CardContent className="p-6 divide-y divide-border/50">
+                  {notificationItems.map(({ key, label, description, icon: Icon }, idx) => {
+                    const isChecked = Boolean(currentSettings[key]);
+                    return (
+                      <div
+                        key={key}
+                        className={cn(
+                          "flex items-center justify-between gap-4 py-4",
+                          idx === 0 && "pt-0",
+                          idx === notificationItems.length - 1 && "pb-0"
+                        )}
+                      >
+                        <div className="flex items-start gap-3">
+                          <div className={cn(
+                            "p-1.5 rounded-lg mt-0.5 transition-colors",
+                            isChecked ? "bg-primary/10" : "bg-muted"
+                          )}>
+                            <Icon className={cn(
+                              "h-3.5 w-3.5 transition-colors",
+                              isChecked ? "text-primary" : "text-text-secondary"
+                            )} />
+                          </div>
+                          <div>
+                            <h3 className="font-semibold text-sm text-text-primary">{label}</h3>
+                            <p className="text-xs text-text-secondary mt-0.5">{description}</p>
+                          </div>
+                        </div>
+                        <Switch
+                          checked={isChecked}
+                          onCheckedChange={(checked) => handleUpdate({ [key]: checked } as Partial<ClientSettings>)}
+                        />
+                      </div>
+                    );
+                  })}
                 </CardContent>
               </Card>
             </motion.div>
           </div>
 
-          {/* Right Column - Data */}
-          <div className="space-y-8">
-            {/* Data Management */}
+          {/* Right Column — Data Management */}
+          <div>
             <motion.div variants={fadeUp}>
               <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
-                <CardHeader className="bg-muted/30 border-b border-border/50 pb-4">
-                  <CardTitle className="flex items-center gap-3 text-lg">
-                    <div className="p-2 rounded-xl bg-emerald-500/10">
-                      <Database className="h-5 w-5 text-emerald-500" />
+                <CardHeader className="border-b border-border/50 pb-4">
+                  <CardTitle className="flex items-center gap-3 text-base">
+                    <div className="p-2 rounded-xl bg-primary/10">
+                      <Database className="h-4 w-4 text-primary" />
                     </div>
                     Data Management
                   </CardTitle>
                 </CardHeader>
-                <CardContent className="p-6 space-y-4">
-                  <button 
+                <CardContent className="p-6 space-y-3">
+                  <button
                     onClick={handleExportCSV}
-                    className="w-full flex items-center justify-between p-4 rounded-xl border border-border hover:bg-muted/50 hover:border-emerald-500/30 transition-all group cursor-pointer"
+                    className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border hover:bg-muted/50 hover:border-primary/30 transition-all group cursor-pointer text-left"
                   >
-                    <div className="flex items-center gap-3 text-left">
-                      <Download className="h-5 w-5 text-text-secondary group-hover:text-emerald-500 transition-colors" />
-                      <div>
-                        <h4 className="font-bold text-sm text-text-primary">Export Data</h4>
-                        <p className="text-xs text-text-secondary mt-0.5">Download all history as JSON</p>
-                      </div>
+                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
+                      <Download className="h-4 w-4 text-primary" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm text-text-primary">Export Data</h4>
+                      <p className="text-xs text-text-secondary mt-0.5">Download all history as JSON</p>
                     </div>
                   </button>
 
                   <button
                     onClick={handleClearHistory}
-                    className="w-full flex items-center justify-between p-4 rounded-xl border border-danger/20 hover:bg-danger/5 transition-all group cursor-pointer"
+                    className="w-full flex items-center gap-3 p-4 rounded-2xl border border-danger/20 hover:bg-danger/5 hover:border-danger/30 transition-all group cursor-pointer text-left"
                   >
-                    <div className="flex items-center gap-3 text-left">
-                      <Trash2 className="h-5 w-5 text-danger opacity-70 group-hover:opacity-100 transition-opacity" />
-                      <div>
-                        <h4 className="font-bold text-sm text-danger">Clear History</h4>
-                        <p className="text-xs text-danger/70 mt-0.5">Delete all transactions & bills</p>
-                      </div>
+                    <div className="w-9 h-9 rounded-xl bg-danger/10 flex items-center justify-center shrink-0 group-hover:bg-danger/15 transition-colors">
+                      <Trash2 className="h-4 w-4 text-danger" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm text-danger">Clear History</h4>
+                      <p className="text-xs text-danger/60 mt-0.5">Delete all transactions & bills</p>
                     </div>
                   </button>
                 </CardContent>

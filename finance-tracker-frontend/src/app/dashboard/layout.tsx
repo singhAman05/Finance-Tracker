@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/common/sidebar";
@@ -14,6 +14,9 @@ import { fetchCategories } from "@/service/service_categories";
 import { setAccounts } from "@/components/redux/slices/slice_accounts";
 import { setCategories } from "@/components/redux/slices/slice_categories";
 
+// Global init flag — prevents re-fetching across navigations within the same session
+const BOOTSTRAP_KEY = "__ft_bootstrapped";
+
 export default function DashboardLayout({
   children,
 }: {
@@ -23,6 +26,8 @@ export default function DashboardLayout({
   const router = useRouter();
   const [isMobileOpen, setMobileOpen] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const bootstrapping = useRef(false);
+
   const token = useSelector((state: RootState) => state.auth.token);
   const existingSettings = useSelector((state: RootState) => state.settings.settings);
   const existingAccounts = useSelector((state: RootState) => state.accounts.accounts);
@@ -32,30 +37,38 @@ export default function DashboardLayout({
     setIsHydrated(true);
   }, []);
 
-  // Auth guard — redirect if no token
+  // Auth guard
   useEffect(() => {
     if (isHydrated && !token) {
       router.replace("/login");
     }
   }, [isHydrated, token, router]);
 
+  // Bootstrap shared data ONCE per session — only fetch what's missing
   useEffect(() => {
-    if (!token) return;
+    if (!token || bootstrapping.current) return;
+
+    const needsSettings = !existingSettings;
+    const needsAccounts = existingAccounts.length === 0;
+    const needsCategories = existingCategories.length === 0;
+
+    if (!needsSettings && !needsAccounts && !needsCategories) return;
+
+    bootstrapping.current = true;
 
     const tasks: Promise<void>[] = [];
 
-    if (!existingSettings) {
+    if (needsSettings) {
       tasks.push(
         fetchSettings()
           .then((res) => {
-            const settings = res?.data;
-            if (settings) dispatch(setSettings(settings as any));
+            if (res?.data) dispatch(setSettings(res.data as any));
           })
           .catch(() => undefined)
       );
     }
 
-    if (existingAccounts.length === 0) {
+    if (needsAccounts) {
       tasks.push(
         fetchAccounts()
           .then((res) => {
@@ -66,7 +79,7 @@ export default function DashboardLayout({
       );
     }
 
-    if (existingCategories.length === 0) {
+    if (needsCategories) {
       tasks.push(
         fetchCategories()
           .then((res) => {
@@ -77,24 +90,17 @@ export default function DashboardLayout({
       );
     }
 
-    if (tasks.length > 0) {
-      void Promise.allSettled(tasks);
-    }
-  }, [
-    dispatch,
-    existingAccounts.length,
-    existingCategories.length,
-    existingSettings,
-    token,
-  ]);
+    void Promise.allSettled(tasks).finally(() => {
+      bootstrapping.current = false;
+    });
+  }, [token, existingSettings, existingAccounts.length, existingCategories.length, dispatch]);
 
-  // Show nothing while redirecting unauthenticated users
   if (!isHydrated || !token) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
           <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-          <p className="text-sm text-text-secondary">Redirecting…</p>
+          <p className="text-sm text-text-secondary">Loading…</p>
         </div>
       </div>
     );
@@ -107,7 +113,7 @@ export default function DashboardLayout({
         <Sidebar />
       </div>
 
-      {/* Mobile Top Header Bar */}
+      {/* Mobile Top Header */}
       <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-card/90 backdrop-blur-md border-b border-border flex items-center px-4 gap-3">
         <button
           className="p-2 rounded-lg hover:bg-muted transition-colors"
@@ -131,7 +137,7 @@ export default function DashboardLayout({
         </div>
       )}
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <main className="flex-1 h-full overflow-y-auto pt-14 md:pt-0 transition-all scroll-smooth">
         {children}
       </main>

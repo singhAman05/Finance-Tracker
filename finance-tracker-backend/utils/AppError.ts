@@ -16,8 +16,8 @@
     return new AppError(message, 400, true, details);
   }
 
-  static unauthorized(message = 'Unauthorized') {
-    return new AppError(message, 401, true);
+  static unauthorized(message = 'Unauthorized', details?: unknown) {
+    return new AppError(message, 401, true, details);
   }
 
   static forbidden(message = 'Forbidden') {

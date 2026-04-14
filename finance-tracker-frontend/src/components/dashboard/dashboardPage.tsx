@@ -20,11 +20,7 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   PieChart,
-  LineChart,
   Plus,
-  TrendingUp,
-  Activity,
-  CalendarDays,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -34,13 +30,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   AreaChart,
   Area,
-  Line,
-  Cell,
-  PieChart as RechartsPieChart,
-  Pie,
 } from "recharts";
 import { useSelector, useDispatch } from "react-redux";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
@@ -48,8 +39,8 @@ import { useRouter } from "next/navigation";
 
 // Services and Actions
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
-import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
-import { getCategoryData, aggregateTransactions, getMonthlyData } from "@/service/service_reports"; 
+import { fetchAccounts } from "@/service/service_accounts";
+import { getCategoryData, aggregateTransactions, getMonthlyData } from "@/service/service_reports";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
 import { fetchBillInstances, fetchBills } from "@/service/service_bills";
@@ -76,11 +67,26 @@ const fadeUp = {
   },
 };
 
-function AnimatedCounter({ target, duration = 2, prefix = "" }: { target: number; duration?: number, prefix?: string }) {
+function AnimatedCounter({
+  target,
+  duration = 2,
+  prefix = "",
+}: {
+  target: number;
+  duration?: number;
+  prefix?: string;
+}) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => `${prefix}${Math.floor(v).toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`);
+  const rounded = useTransform(
+    count,
+    (v) =>
+      `${prefix}${Math.floor(v).toLocaleString("en-US", {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0,
+      })}`
+  );
   const [display, setDisplay] = useState("0");
-  
+
   useEffect(() => {
     const controls = animate(count, target, { duration });
     const unsubscribe = rounded.on("change", (v) => setDisplay(v));
@@ -93,7 +99,18 @@ function AnimatedCounter({ target, duration = 2, prefix = "" }: { target: number
   return <span>{display}</span>;
 }
 
-const GlassTooltip = ({ active, payload, label }: any) => {
+// Fixed: `active` is a boolean from recharts, not an object — currencySymbol must come from closure
+const GlassTooltip = ({
+  active,
+  payload,
+  label,
+  currencySymbol,
+}: {
+  active?: boolean;
+  payload?: any[];
+  label?: string;
+  currencySymbol: string;
+}) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-card/80 backdrop-blur-md border border-border p-3 rounded-2xl shadow-xl">
@@ -102,10 +119,18 @@ const GlassTooltip = ({ active, payload, label }: any) => {
           {payload.map((item: any, idx: number) => (
             <div key={idx} className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-1.5">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: item.color }} />
-                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-tight">{item.name}:</span>
+                <div
+                  className="w-1.5 h-1.5 rounded-full"
+                  style={{ backgroundColor: item.color }}
+                />
+                <span className="text-[10px] font-bold text-text-secondary uppercase tracking-tight">
+                  {item.name}:
+                </span>
               </div>
-              <span className="text-xs font-bold text-text-primary">{active?.currencySymbol}{item.value.toLocaleString()}</span>
+              <span className="text-xs font-bold text-text-primary">
+                {currencySymbol}
+                {item.value.toLocaleString()}
+              </span>
             </div>
           ))}
         </div>
@@ -119,9 +144,13 @@ export default function DashboardPage() {
   const dispatch = useDispatch();
   const router = useRouter();
   const user = useSelector((state: RootState) => state.auth.user);
-  const transactions = useSelector((state: RootState) => state.transactions.transactions);
+  const transactions = useSelector(
+    (state: RootState) => state.transactions.transactions
+  );
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
-  const categories = useSelector((state: RootState) => state.categories.categories);
+  const categories = useSelector(
+    (state: RootState) => state.categories.categories
+  );
   const { formatCurrency, symbol, formatAxis } = useCurrency();
   const { formatDate } = useDateFormat();
 
@@ -135,59 +164,84 @@ export default function DashboardPage() {
     setIsClient(true);
   }, []);
 
-  // --- Data Loading ---
+  // Data Loading
   useEffect(() => {
     const loadData = async () => {
-        setLoading(true);
-        try {
-            // Only fetch if we don't have data (or you could perform a background refresh)
-            const promises = [];
-            
-            if (transactions.length === 0) promises.push(fetchTransactions().then(res => { if (res?.data) dispatch(setTransactions(res.data)); }));
-            if (accounts.length === 0) promises.push(fetchAccounts().then(res => { if (res?.data) dispatch(setAccounts(res.data)); }));
-            if (categories.length === 0) promises.push(fetchCategories().then(res => { if (res?.data) dispatch(setCategories(res.data)); }));
-            
-            // Always fetch fresh summaries for dashboard
-            promises.push(fetchBudgetSummary().then(res => setBudgetSummary(res?.data || [])));
-            // We need both bills to map names and instances for the schedule
-            promises.push(fetchBills().then(res => setBills(res?.data || [])));
-            promises.push(fetchBillInstances().then(res => {
-                setBillInstances(res?.data || []);
-            }));
+      setLoading(true);
+      try {
+        const promises = [];
 
-            await Promise.all(promises);
-        } catch (error) {
-            console.error("Dashboard data load error:", error);
-        } finally {
-            setLoading(false);
-        }
+        if (transactions.length === 0)
+          promises.push(
+            fetchTransactions().then((res) => {
+              if (res?.data) dispatch(setTransactions(res.data));
+            })
+          );
+        if (accounts.length === 0)
+          promises.push(
+            fetchAccounts().then((res) => {
+              if (res?.data) dispatch(setAccounts(res.data));
+            })
+          );
+        if (categories.length === 0)
+          promises.push(
+            fetchCategories().then((res) => {
+              if (res?.data) dispatch(setCategories(res.data));
+            })
+          );
+
+        promises.push(
+          fetchBudgetSummary().then((res) => setBudgetSummary(res?.data || []))
+        );
+        promises.push(
+          fetchBills().then((res) => setBills(res?.data || []))
+        );
+        promises.push(
+          fetchBillInstances().then((res) => {
+            setBillInstances(res?.data || []);
+          })
+        );
+
+        await Promise.all(promises);
+      } catch (error) {
+        console.error("Dashboard data load error:", error);
+      } finally {
+        setLoading(false);
+      }
     };
     loadData();
   }, [dispatch, transactions.length, accounts.length, categories.length]);
 
-
-  // --- Derived Data ---
-  const financialHealth = useMemo(() => {
-      return getFinancialHealth(transactions, accounts);
-  }, [transactions, accounts]);
+  // Derived Data — all memoized
+  const financialHealth = useMemo(
+    () => getFinancialHealth(transactions, accounts),
+    [transactions, accounts]
+  );
 
   const categoryData = useMemo(() => {
-    if (!Array.isArray(categories) || !Array.isArray(transactions) || transactions.length === 0) {
-        return [];
+    if (
+      !Array.isArray(categories) ||
+      !Array.isArray(transactions) ||
+      transactions.length === 0
+    ) {
+      return [];
     }
     const { categoryMap } = aggregateTransactions(transactions);
     return getCategoryData(categories, categoryMap);
   }, [categories, transactions]);
-  
+
   const activeBudgetSummary = useMemo(
-    () => (Array.isArray(budgetSummary) ? budgetSummary.filter((item: any) => Boolean(item.is_active)) : []),
+    () =>
+      Array.isArray(budgetSummary)
+        ? budgetSummary.filter((item: any) => Boolean(item.is_active))
+        : [],
     [budgetSummary]
   );
 
-  // Budget stats
-  const budgetStats = useMemo(() => {
-    return calculateBudgetSummaryStats(activeBudgetSummary);
-  }, [activeBudgetSummary]);
+  const budgetStats = useMemo(
+    () => calculateBudgetSummaryStats(activeBudgetSummary),
+    [activeBudgetSummary]
+  );
 
   const { overdueBills, upcomingBills } = useMemo(() => {
     const now = new Date();
@@ -195,10 +249,15 @@ export default function DashboardPage() {
     const fifteenDaysLater = new Date(now);
     fifteenDaysLater.setDate(now.getDate() + 15);
 
-    const unpaid = (billInstances || []).filter((bi: BillInstance) => bi.status !== "paid");
+    const unpaid = (billInstances || []).filter(
+      (bi: BillInstance) => bi.status !== "paid"
+    );
     const overdue = unpaid
       .filter((bi: BillInstance) => new Date(bi.due_date) < now)
-      .sort((a: BillInstance, b: BillInstance) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .sort(
+        (a: BillInstance, b: BillInstance) =>
+          new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      )
       .slice(0, 3);
 
     const upcoming = unpaid
@@ -206,52 +265,58 @@ export default function DashboardPage() {
         const due = new Date(bi.due_date);
         return due >= now && due <= fifteenDaysLater;
       })
-      .sort((a: BillInstance, b: BillInstance) => new Date(a.due_date).getTime() - new Date(b.due_date).getTime())
+      .sort(
+        (a: BillInstance, b: BillInstance) =>
+          new Date(a.due_date).getTime() - new Date(b.due_date).getTime()
+      )
       .slice(0, 3);
 
     return { overdueBills: overdue, upcomingBills: upcoming };
   }, [billInstances]);
 
-  // Prepared data for charts using real data
-  const { monthlyMap } = aggregateTransactions(transactions);
-  const monthlyData = getMonthlyData(monthlyMap).slice(-6); // Last 6 months
-  
-  // Prepare data for "Spending Distribution" (Top 5 expenses)
+  // Charts — memoized
+  const monthlyData = useMemo(() => {
+    const { monthlyMap } = aggregateTransactions(transactions);
+    return getMonthlyData(monthlyMap).slice(-6);
+  }, [transactions]);
+
   const spendingChartData = useMemo(() => {
     if (!Array.isArray(categoryData)) return [];
     return [...categoryData]
       .sort((a, b) => b.expenses - a.expenses)
       .slice(0, 5)
-      .map(c => ({
-          name: c.name,
-          value: c.expenses,
-          color: c.color || "#6366f1" // Fallback indigo
-      })); 
+      .map((c) => ({
+        name: c.name,
+        value: c.expenses,
+        color: c.color || "#6366f1",
+      }));
   }, [categoryData]);
 
-
-  // Recent transactions (Top 5)
   const recentTransactions = useMemo(() => {
     if (!Array.isArray(transactions) || !Array.isArray(categories)) return [];
     return [...transactions]
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    .slice(0, 5)
-    .map(tx => {
-        const cat = categories.find(c => c.id === tx.category_id);
+      .sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      )
+      .slice(0, 5)
+      .map((tx) => {
+        const cat = categories.find((c) => c.id === tx.category_id);
         return {
-            ...tx,
-            categoryName: cat ? cat.name : "Uncategorized"
+          ...tx,
+          categoryName: cat ? cat.name : "Uncategorized",
         };
-    });
+      });
   }, [transactions, categories]);
 
-
-
+  // Tooltip rendered with stable symbol from hook
+  const renderTooltip = (props: any) => (
+    <GlassTooltip {...props} currencySymbol={symbol} />
+  );
 
   return (
     <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern */}
-      <div 
+      <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
           backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
@@ -259,14 +324,17 @@ export default function DashboardPage() {
         }}
       />
 
-      <motion.div 
+      <motion.div
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
         className="flex flex-col gap-6 relative z-10"
       >
         {/* Header */}
-        <motion.div variants={fadeUp} className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center">
+        <motion.div
+          variants={fadeUp}
+          className="flex flex-col gap-4 md:flex-row md:justify-between md:items-center"
+        >
           <div>
             <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold tracking-tighter text-text-primary">
               Financial Dashboard
@@ -275,7 +343,9 @@ export default function DashboardPage() {
               {isClient && user ? (
                 <p className="text-base text-text-secondary">
                   Welcome back,{" "}
-                  <span className="font-semibold text-text-primary">{user.full_name}</span>
+                  <span className="font-semibold text-text-primary">
+                    {user.full_name}
+                  </span>
                 </p>
               ) : (
                 <p className="text-base text-text-secondary">
@@ -285,8 +355,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <Button 
-            size="lg" 
+          <Button
+            size="lg"
             className="gap-2 w-full md:w-auto shadow-lg hover:shadow-xl transition-all duration-300 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 cursor-pointer"
             onClick={() => router.push("/dashboard/bills")}
           >
@@ -296,18 +366,26 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Summary Cards */}
-        <motion.div variants={fadeUp} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <motion.div
+          variants={fadeUp}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
           {/* Net Worth */}
           <Card className="bg-card border-border shadow-sm hover:shadow-md transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-primary">Net Worth</CardTitle>
+              <CardTitle className="text-sm font-medium text-primary">
+                Net Worth
+              </CardTitle>
               <div className="p-2 bg-primary/10 rounded-full">
                 <Wallet className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
-                <AnimatedCounter target={financialHealth.netWorth} prefix={symbol} />
+                <AnimatedCounter
+                  target={financialHealth.netWorth}
+                  prefix={symbol}
+                />
               </div>
               {financialHealth.netWorthGrowth !== null ? (
                 <p className="text-xs text-text-secondary flex items-center mt-2 font-medium">
@@ -316,107 +394,174 @@ export default function DashboardPage() {
                   ) : (
                     <ArrowDownRight className="h-4 w-4 text-danger mr-1" />
                   )}
-                  <span className={financialHealth.netWorthGrowth >= 0 ? "text-success" : "text-danger"}>
+                  <span
+                    className={
+                      financialHealth.netWorthGrowth >= 0
+                        ? "text-success"
+                        : "text-danger"
+                    }
+                  >
                     {financialHealth.netWorthGrowth > 0 ? "+" : ""}
                     {financialHealth.netWorthGrowth}%
                   </span>
-                  <span className="ml-1 text-text-secondary">vs last month</span>
+                  <span className="ml-1 text-text-secondary">
+                    vs last month
+                  </span>
                 </p>
               ) : (
-                <p className="text-xs text-text-secondary mt-2 font-medium">No prior month data</p>
+                <p className="text-xs text-text-secondary mt-2 font-medium">
+                  No prior month data
+                </p>
               )}
             </CardContent>
           </Card>
 
-          {/* Cash Flow (Current Month) */}
+          {/* Cash Flow */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Cash Flow (This Month)</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Cash Flow (This Month)
+              </CardTitle>
               <div className="p-2 bg-secondary rounded-full border border-border">
                 <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl sm:text-3xl font-bold tracking-tighter ${financialHealth.cashFlow >= 0 ? "text-success" : "text-danger"}`}>
-                <AnimatedCounter target={Math.abs(financialHealth.cashFlow)} prefix={financialHealth.cashFlow < 0 ? `-${symbol}` : symbol} />
+              <div
+                className={`text-2xl sm:text-3xl font-bold tracking-tighter ${
+                  financialHealth.cashFlow >= 0 ? "text-success" : "text-danger"
+                }`}
+              >
+                <AnimatedCounter
+                  target={Math.abs(financialHealth.cashFlow)}
+                  prefix={
+                    financialHealth.cashFlow < 0 ? `-${symbol}` : symbol
+                  }
+                />
               </div>
               <p className="text-xs text-text-secondary mt-2 font-medium">
-                Income: <span className="text-text-primary">{formatCurrency(financialHealth.currentIncome)}</span> | Expenses:{" "}
-                <span className="text-text-primary">{formatCurrency(financialHealth.currentExpense)}</span>
+                Income:{" "}
+                <span className="text-text-primary">
+                  {formatCurrency(financialHealth.currentIncome)}
+                </span>{" "}
+                | Expenses:{" "}
+                <span className="text-text-primary">
+                  {formatCurrency(financialHealth.currentExpense)}
+                </span>
               </p>
             </CardContent>
           </Card>
 
+          {/* Budget Health */}
           <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Budget Health</CardTitle>
+              <CardTitle className="text-sm font-medium">
+                Budget Health
+              </CardTitle>
               <div className="p-2 bg-secondary rounded-full border border-border">
                 <PiggyBank className="h-4 w-4 text-muted-foreground" />
               </div>
             </CardHeader>
             <CardContent>
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
-                <AnimatedCounter target={Math.min(100, Math.round(budgetStats.overallPercentage))} />
+                <AnimatedCounter
+                  target={Math.min(
+                    100,
+                    Math.round(budgetStats.overallPercentage)
+                  )}
+                />
                 <span>%</span>
               </div>
               <p className="text-xs text-text-secondary mt-2 font-medium">
-                <span className="text-text-primary">{formatCurrency(budgetStats.totalSpent)}</span> of {formatCurrency(budgetStats.totalBudget)} used
+                <span className="text-text-primary">
+                  {formatCurrency(budgetStats.totalSpent)}
+                </span>{" "}
+                of {formatCurrency(budgetStats.totalBudget)} used
               </p>
-              <Progress value={budgetStats.overallPercentage} className="h-1.5 mt-3 bg-muted" />
+              <Progress
+                value={budgetStats.overallPercentage}
+                className="h-1.5 mt-3 bg-muted"
+              />
             </CardContent>
           </Card>
         </motion.div>
 
         {/* Charts Row */}
-        <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Monthly Cash Flow - Placeholder/Future Feature */}
+        <motion.div
+          variants={fadeUp}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        >
+          {/* Monthly Cash Flow */}
           <div className="lg:col-span-8">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
-                   <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
-                   <CardDescription>
-                     Income vs Expenses over last 6 months
-                   </CardDescription>
+                  <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
+                  <CardDescription>
+                    Income vs Expenses over last 6 months
+                  </CardDescription>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-success" />
-                        <span className="text-text-secondary">Income</span>
-                    </div>
-                    <div className="flex items-center gap-1.5">
-                        <div className="w-2 h-2 rounded-full bg-danger" />
-                        <span className="text-text-secondary">Expense</span>
-                    </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-success" />
+                    <span className="text-text-secondary">Income</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <div className="w-2 h-2 rounded-full bg-danger" />
+                    <span className="text-text-secondary">Expense</span>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="opacity-[0.05]" />
-                    <XAxis 
-                        dataKey="month" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 10, fontWeight: 600 }}
-                        dy={10}
+                  <BarChart
+                    data={monthlyData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="currentColor"
+                      className="opacity-[0.05]"
                     />
-                    <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 10, fontWeight: 600 }}
-                        tickFormatter={formatAxis}
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 600 }}
+                      dy={10}
                     />
-                    <Tooltip content={<GlassTooltip currencySymbol={symbol} />} cursor={{ fill: 'currentColor', opacity: 0.05 }} />
-                    <Bar dataKey="income" name="Income" fill="#10b981" radius={[4, 4, 0, 0]} barSize={24} />
-                    <Bar dataKey="expenses" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={24} />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 600 }}
+                      tickFormatter={formatAxis}
+                    />
+                    <Tooltip
+                      content={renderTooltip}
+                      cursor={{ fill: "currentColor", opacity: 0.05 }}
+                    />
+                    <Bar
+                      dataKey="income"
+                      name="Income"
+                      fill="#10b981"
+                      radius={[4, 4, 0, 0]}
+                      barSize={24}
+                    />
+                    <Bar
+                      dataKey="expenses"
+                      name="Expense"
+                      fill="#ef4444"
+                      radius={[4, 4, 0, 0]}
+                      barSize={24}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>
             </Card>
           </div>
 
-          {/* Spending Distribution - DYNAMIC */}
+          {/* Spending Distribution */}
           <div className="lg:col-span-4">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
@@ -424,34 +569,51 @@ export default function DashboardPage() {
                 <CardDescription>Top Categories</CardDescription>
               </CardHeader>
               <CardContent className="h-[300px] overflow-y-auto">
-                 {spendingChartData.length > 0 ? (
-                    <div className="space-y-4 mt-4">
-                        {spendingChartData.map((item, idx) => (
-                             <div key={idx} className="flex items-center justify-between">
-                             <div className="flex items-center gap-2">
-                                 <div className={`w-3 h-3 rounded-full ${item.color.startsWith('bg') ? item.color : "bg-gray-500"}`} style={{ backgroundColor: item.color.startsWith('#') ? item.color : undefined}} /> 
-                                 <span className="text-sm font-medium">{item.name}</span>
-                             </div>
-                             <span className="text-sm text-text-secondary">{formatCurrency(item.value)}</span>
-                         </div>
-                        ))}
-                    </div>
-                 ) : (
-                    <div className="flex items-center justify-center h-full border-2 border-dashed border-muted rounded-xl bg-muted/20">
+                {spendingChartData.length > 0 ? (
+                  <div className="space-y-4 mt-4">
+                    {spendingChartData.map((item, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-2">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{
+                              backgroundColor: item.color.startsWith("#")
+                                ? item.color
+                                : "#6366f1",
+                            }}
+                          />
+                          <span className="text-sm font-medium truncate max-w-[120px]">
+                            {item.name}
+                          </span>
+                        </div>
+                        <span className="text-sm text-text-secondary flex-shrink-0">
+                          {formatCurrency(item.value)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-center h-full border-2 border-dashed border-muted rounded-xl bg-muted/20">
                     <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                        <PieChart className="h-10 w-10" />
-                        <span className="font-medium">No expenses yet</span>
+                      <PieChart className="h-10 w-10" />
+                      <span className="font-medium">No expenses yet</span>
                     </div>
-                    </div>
-                 )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
         </motion.div>
 
         {/* Financial Overview */}
-        <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Net Worth Trend - Placeholder */}
+        <motion.div
+          variants={fadeUp}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        >
+          {/* Net Worth Trend */}
           <div className="lg:col-span-5">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
@@ -460,36 +622,58 @@ export default function DashboardPage() {
               </CardHeader>
               <CardContent className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={monthlyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <AreaChart
+                    data={monthlyData}
+                    margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+                  >
                     <defs>
-                      <linearGradient id="colorNet" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#6366f1" stopOpacity={0.1}/>
-                        <stop offset="95%" stopColor="#6366f1" stopOpacity={0}/>
+                      <linearGradient
+                        id="colorNet"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="5%"
+                          stopColor="#6366f1"
+                          stopOpacity={0.1}
+                        />
+                        <stop
+                          offset="95%"
+                          stopColor="#6366f1"
+                          stopOpacity={0}
+                        />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" className="opacity-[0.05]" />
-                    <XAxis 
-                        dataKey="month" 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 10, fontWeight: 600 }}
-                        dy={10}
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      vertical={false}
+                      stroke="currentColor"
+                      className="opacity-[0.05]"
                     />
-                    <YAxis 
-                        axisLine={false} 
-                        tickLine={false} 
-                        tick={{ fontSize: 10, fontWeight: 600 }}
-                        tickFormatter={formatAxis}
+                    <XAxis
+                      dataKey="month"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 600 }}
+                      dy={10}
                     />
-                    <Tooltip content={<GlassTooltip currencySymbol={symbol} />} />
-                    <Area 
-                        type="monotone" 
-                        dataKey={(d) => d.income - d.expenses} 
-                        name="Net Cash Flow"
-                        stroke="#6366f1" 
-                        strokeWidth={3}
-                        fillOpacity={1} 
-                        fill="url(#colorNet)" 
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 600 }}
+                      tickFormatter={formatAxis}
+                    />
+                    <Tooltip content={renderTooltip} />
+                    <Area
+                      type="monotone"
+                      dataKey={(d) => d.income - d.expenses}
+                      name="Net Cash Flow"
+                      stroke="#6366f1"
+                      strokeWidth={3}
+                      fillOpacity={1}
+                      fill="url(#colorNet)"
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -497,6 +681,7 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Budget Progress */}
           <div className="lg:col-span-7">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader>
@@ -506,14 +691,24 @@ export default function DashboardPage() {
               <CardContent>
                 <div className="space-y-6">
                   {activeBudgetSummary.slice(0, 4).map((item, index) => (
-                    <div key={item.budget_id || `${item.category_id || item.category_name}-${index}`}>
+                    <div
+                      key={
+                        item.budget_id ||
+                        `${item.category_id || item.category_name}-${index}`
+                      }
+                    >
                       <div className="flex justify-between text-sm mb-2 font-medium">
-                        <span className="tracking-tight">{item.category_name}</span>
-                        <span className="text-muted-foreground">{formatCurrency(item.total_spent)} / {formatCurrency(item.budget_amount)}</span>
+                        <span className="tracking-tight">
+                          {item.category_name}
+                        </span>
+                        <span className="text-muted-foreground">
+                          {formatCurrency(item.total_spent)} /{" "}
+                          {formatCurrency(item.budget_amount)}
+                        </span>
                       </div>
                       <Progress
                         value={item.percentage_used}
-                        className={`h-2.5 rounded-full`} 
+                        className="h-2.5 rounded-full"
                       />
                     </div>
                   ))}
@@ -536,17 +731,20 @@ export default function DashboardPage() {
         </motion.div>
 
         {/* Bottom Row */}
-        <motion.div variants={fadeUp} className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Recent Transactions - DYNAMIC */}
+        <motion.div
+          variants={fadeUp}
+          className="grid grid-cols-1 lg:grid-cols-12 gap-6"
+        >
+          {/* Recent Transactions */}
           <div className="lg:col-span-5">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="flex flex-row items-center justify-between pb-6">
                 <CardTitle className="text-lg">Recent Transactions</CardTitle>
-                <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="text-primary hover:text-primary/80 hover:bg-primary/5"
-                    onClick={() => router.push("/dashboard/transactions")}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary hover:text-primary/80 hover:bg-primary/5"
+                  onClick={() => router.push("/dashboard/transactions")}
                 >
                   View All
                 </Button>
@@ -573,79 +771,120 @@ export default function DashboardPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-semibold tracking-tight group-hover:text-primary transition-colors max-w-[150px] truncate">{transaction.description || "No description"}</div>
+                          <div className="font-semibold tracking-tight group-hover:text-primary transition-colors max-w-[150px] truncate">
+                            {transaction.description || "No description"}
+                          </div>
                           <div className="text-xs text-text-secondary mt-0.5">
-                            {formatDate(transaction.date)} • {transaction.categoryName}
+                            {formatDate(transaction.date)} •{" "}
+                            {transaction.categoryName}
                           </div>
                         </div>
                       </div>
                       <div
-                        className={`font-semibold tracking-tight ${
+                        className={`font-semibold tracking-tight flex-shrink-0 ${
                           transaction.amount > 0
                             ? "text-success"
                             : "text-danger"
                         }`}
                       >
-                        {transaction.amount < 0 ? "-" : "+"}{formatCurrency(Math.abs(transaction.amount))}
+                        {transaction.amount < 0 ? "-" : "+"}
+                        {formatCurrency(Math.abs(transaction.amount))}
                       </div>
                     </div>
                   ))}
                   {recentTransactions.length === 0 && (
-                      <p className="text-sm text-center text-muted-foreground py-4">No recent transactions found.</p>
+                    <p className="text-sm text-center text-muted-foreground py-4">
+                      No recent transactions found.
+                    </p>
                   )}
                 </div>
               </CardContent>
             </Card>
           </div>
 
+          {/* Bills Snapshot */}
           <div className="lg:col-span-3">
             <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="pb-6">
-                <CardTitle className="text-lg text-primary">Bills Snapshot</CardTitle>
-                <CardDescription className="text-muted-foreground">Overdue and next 15 days</CardDescription>
+                <CardTitle className="text-lg text-primary">
+                  Bills Snapshot
+                </CardTitle>
+                <CardDescription className="text-muted-foreground">
+                  Overdue and next 15 days
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-danger mb-3">Overdue</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-danger mb-3">
+                      Overdue
+                    </p>
                     <div className="space-y-3">
-                      {overdueBills.length > 0 ? overdueBills.map((bill) => {
-                        const billName = bills.find(b => b.id === bill.bill_id)?.name || "Bill Due";
-                        return (
-                          <div key={bill.id} className="flex items-center justify-between">
-                            <div className="max-w-[120px]">
-                              <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">{formatDate(bill.due_date)}</div>
+                      {overdueBills.length > 0 ? (
+                        overdueBills.map((bill) => {
+                          const billName =
+                            bills.find((b) => b.id === bill.bill_id)?.name ||
+                            "Bill Due";
+                          return (
+                            <div
+                              key={bill.id}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="max-w-[120px]">
+                                <div className="font-semibold tracking-tight text-text-primary truncate">
+                                  {billName}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {formatDate(bill.due_date)}
+                                </div>
+                              </div>
+                              <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg flex-shrink-0">
+                                {formatCurrency(bill.amount)}
+                              </div>
                             </div>
-                            <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">
-                              {formatCurrency(bill.amount)}
-                            </div>
-                          </div>
-                        );
-                      }) : (
-                        <p className="text-xs text-muted-foreground">No overdue bills.</p>
+                          );
+                        })
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No overdue bills. 🎉
+                        </p>
                       )}
                     </div>
                   </div>
 
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-3">Upcoming</p>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-primary mb-3">
+                      Upcoming
+                    </p>
                     <div className="space-y-3">
-                      {upcomingBills.length > 0 ? upcomingBills.map((bill) => {
-                        const billName = bills.find(b => b.id === bill.bill_id)?.name || "Bill Due";
-                        return (
-                          <div key={bill.id} className="flex items-center justify-between">
-                            <div className="max-w-[120px]">
-                              <div className="font-semibold tracking-tight text-text-primary truncate">{billName}</div>
-                              <div className="text-xs text-muted-foreground mt-0.5">{formatDate(bill.due_date)}</div>
+                      {upcomingBills.length > 0 ? (
+                        upcomingBills.map((bill) => {
+                          const billName =
+                            bills.find((b) => b.id === bill.bill_id)?.name ||
+                            "Bill Due";
+                          return (
+                            <div
+                              key={bill.id}
+                              className="flex items-center justify-between"
+                            >
+                              <div className="max-w-[120px]">
+                                <div className="font-semibold tracking-tight text-text-primary truncate">
+                                  {billName}
+                                </div>
+                                <div className="text-xs text-muted-foreground mt-0.5">
+                                  {formatDate(bill.due_date)}
+                                </div>
+                              </div>
+                              <div className="font-semibold text-primary bg-primary/10 px-2 py-1 rounded-lg flex-shrink-0">
+                                {formatCurrency(bill.amount)}
+                              </div>
                             </div>
-                            <div className="font-semibold text-danger bg-danger/10 px-2 py-1 rounded-lg">
-                              {formatCurrency(bill.amount)}
-                            </div>
-                          </div>
-                        );
-                      }) : (
-                        <p className="text-xs text-muted-foreground">No upcoming bills.</p>
+                          );
+                        })
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No upcoming bills.
+                        </p>
                       )}
                     </div>
                   </div>
@@ -654,24 +893,32 @@ export default function DashboardPage() {
             </Card>
           </div>
 
+          {/* Financial Overview */}
           <div className="lg:col-span-4">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full">
+            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
               <CardHeader className="pb-6">
                 <CardTitle className="text-lg">Financial Overview</CardTitle>
                 <CardDescription>Monthly Analysis</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                   <div>
-                        <div className="flex justify-between text-sm mb-2">
-                           <span className="font-semibold tracking-tight text-text-primary">Savings Goal Progress</span>
-                           <span className="text-text-secondary font-medium">Inactive</span>
-                        </div>
-                        <Progress value={0} className="h-2.5 rounded-full bg-muted" />
-                        <div className="flex justify-between text-xs text-text-secondary mt-2 font-medium">
-                           <span>Module disabled in settings</span>
-                        </div>
-                   </div>
+                  <div>
+                    <div className="flex justify-between text-sm mb-2">
+                      <span className="font-semibold tracking-tight text-text-primary">
+                        Savings Goal Progress
+                      </span>
+                      <span className="text-text-secondary font-medium">
+                        Inactive
+                      </span>
+                    </div>
+                    <Progress
+                      value={0}
+                      className="h-2.5 rounded-full bg-muted"
+                    />
+                    <div className="flex justify-between text-xs text-text-secondary mt-2 font-medium">
+                      <span>Module disabled in settings</span>
+                    </div>
+                  </div>
                 </div>
               </CardContent>
             </Card>

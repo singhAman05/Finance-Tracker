@@ -19,6 +19,8 @@ function mapDbError(err: PgLikeError): AppError | null {
       return AppError.validation('Constraint validation failed', err.details || err.message);
     case 'P0001':
       return AppError.badRequest(err.message || 'Operation rejected by database');
+    case '42501':
+      return AppError.unauthorized('RLS is Violated', err.details || err.message);
     default:
       return null;
   }

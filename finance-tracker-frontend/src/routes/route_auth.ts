@@ -3,11 +3,10 @@ import type { User } from "@/types/interfaces";
 
 // --- Response types for auth endpoints ---
 interface AuthResponse {
+  success: boolean;
   message: string;
-  data: {
-    token: string;
-    user: User;
-  };
+  token: string;
+  user: User;
 }
 
 interface AuthPayload {
@@ -32,12 +31,14 @@ export const phoneLoginRoute = async (phone: string): Promise<AuthPayload> => {
   });
 
   const body = (await response.json()) as AuthResponse | ErrorResponse;
+  console.log(body);
 
   if (!response.ok) {
     throw new Error(body?.message || "Login failed. Please try again.");
   }
 
-  return (body as AuthResponse).data;
+  const { token, user } = body as AuthResponse;
+  return { token, user };
 };
 
 export const loginGoogleRoute = async (
@@ -57,5 +58,6 @@ export const loginGoogleRoute = async (
     throw new Error(body?.message || "Login failed. Please try again.");
   }
 
-  return (body as AuthResponse).data;
+  const { token, user } = body as AuthResponse;
+  return { token, user };
 };

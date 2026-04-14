@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { setAccounts } from "../redux/slices/slice_accounts";
@@ -11,12 +11,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fetchTransactions } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts } from "@/service/service_accounts";
-import { PieChart } from "lucide-react";
+import { PieChart, RefreshCw } from "lucide-react";
 import Loader from "@/utils/loader";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-// Import our new components and services
 import ReportHeader from "@/components/reports/reportHeader";
 import SummaryCards from "@/components/reports/summaryCards";
 import OverviewTab from "@/components/reports/overviewTab";
@@ -34,6 +33,19 @@ import {
   exportCategoryDataToCSV,
 } from "@/service/service_reports";
 
+const staggerContainer = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
+};
+
+const fadeUp = {
+  hidden: { opacity: 0, y: 24 },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
+  },
+};
 
 export default function ReportPage() {
   const dispatch = useDispatch();
@@ -49,107 +61,125 @@ export default function ReportPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const hasLoadedOnce = useRef(false);
 
-  const accountLookup = accounts.reduce((map, acc) => {
-    map[acc.id] = acc;
-    return map;
-  }, {} as Record<string, any>);
+  // Safe lookup maps — memoized to avoid re-creation on every render
+  const accountLookup = useMemo(
+    () =>
+      accounts.reduce((map, acc) => {
+        map[acc.id] = acc;
+        return map;
+      }, {} as Record<string, any>),
+    [accounts]
+  );
 
-  const categoryLookup = categories.reduce((map, cat) => {
-    map[cat.id] = cat;
-    return map;
-  }, {} as Record<string, any>);
+  const categoryLookup = useMemo(
+    () =>
+      categories.reduce((map, cat) => {
+        map[cat.id] = cat;
+        return map;
+      }, {} as Record<string, any>),
+    [categories]
+  );
+
+  const loadData = async (isRefresh = false) => {
+    if (isRefresh) {
+      setIsRefreshing(true);
+    } else if (!hasLoadedOnce.current) {
+      setIsLoading(true);
+    }
+
+    try {
+      const [accRes, txRes, catRes] = await Promise.allSettled([
+        fetchAccounts(),
+        fetchTransactions(),
+        fetchCategories(),
+      ]);
+
+      if (accRes.status === "fulfilled" && accRes.value?.data) {
+        dispatch(setAccounts(accRes.value.data));
+      }
+      if (txRes.status === "fulfilled" && txRes.value?.data) {
+        dispatch(setTransactions(txRes.value.data));
+      }
+      if (catRes.status === "fulfilled" && catRes.value?.data) {
+        dispatch(setCategories(catRes.value.data));
+      }
+    } catch (err) {
+      console.error("Reports data load failed:", err);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+      hasLoadedOnce.current = true;
+    }
+  };
 
   useEffect(() => {
-    let mounted = true;
-
-    const loadData = async () => {
-      if (hasLoadedOnce.current) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-      const tasks: Promise<void>[] = [
-        fetchAccounts()
-          .then((data) => {
-            const payload = data?.data || data;
-            dispatch(setAccounts(Array.isArray(payload) ? payload : []));
-          })
-          .catch((err) => console.error(err)),
-        fetchTransactions()
-          .then((res) => {
-            const txArray = res?.data || res;
-            if (Array.isArray(txArray)) {
-              dispatch(setTransactions(txArray));
-            } else {
-              dispatch(setTransactions([]));
-            }
-          })
-          .catch((err) => console.error(err)),
-        fetchCategories()
-          .then((data) => {
-            const payload = data?.data || data;
-            dispatch(setCategories(Array.isArray(payload) ? payload : []));
-          })
-          .catch((err) => console.error(err)),
-      ];
-
-      await Promise.allSettled(tasks);
-      if (mounted) {
-        setIsLoading(false);
-        setIsRefreshing(false);
-        hasLoadedOnce.current = true;
-      }
-    };
-
     loadData();
-    return () => {
-      mounted = false;
-    };
-  }, [dispatch]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  // Calculate all data using our service functions
-  const currentMonthTransactions = transactions.filter(tx => {
-    const txDate = tx.date instanceof Date ? tx.date : new Date(tx.date);
+  // ── Derived data — all memoized ──────────────────────────────────────────
+
+  // Current month transactions (for category/account breakdown)
+  const currentMonthTransactions = useMemo(() => {
     const now = new Date();
-    return txDate.getMonth() === now.getMonth() && txDate.getFullYear() === now.getFullYear();
-  });
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth();
+    return transactions.filter((tx) => {
+      const d = tx.date instanceof Date ? tx.date : new Date(tx.date);
+      return d.getFullYear() === currentYear && d.getMonth() === currentMonth;
+    });
+  }, [transactions]);
 
-  const { categoryMap, accountMap: aggregatedAccountMap, monthlyMap } =
-  aggregateTransactions(transactions); // Use all transactions for historical trends
+  // All-time aggregation for trend charts
+  const allTimeAggregation = useMemo(
+    () => aggregateTransactions(transactions),
+    [transactions]
+  );
 
-  const { categoryMap: currentCategoryMap } = aggregateTransactions(currentMonthTransactions);
+  // Current month aggregation for category/account analysis
+  const currentMonthAggregation = useMemo(
+    () => aggregateTransactions(currentMonthTransactions),
+    [currentMonthTransactions]
+  );
 
-  const categoryData = getCategoryData(categories, currentCategoryMap);
-  const accountData = getAccountData(accounts, aggregatedAccountMap);
-  const monthlyData = getMonthlyData(monthlyMap);
+  const categoryData = useMemo(
+    () => getCategoryData(categories, currentMonthAggregation.categoryMap),
+    [categories, currentMonthAggregation.categoryMap]
+  );
 
-  const summary = calculateSummaryFromAggregation(accounts, currentCategoryMap);
+  const accountData = useMemo(
+    () => getAccountData(accounts, allTimeAggregation.accountMap),
+    [accounts, allTimeAggregation.accountMap]
+  );
+
+  const monthlyData = useMemo(
+    () => getMonthlyData(allTimeAggregation.monthlyMap),
+    [allTimeAggregation.monthlyMap]
+  );
+
+  const summary = useMemo(
+    () => calculateSummaryFromAggregation(accounts, currentMonthAggregation.categoryMap),
+    [accounts, currentMonthAggregation.categoryMap]
+  );
 
   const handleExport = () => {
     const today = new Date();
-    const dateStr = today.toISOString().split("T")[0];
+    const dateStr = today.toISOString().slice(0, 10);
     exportCategoryDataToCSV(categoryData, `financial-report-${dateStr}.csv`);
   };
 
-
-  // --- Animation Variants ---
-  const staggerContainer = {
-    hidden: {},
-    visible: { transition: { staggerChildren: 0.1 } },
-  };
-
-  const fadeUp = {
-    hidden: { opacity: 0, y: 24 },
-    visible: {
-      opacity: 1,
-      y: 0,
-      transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
-    },
-  };
+  const tabs = [
+    { value: "overview", label: "Overview" },
+    { value: "cashflow", label: "Cash Flow" },
+    { value: "categories", label: "Categories" },
+    { value: "accounts", label: "Accounts" },
+    { value: "trends", label: "Trends" },
+    { value: "transactions", label: "Transactions" },
+  ];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
-      {/* Background Pattern */}
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+      {/* Background Pattern — consistent with all dashboard pages */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
@@ -162,39 +192,59 @@ export default function ReportPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative w-full p-2 md:p-6 space-y-6 mx-auto z-10"
+        className="flex flex-col gap-6 relative z-10 mx-auto w-full"
       >
-        {isRefreshing && (
-          <div className="pointer-events-none absolute inset-0 z-20 rounded-2xl bg-background/35 backdrop-blur-[1px] flex items-center justify-center">
-            <Loader size="sm" text="Refreshing report..." />
-          </div>
-        )}
-        <ReportHeader
-          title="Financial Reports"
-          subtitle="Analyze your income, expenses, and financial trends"
-          onExport={handleExport}
-        />
+        {/* Header */}
+        <motion.div variants={fadeUp}>
+          <ReportHeader
+            title="Financial Reports"
+            subtitle="Analyze your income, expenses, and financial trends"
+            onExport={handleExport}
+          />
+        </motion.div>
 
         {isLoading ? (
-          <div className="w-full flex items-center justify-center min-h-[400px]">
+          <motion.div
+            variants={fadeUp}
+            className="w-full flex items-center justify-center min-h-[400px]"
+          >
             <Loader size="md" text="Loading your financial data..." />
-          </div>
+          </motion.div>
         ) : transactions.length === 0 ? (
-          <motion.div variants={fadeUp} className="w-full flex-col flex items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center mt-12 shadow-sm">
-            <PieChart className="h-16 w-16 text-muted-foreground mx-auto mb-6 opacity-50" />
-            <h2 className="text-2xl font-bold mb-3 text-text-primary">Not enough data to generate a report</h2>
-            <p className="text-text-secondary mb-8">
-              Add some transactions to generate meaningful report insights.
+          <motion.div
+            variants={fadeUp}
+            className="flex flex-col items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center shadow-sm"
+          >
+            <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
+              <PieChart className="h-10 w-10 text-text-secondary/50" />
+            </div>
+            <h2 className="text-xl font-bold mb-2 text-text-primary">
+              No data to report yet
+            </h2>
+            <p className="text-text-secondary text-sm mb-6 max-w-xs">
+              Add transactions to generate meaningful financial insights and
+              visualizations.
             </p>
-            <Button 
+            <Button
               onClick={() => router.push("/dashboard")}
-              className="w-full max-w-[200px] mx-auto h-12 bg-primary text-primary-foreground font-bold rounded-xl flex items-center justify-center gap-2 cursor-pointer hover:bg-primary/90 transition-colors"
+              className="rounded-full px-8 bg-primary text-primary-foreground hover:bg-primary/90"
             >
               Go to Dashboard
             </Button>
           </motion.div>
         ) : (
           <>
+            {/* Refreshing overlay */}
+            {isRefreshing && (
+              <div className="fixed inset-0 z-50 pointer-events-none flex items-start justify-center pt-8">
+                <div className="flex items-center gap-2 bg-card border border-border rounded-full px-4 py-2 shadow-lg text-sm font-medium text-text-secondary">
+                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                  Refreshing…
+                </div>
+              </div>
+            )}
+
+            {/* Summary Cards */}
             <motion.div variants={fadeUp}>
               <SummaryCards
                 totalBalance={summary.totalBalance}
@@ -204,28 +254,27 @@ export default function ReportPage() {
               />
             </motion.div>
 
+            {/* Tabs */}
             <motion.div variants={fadeUp}>
               <Tabs defaultValue="overview" className="w-full">
-                <TabsList className="flex items-center justify-start p-1 bg-muted/50 backdrop-blur-md rounded-2xl border border-border w-fit mb-6 overflow-x-auto max-w-full no-scrollbar">
-                  {[
-                    { value: "overview", label: "Overview" },
-                    { value: "cashflow", label: "Cash Flow" },
-                    { value: "categories", label: "By Category" },
-                    { value: "accounts", label: "By Account" },
-                    { value: "trends", label: "Trends" },
-                    { value: "transactions", label: "Transactions" }
-                  ].map((tab) => (
-                    <TabsTrigger 
-                      key={tab.value}
-                      value={tab.value} 
-                      className="px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-[0.1em] text-text-secondary data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap"
-                    >
-                      {tab.label}
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
+                <div className="overflow-x-auto pb-1">
+                  <TabsList className="inline-flex items-center p-1 bg-muted/50 backdrop-blur-md rounded-2xl border border-border mb-6 whitespace-nowrap min-w-full sm:min-w-0 w-fit">
+                    {tabs.map((tab) => (
+                      <TabsTrigger
+                        key={tab.value}
+                        value={tab.value}
+                        className="px-4 sm:px-6 py-2.5 rounded-xl font-bold text-xs uppercase tracking-[0.1em] text-text-secondary data-[state=active]:bg-card data-[state=active]:text-primary data-[state=active]:shadow-sm transition-all whitespace-nowrap"
+                      >
+                        {tab.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                </div>
 
-                <TabsContent value="overview" className="mt-0 focus-visible:outline-none">
+                <TabsContent
+                  value="overview"
+                  className="mt-0 focus-visible:outline-none"
+                >
                   <OverviewTab
                     monthlyData={monthlyData}
                     categoryData={categoryData}
@@ -233,26 +282,41 @@ export default function ReportPage() {
                   />
                 </TabsContent>
 
-                <TabsContent value="cashflow" className="mt-0 focus-visible:outline-none">
-                  <CashFlowTab 
-                    transactions={transactions} 
-                    monthlyData={monthlyData} 
+                <TabsContent
+                  value="cashflow"
+                  className="mt-0 focus-visible:outline-none"
+                >
+                  <CashFlowTab
+                    transactions={transactions}
+                    monthlyData={monthlyData}
                   />
                 </TabsContent>
 
-                <TabsContent value="categories" className="mt-0 focus-visible:outline-none">
+                <TabsContent
+                  value="categories"
+                  className="mt-0 focus-visible:outline-none"
+                >
                   <CategoriesTab categoryData={categoryData} />
                 </TabsContent>
 
-                <TabsContent value="accounts" className="mt-0 focus-visible:outline-none">
+                <TabsContent
+                  value="accounts"
+                  className="mt-0 focus-visible:outline-none"
+                >
                   <AccountsTab accountData={accountData} />
                 </TabsContent>
 
-                <TabsContent value="trends" className="mt-0 focus-visible:outline-none">
+                <TabsContent
+                  value="trends"
+                  className="mt-0 focus-visible:outline-none"
+                >
                   <TrendsTab monthlyData={monthlyData} />
                 </TabsContent>
 
-                <TabsContent value="transactions" className="mt-0 focus-visible:outline-none">
+                <TabsContent
+                  value="transactions"
+                  className="mt-0 focus-visible:outline-none"
+                >
                   <TransactionsTab
                     transactions={transactions}
                     accountMap={accountLookup}
