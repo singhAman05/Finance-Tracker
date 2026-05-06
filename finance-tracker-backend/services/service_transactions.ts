@@ -34,35 +34,15 @@ export const createTransaction = async (payload: NewTransactionPayload) => {
 
     if (error) return { data, error };
 
-    // Update account balance based on transaction type
+    // Update account balance atomically via RPC
     const balanceChange = payload.type === 'income' ? payload.amount : -payload.amount;
     const { error: balanceError } = await supabase.rpc('adjust_account_balance', {
         p_account_id: payload.account_id,
         p_amount: balanceChange,
     });
 
-    // If RPC doesn't exist yet, fall back to read-modify-write
-    if (balanceError && balanceError.message.includes('function')) {
-        const { data: account } = await supabase
-            .from('accounts')
-            .select('balance')
-            .eq('id', payload.account_id)
-            .single();
-
-        if (account) {
-            const { error: updateError } = await supabase
-                .from('accounts')
-                .update({ balance: account.balance + balanceChange })
-                .eq('id', payload.account_id);
-            if (updateError) {
-                await supabase.from("transactions").delete().eq("id", data.id);
-                return { data: null, error: updateError };
-            }
-        } else {
-            await supabase.from("transactions").delete().eq("id", data.id);
-            return { data: null, error: { message: "Account not found for balance update" } as any };
-        }
-    } else if (balanceError) {
+    if (balanceError) {
+        // Compensate: remove the inserted transaction
         await supabase.from("transactions").delete().eq("id", data.id);
         return { data: null, error: balanceError };
     }
@@ -72,13 +52,22 @@ export const createTransaction = async (payload: NewTransactionPayload) => {
 
 export const fetchTransactions = async (
     client_id: string,
-    pagination?: { from: number; to: number }
+    pagination?: { from: number; to: number },
+    dateRange?: { start_date?: string; end_date?: string }
 ) => {
     let query = supabase
         .from('transactions')
         .select('*', { count: 'exact' })
         .eq('client_id', client_id)
-        .order('date', { ascending: false });
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false });
+
+    if (dateRange?.start_date) {
+        query = query.gte('date', dateRange.start_date);
+    }
+    if (dateRange?.end_date) {
+        query = query.lte('date', dateRange.end_date);
+    }
 
     if (pagination) {
         query = query.range(pagination.from, pagination.to);
@@ -102,33 +91,14 @@ export const deleteTransaction = async (transaction_id: string, client_id: strin
         return { data: null, error: fetchError || { message: "Transaction not found" } };
     }
 
-    // Reverse the balance change first
+    // Reverse the balance change first via atomic RPC
     const balanceReversal = tx.type === 'income' ? -tx.amount : tx.amount;
     const { error: balanceError } = await supabase.rpc('adjust_account_balance', {
         p_account_id: tx.account_id,
         p_amount: balanceReversal,
     });
 
-    // Fallback if RPC doesn't exist
-    if (balanceError && balanceError.message.includes('function')) {
-        const { data: account } = await supabase
-            .from('accounts')
-            .select('balance')
-            .eq('id', tx.account_id)
-            .single();
-
-        if (account) {
-            const { error: updateError } = await supabase
-                .from('accounts')
-                .update({ balance: account.balance + balanceReversal })
-                .eq('id', tx.account_id);
-            if (updateError) {
-                return { data: null, error: updateError };
-            }
-        } else {
-            return { data: null, error: { message: "Account not found for balance reversal" } as any };
-        }
-    } else if (balanceError) {
+    if (balanceError) {
         return { data: null, error: balanceError };
     }
 

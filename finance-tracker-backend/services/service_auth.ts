@@ -1,11 +1,11 @@
-﻿import { supabase } from '../config/supabase';
+﻿import { supabaseAdmin } from '../config/supabase';
 import { tokenGenerator } from '../middleware/jwt';
 import { AppError } from '../utils/AppError';
 
 const NO_ROWS = 'PGRST116';
 
 export const loginWithPhone = async (phone: string) => {
-  const { data: existingUser, error: fetchError } = await supabase
+  const { data: existingUser, error: fetchError } = await supabaseAdmin
     .from('clients')
     .select('*')
     .eq('phone', phone)
@@ -18,7 +18,7 @@ export const loginWithPhone = async (phone: string) => {
   }
 
   if (!existingUser) {
-    const { data: newUser, error: createError } = await supabase
+    const { data: newUser, error: createError } = await supabaseAdmin
       .from('clients')
       .insert([{ phone, profile_complete: false }])
       .select('*')
@@ -51,7 +51,7 @@ export const loginWithPhone = async (phone: string) => {
 };
 
 export const loginWithGoogle = async (email: string, name: string) => {
-  const { data: existingUser, error: fetchError } = await supabase
+  const { data: existingUser, error: fetchError } = await supabaseAdmin
     .from('clients')
     .select('*')
     .eq('email', email)
@@ -64,7 +64,7 @@ export const loginWithGoogle = async (email: string, name: string) => {
   }
 
   if (!existingUser) {
-    const { data: newUser, error: createError } = await supabase
+    const { data: newUser, error: createError } = await supabaseAdmin
       .from('clients')
       .insert([{ email, full_name: name, profile_complete: false }])
       .select('*')

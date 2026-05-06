@@ -28,7 +28,7 @@ import {
   RefreshCw,
   ChevronDown,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getLocaleForCurrency } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 
@@ -175,7 +175,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
 
   return (
     <div className="w-full max-w-2xl relative mx-auto">
-      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-[2rem] sm:rounded-3xl relative">
+      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-xl relative">
         <div
           className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
           style={{
@@ -316,6 +316,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
                 <div className="relative">
                   <Input
                     type="number"
+                    max="9999999999"
                     placeholder="0.00"
                     value={form.balance}
                     onChange={(e) => update("balance", e.target.value)}
@@ -344,7 +345,7 @@ export function AddAccount({ onClose }: AddAccountProps) {
             </div>
 
             {/* ── Recurring Toggle ───────────────────────────────────── */}
-            <div className="rounded-2xl border border-border overflow-hidden">
+            <div className="rounded-xl border border-border overflow-hidden">
               <button
                 type="button"
                 onClick={() => updateRecurring("is_recurring", !recurring.is_recurring)}
@@ -496,12 +497,12 @@ export function AddAccount({ onClose }: AddAccountProps) {
                       {finalBank || "Select Bank"}
                     </p>
                     <p className="text-xl font-bold tracking-tight text-text-primary">
-                      {form.currency} {Number(form.balance || 0).toLocaleString()}
+                      {form.currency} {Number(form.balance || 0).toLocaleString(getLocaleForCurrency(form.currency))}
                     </p>
                     {recurring.is_recurring && recurring.recurring_amount && (
                       <p className="text-xs text-emerald-500 font-medium mt-1 flex items-center gap-1">
                         <RefreshCw className="h-3 w-3" />
-                        {symbol}{Number(recurring.recurring_amount).toLocaleString()} {recurring.recurring_type} · {recurring.recurring_frequency}, day {recurring.recurring_day_of_month}
+                        {symbol}{Number(recurring.recurring_amount).toLocaleString(getLocaleForCurrency(form.currency))} {recurring.recurring_type} · {recurring.recurring_frequency}, day {recurring.recurring_day_of_month}
                       </p>
                     )}
                   </div>
@@ -530,3 +531,4 @@ export function AddAccount({ onClose }: AddAccountProps) {
     </div>
   );
 }
+

@@ -126,54 +126,11 @@ export const markBillInstanceAsPaid = async (bill_instance_id: string, client_id
     p_client_id: client_id,
   });
 
-  if (!rpcError) {
-    return { success: true, data: rpcData };
-  }
-
-  // Fallback when RPC is not deployed yet.
-  if (!rpcError.message.includes('function')) {
+  if (rpcError) {
     throw new Error(rpcError.message);
   }
 
-  const { data: instance, error: fetchError } = await supabase
-    .from('bill_instances')
-    .select('*')
-    .eq('id', bill_instance_id)
-    .eq('client_id', client_id)
-    .single();
-
-  if (fetchError) throw new Error(fetchError.message);
-  if (!instance) throw AppError.notFound('Bill instance not found');
-  if (instance.status !== 'upcoming') throw AppError.badRequest('Bill already processed');
-
-  const { data: bill, error: billError } = await supabase.from('bills').select('*').eq('id', instance.bill_id).single();
-  if (billError) throw new Error(billError.message);
-  if (!bill.account_id) throw AppError.badRequest('Bill is not linked to an account');
-
-  const { data: transaction, error: txError } = await createTransaction({
-    client_id,
-    account_id: bill.account_id,
-    category_id: bill.system_category_id,
-    amount: instance.amount,
-    type: 'expense',
-    description: `Bill payment: ${bill.name}`,
-  });
-
-  if (txError || !transaction) throw new Error(txError?.message || 'Failed to create transaction');
-
-  const { error: updateError } = await supabase
-    .from('bill_instances')
-    .update({ status: 'paid', paid_at: new Date().toISOString(), transaction_id: transaction.id })
-    .eq('id', bill_instance_id)
-    .eq('status', 'upcoming');
-
-  if (updateError) throw new Error(updateError.message);
-
-  if (bill.is_recurring) {
-    await generateNextInstance(bill);
-  }
-
-  return { success: true };
+  return { success: true, data: rpcData };
 };
 
 export const generateNextInstance = async (bill: any) => {

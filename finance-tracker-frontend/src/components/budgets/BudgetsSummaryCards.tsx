@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Target, TrendingUp, AlertCircle, LayoutGrid } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
+import { getLocaleForCurrency } from "@/lib/utils";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -18,15 +19,17 @@ const fadeUp = {
 function AnimatedCounter({
   target,
   prefix = "",
+  locale = "en-IN",
 }: {
   target: number;
   prefix?: string;
+  locale?: string;
 }) {
   const count = useMotionValue(0);
   const rounded = useTransform(
     count,
     (v) =>
-      `${prefix}${Math.floor(v).toLocaleString("en-IN", {
+      `${prefix}${Math.floor(v).toLocaleString(locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       })}`
@@ -62,14 +65,15 @@ export default function BudgetsSummaryCards({
   warningCount,
   exceededCount,
 }: BudgetsSummaryCardsProps) {
-  const { symbol } = useCurrency();
+  const { symbol, currency } = useCurrency();
+  const locale = getLocaleForCurrency(currency);
   return (
     <motion.div
       variants={fadeUp}
       className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
     >
       {/* Overall Utilization */}
-      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl border-border dark:border-white/10 rounded-3xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
+      <Card className="bg-slate-950 dark:bg-black text-white shadow-2xl border-border dark:border-white/10 rounded-xl overflow-hidden relative group transition-all duration-500 hover:scale-[1.02] border-none">
         <div 
           className="absolute inset-0 opacity-40 mix-blend-overlay pointer-events-none"
           style={{ 
@@ -96,14 +100,14 @@ export default function BudgetsSummaryCards({
                 />
             </div>
             <div className="flex justify-between items-center text-[9px] sm:text-[10px] font-black uppercase tracking-wider opacity-80">
-                 <span>Spent: {symbol}{totalSpent.toLocaleString()}</span>
-                 <span>Limit: {symbol}{totalBudget.toLocaleString()}</span>
+                 <span>Spent: {symbol}{totalSpent.toLocaleString(locale)}</span>
+                 <span>Limit: {symbol}{totalBudget.toLocaleString(locale)}</span>
             </div>
         </CardContent>
       </Card>
 
       {/* Summary Status - Healthy */}
-      <Card className="bg-emerald-500/5 border-emerald-500/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl">
+      <Card className="bg-emerald-500/5 border-emerald-500/20 shadow-soft hover:shadow-elevated transition-all duration-300 rounded-xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest text-emerald-500">
             Healthy
@@ -123,7 +127,7 @@ export default function BudgetsSummaryCards({
       </Card>
 
       {/* Summary Status - Warning */}
-      <Card className="bg-amber-500/5 border-amber-500/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl">
+      <Card className="bg-amber-500/5 border-amber-500/20 shadow-soft hover:shadow-elevated transition-all duration-300 rounded-xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest text-amber-500">
             Warning
@@ -143,7 +147,7 @@ export default function BudgetsSummaryCards({
       </Card>
 
       {/* Summary Status - Exceeded */}
-      <Card className="bg-destructive/5 border-destructive/20 shadow-sm hover:shadow-md transition-all duration-300 rounded-3xl">
+      <Card className="bg-destructive/5 border-destructive/20 shadow-soft hover:shadow-elevated transition-all duration-300 rounded-xl">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-[10px] font-black uppercase tracking-widest text-destructive">
             Exceeded
@@ -164,3 +168,4 @@ export default function BudgetsSummaryCards({
     </motion.div>
   );
 }
+

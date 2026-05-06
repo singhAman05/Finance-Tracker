@@ -8,7 +8,6 @@ import { PieChart } from "lucide-react";
 
 import { RootState } from "@/app/store";
 import { setAccounts } from "../redux/slices/slice_accounts";
-import { setTransactions } from "../redux/slices/slice_transactions";
 import { setCategories } from "../redux/slices/slice_categories";
 
 import { fetchAccounts } from "@/service/service_accounts";
@@ -19,7 +18,8 @@ import { fetchBillInstances, fetchBills } from "@/service/service_bills";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import Loader from "@/utils/loader";
+import { Skeleton } from "boneyard-js/react";
+import { ReportsFixture } from "@/bones/fixtures";
 
 import ReportHeader from "@/components/reports/reportHeader";
 import SummaryCards from "@/components/reports/summaryCards";
@@ -35,10 +35,10 @@ import {
   calculateKpis,
   exportCsv,
   exportJson,
-  filterTransactionsByPeriod,
   getAccountInsights,
   getBudgetInsights,
   getCategoryInsights,
+  getDateRangeForPeriod,
   getDailyCumulativeFlow,
   getForecast,
   getMonthlyInsights,
@@ -64,17 +64,17 @@ export default function ReportPage() {
   const router = useRouter();
 
   const accounts = useSelector((state: RootState) => state.accounts.accounts);
-  const transactions = useSelector((state: RootState) => state.transactions.transactions);
   const categories = useSelector((state: RootState) => state.categories.categories);
 
   const [budgetSummary, setBudgetSummary] = useState<any[]>([]);
   const [bills, setBills] = useState<any[]>([]);
   const [billInstances, setBillInstances] = useState<any[]>([]);
+  const [reportTransactions, setReportTransactions] = useState<any[]>([]);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [period, setPeriod] = useState<ReportPeriod>("thisMonth");
-  const [horizonDays, setHorizonDays] = useState(60);
+  const [period, setPeriod] = useState<ReportPeriod>("last3Months");
+  const [horizonDays, setHorizonDays] = useState(90);
   const [activeTab, setActiveTab] = useState("overview");
 
   const accountLookup = useMemo(
@@ -92,9 +92,11 @@ export default function ReportPage() {
     else setIsLoading(true);
 
     try {
+      const dateRange = getDateRangeForPeriod(period);
+
       const [accRes, txRes, catRes, budgetRes, billsRes, billInstancesRes] = await Promise.allSettled([
         fetchAccounts(),
-        fetchTransactions(),
+        fetchTransactions(1, 100, dateRange),
         fetchCategories(),
         fetchBudgetSummary(),
         fetchBills(),
@@ -102,7 +104,7 @@ export default function ReportPage() {
       ]);
 
       if (accRes.status === "fulfilled") dispatch(setAccounts(accRes.value?.data || []));
-      if (txRes.status === "fulfilled") dispatch(setTransactions(txRes.value?.data || []));
+      if (txRes.status === "fulfilled") setReportTransactions(txRes.value?.data || []);
       if (catRes.status === "fulfilled") dispatch(setCategories(catRes.value?.data || []));
       if (budgetRes.status === "fulfilled") setBudgetSummary(budgetRes.value?.data || []);
       if (billsRes.status === "fulfilled") setBills(billsRes.value?.data || []);
@@ -118,13 +120,29 @@ export default function ReportPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const periodTransactions = useMemo(
-    () => filterTransactionsByPeriod(transactions, period),
-    [transactions, period]
-  );
+  // Re-fetch transactions when period changes
+  useEffect(() => {
+    const fetchForPeriod = async () => {
+      const dateRange = getDateRangeForPeriod(period);
+      try {
+        const txRes = await fetchTransactions(1, 100, dateRange);
+        setReportTransactions(txRes?.data || []);
+      } catch {
+        // error surfaced via notifications
+      }
+    };
+    // Skip initial mount (handled by loadData)
+    if (!isLoading) {
+      fetchForPeriod();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [period]);
 
-  const monthlyData = useMemo(() => getMonthlyInsights(transactions), [transactions]);
-  const dailyData = useMemo(() => getDailyCumulativeFlow(transactions), [transactions]);
+  // Use local report transactions (not global Redux)
+  const periodTransactions = reportTransactions;
+
+  const monthlyData = useMemo(() => getMonthlyInsights(periodTransactions), [periodTransactions]);
+  const dailyData = useMemo(() => getDailyCumulativeFlow(periodTransactions), [periodTransactions]);
   const categoryData = useMemo(
     () => getCategoryInsights(categories, periodTransactions),
     [categories, periodTransactions]
@@ -135,13 +153,13 @@ export default function ReportPage() {
   );
   const budgetData = useMemo(() => getBudgetInsights(budgetSummary), [budgetSummary]);
   const forecastData = useMemo(
-    () => getForecast(accounts, transactions, billInstances, horizonDays),
-    [accounts, transactions, billInstances, horizonDays]
+    () => getForecast(accounts, periodTransactions, billInstances, horizonDays),
+    [accounts, periodTransactions, billInstances, horizonDays]
   );
 
   const kpis = useMemo(
-    () => calculateKpis(accounts, transactions, periodTransactions),
-    [accounts, transactions, periodTransactions]
+    () => calculateKpis(accounts, periodTransactions, periodTransactions),
+    [accounts, periodTransactions]
   );
 
   const exportCurrent = () => {
@@ -247,7 +265,7 @@ export default function ReportPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
           backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
@@ -255,16 +273,14 @@ export default function ReportPage() {
         }}
       />
 
-      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex flex-col gap-6 relative z-10 mx-auto w-full">
+      <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="flex flex-col gap-6 relative z-10 max-w-[1280px] mx-auto w-full">
         <motion.div variants={fadeUp}>
           <ReportHeader
             title="Financial Reports"
             subtitle="Present awareness with future cash-flow insights"
             period={period}
-            horizon={horizonDays}
             isRefreshing={isRefreshing}
             onPeriodChange={setPeriod}
-            onHorizonChange={setHorizonDays}
             onRefresh={() => loadData(true)}
             onExportCurrent={exportCurrent}
             onExportFullCsv={exportFullCsv}
@@ -273,13 +289,15 @@ export default function ReportPage() {
         </motion.div>
 
         {isLoading ? (
-          <motion.div variants={fadeUp} className="w-full flex items-center justify-center min-h-[400px]">
-            <Loader size="md" text="Loading report data..." />
-          </motion.div>
-        ) : transactions.length === 0 ? (
+          <Skeleton name="reports" loading={true} fixture={<ReportsFixture />}>
+            <motion.div variants={fadeUp} className="w-full min-h-[400px]">
+              <div className="h-[400px]" />
+            </motion.div>
+          </Skeleton>
+        ) : reportTransactions.length === 0 ? (
           <motion.div
             variants={fadeUp}
-            className="flex flex-col items-center justify-center min-h-[400px] bg-card border border-border rounded-3xl p-8 max-w-lg mx-auto text-center shadow-sm"
+            className="flex flex-col items-center justify-center min-h-[400px] bg-card border border-border rounded-xl p-8 max-w-lg mx-auto text-center shadow-sm"
           >
             <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center mb-4">
               <PieChart className="h-10 w-10 text-text-secondary/50" />
@@ -367,3 +385,4 @@ export default function ReportPage() {
     </div>
   );
 }
+

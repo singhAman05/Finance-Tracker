@@ -13,7 +13,6 @@ const pct = (val: number | null) => (val === null ? "N/A" : `${val > 0 ? "+" : "
 
 export default function SummaryCards({ kpis }: SummaryCardsProps) {
   const { formatCurrency } = useCurrency();
-  console.log(kpis);
   const cards = [
     {
       title: "Net Position",

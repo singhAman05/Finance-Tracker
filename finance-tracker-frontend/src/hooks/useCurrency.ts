@@ -9,6 +9,14 @@ const CURRENCY_MAP: Record<string, { locale: string; symbol: string }> = {
   USD: { locale: "en-US", symbol: "$" },
   EUR: { locale: "de-DE", symbol: "€" },
   GBP: { locale: "en-GB", symbol: "£" },
+  JPY: { locale: "ja-JP", symbol: "¥" },
+  AUD: { locale: "en-AU", symbol: "A$" },
+  CAD: { locale: "en-CA", symbol: "C$" },
+  CHF: { locale: "de-CH", symbol: "CHF" },
+  CNY: { locale: "zh-CN", symbol: "¥" },
+  SGD: { locale: "en-SG", symbol: "S$" },
+  AED: { locale: "ar-AE", symbol: "د.إ" },
+  SAR: { locale: "ar-SA", symbol: "ر.س" },
 };
 
 export function useCurrency() {
@@ -29,7 +37,12 @@ export function useCurrency() {
 
   /** Short axis formatter for charts, e.g. "$12k" */
   const formatAxis = useCallback(
-    (val: number) => `${info.symbol}${val / 1000}k`,
+    (val: number) => {
+      const abs = Math.abs(val);
+      if (abs >= 1_000_000) return `${info.symbol}${(val / 1_000_000).toFixed(1)}M`;
+      if (abs >= 1_000) return `${info.symbol}${(val / 1_000).toFixed(0)}k`;
+      return `${info.symbol}${val}`;
+    },
     [info.symbol]
   );
 

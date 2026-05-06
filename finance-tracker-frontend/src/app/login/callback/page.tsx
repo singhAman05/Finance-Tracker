@@ -37,18 +37,16 @@ export default function GoogleCallbackPage() {
           throw new Error("Google account missing email, name, or ID token");
         }
 
-        // Call backend → create/update user → get JWT
+        // Call backend → create/update user → get JWT (set as httpOnly cookie)
         // Pass idToken for server-side verification when available
         const data = await loginGoogleRoute(email, name, idToken);
 
-        // Persist auth state (same as phone login)
-        sessionStorage.setItem("jwt", data.token);
+        // Persist user info for UI (token is in httpOnly cookie)
         sessionStorage.setItem("user", JSON.stringify(data.user));
 
         dispatch(
           login({
             user: data.user,
-            token: data.token,
           })
         );
 

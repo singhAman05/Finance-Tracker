@@ -4,6 +4,7 @@ import type { Transaction } from "@/types/interfaces";
 interface TransactionResponse {
   message: string;
   data: Transaction[];
+  pagination?: { page: number; limit: number; total: number; pages: number };
 }
 
 interface SingleTransactionResponse {
@@ -34,12 +35,18 @@ export const addTransactionRoute = async (
     return res.result;
 };
 
-export const fetchTransactionsRoute = async () => {
+export const fetchTransactionsRoute = async (
+    page = 1,
+    limit = 20,
+    options?: { start_date?: string; end_date?: string }
+) => {
+    const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+    if (options?.start_date) params.set("start_date", options.start_date);
+    if (options?.end_date) params.set("end_date", options.end_date);
+
     const res = await apiClient<TransactionResponse>(
-        "/api/transactions/fetch-transactions?limit=500",
-        {
-            method: "GET",
-        }
+        `/api/transactions/fetch-transactions?${params.toString()}`,
+        { method: "GET" }
     );
     if (res.error) throw new Error(res.error.message);
     return res.result;

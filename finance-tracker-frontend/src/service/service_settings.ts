@@ -10,43 +10,23 @@ export interface ClientSettings {
 }
 
 export const fetchSettings = async () => {
-    try {
-        const result = await fetchSettingsRoute();
-        return result;
-    } catch (error) {
-        console.error("Failed to fetch settings:", error);
-        throw error;
-    }
+    const result = await fetchSettingsRoute();
+    return result;
 };
 
 export const updateSettings = async (payload: Partial<ClientSettings>) => {
-    try {
-        const result = await updateSettingsRoute(payload);
-        notify.success("Settings updated successfully");
-        return result;
-    } catch (error) {
-        console.error("Failed to update settings:", error);
-        throw error;
-    }
+    const result = await updateSettingsRoute(payload);
+    notify.success("Settings updated successfully");
+    return result;
 };
 
 export const exportAllData = async () => {
-    try {
-        const result = await exportDataRoute();
-        return result;
-    } catch (error) {
-        console.error("Failed to export data:", error);
-        throw error;
-    }
+    const result = await exportDataRoute();
+    return result;
 };
 
 export const clearHistory = async () => {
-    try {
-        const result = await clearHistoryRoute();
-        notify.success("History cleared successfully");
-        return result;
-    } catch (error) {
-        console.error("Failed to clear history:", error);
-        throw error;
-    }
+    const result = await clearHistoryRoute();
+    notify.success("History cleared successfully");
+    return result;
 };

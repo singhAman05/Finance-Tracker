@@ -12,7 +12,13 @@ import {
 import { RootState } from "@/app/store";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import Loader from "@/utils/loader";
+import { Skeleton } from "boneyard-js/react";
+import { DashboardFixture } from "@/bones/fixtures";
+import {
+  Tooltip as UITooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 import {
   ArrowUpDown,
   ArrowDownLeft,
@@ -22,6 +28,11 @@ import {
   ArrowDownRight,
   PieChart,
   Plus,
+  Info,
+  Calendar,
+  Sun,
+  Moon,
+  Sunrise,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -37,6 +48,7 @@ import {
 import { useSelector, useDispatch } from "react-redux";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useRouter } from "next/navigation";
+import { getLocaleForCurrency } from "@/lib/utils";
 
 // Services and Actions
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
@@ -77,16 +89,18 @@ function AnimatedCounter({
   target,
   duration = 2,
   prefix = "",
+  locale = "en-IN",
 }: {
   target: number;
   duration?: number;
   prefix?: string;
+  locale?: string;
 }) {
   const count = useMotionValue(0);
   const rounded = useTransform(
     count,
     (v) =>
-      `${prefix}${Math.floor(v).toLocaleString("en-US", {
+      `${prefix}${Math.floor(v).toLocaleString(locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       })}`
@@ -111,11 +125,13 @@ const GlassTooltip = ({
   payload,
   label,
   currencySymbol,
+  locale = "en-IN",
 }: {
   active?: boolean;
   payload?: any[];
   label?: string;
   currencySymbol: string;
+  locale?: string;
 }) => {
   if (active && payload && payload.length) {
     return (
@@ -135,7 +151,7 @@ const GlassTooltip = ({
               </div>
               <span className="text-xs font-bold text-text-primary">
                 {currencySymbol}
-                {item.value.toLocaleString()}
+                {item.value.toLocaleString(locale)}
               </span>
             </div>
           ))}
@@ -157,7 +173,7 @@ export default function DashboardPage() {
   const categories = useSelector(
     (state: RootState) => state.categories.categories
   );
-  const { formatCurrency, symbol, formatAxis } = useCurrency();
+  const { formatCurrency, symbol, formatAxis, currency } = useCurrency();
   const { formatDate } = useDateFormat();
 
   const [isClient, setIsClient] = useState(false);
@@ -168,6 +184,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     setIsClient(true);
+  }, []);
+
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return { text: "Good morning", Icon: Sunrise };
+    if (hour < 18) return { text: "Good afternoon", Icon: Sun };
+    return { text: "Good evening", Icon: Moon };
   }, []);
 
   // Data Loading
@@ -183,12 +206,11 @@ export default function DashboardPage() {
               if (res?.data) dispatch(setTransactions(res.data));
             })
           );
-        if (accounts.length === 0)
-          promises.push(
-            fetchAccounts().then((res) => {
-              if (res?.data) dispatch(setAccounts(res.data));
-            })
-          );
+        promises.push(
+          fetchAccounts().then((res) => {
+            if (res?.data) dispatch(setAccounts(res.data));
+          })
+        );
         if (categories.length === 0)
           promises.push(
             fetchCategories().then((res) => {
@@ -210,7 +232,7 @@ export default function DashboardPage() {
 
         await Promise.all(promises);
       } catch (error) {
-        console.error("Dashboard data load error:", error);
+        // Error surfaced via notifications
       } finally {
         setLoading(false);
       }
@@ -318,19 +340,27 @@ export default function DashboardPage() {
 
   // Tooltip rendered with stable symbol from hook
   const renderTooltip = (props: any) => (
-    <GlassTooltip {...props} currencySymbol={symbol} />
+    <GlassTooltip {...props} currencySymbol={symbol} locale={getLocaleForCurrency(currency)} />
   );
 
   if (loading && transactions.length === 0) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <Loader size="md" text="Loading dashboard insights..." />
-      </div>
+      <Skeleton name="dashboard" loading={true} fixture={<DashboardFixture />}>
+        <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+          <div
+            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+            style={{
+              backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+              backgroundSize: "32px 32px",
+            }}
+          />
+        </div>
+      </Skeleton>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -344,7 +374,7 @@ export default function DashboardPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="flex flex-col gap-6 relative z-10"
+        className="flex flex-col gap-6 relative z-10 max-w-[1280px] mx-auto"
       >
         {/* Header */}
         <motion.div
@@ -357,8 +387,9 @@ export default function DashboardPage() {
             </h1>
             <div className="mt-2">
               {isClient && user ? (
-                <p className="text-base text-text-secondary">
-                  Welcome back,{" "}
+                <p className="text-base text-text-secondary flex items-center gap-2">
+                  <greeting.Icon className="h-4 w-4 text-warning" />
+                  {greeting.text},{" "}
                   <span className="font-semibold text-text-primary">
                     {user.full_name}
                   </span>
@@ -384,15 +415,25 @@ export default function DashboardPage() {
         {/* Summary Cards */}
         <motion.div
           variants={fadeUp}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6"
         >
           {/* Net Worth */}
-          <Card className="bg-card border-border shadow-sm hover:shadow-md transition-all duration-300">
+          <Card className="bg-card border-border/60 shadow-soft hover:shadow-elevated transition-all duration-300">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-primary">
-                Net Worth
-              </CardTitle>
-              <div className="p-2 bg-primary/10 rounded-full">
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium text-primary">
+                  Net Worth
+                </CardTitle>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-text-secondary/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px]">
+                    Sum of all your account balances. Reflects your total financial position across all linked accounts.
+                  </TooltipContent>
+                </UITooltip>
+              </div>
+              <div className="p-2 bg-accent rounded-xl">
                 <Wallet className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
@@ -401,6 +442,7 @@ export default function DashboardPage() {
                 <AnimatedCounter
                   target={financialHealth.netWorth}
                   prefix={symbol}
+                  locale={getLocaleForCurrency(currency)}
                 />
               </div>
               {financialHealth.netWorthGrowth !== null ? (
@@ -433,13 +475,23 @@ export default function DashboardPage() {
           </Card>
 
           {/* Cash Flow */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
+          <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 border border-border/60">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Cash Flow (This Month)
-              </CardTitle>
-              <div className="p-2 bg-secondary rounded-full border border-border">
-                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium">
+                  Cash Flow (This Month)
+                </CardTitle>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-text-secondary/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px]">
+                    Income minus expenses for the current month. Positive means you&apos;re saving, negative means you&apos;re spending more than earning.
+                  </TooltipContent>
+                </UITooltip>
+              </div>
+              <div className="p-2 bg-accent rounded-xl">
+                <ArrowUpDown className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
@@ -453,6 +505,7 @@ export default function DashboardPage() {
                   prefix={
                     financialHealth.cashFlow < 0 ? `-${symbol}` : symbol
                   }
+                  locale={getLocaleForCurrency(currency)}
                 />
               </div>
               <p className="text-xs text-text-secondary mt-2 font-medium">
@@ -469,13 +522,23 @@ export default function DashboardPage() {
           </Card>
 
           {/* Budget Health */}
-          <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
+          <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 border border-border/60">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                Budget Health
-              </CardTitle>
-              <div className="p-2 bg-secondary rounded-full border border-border">
-                <PiggyBank className="h-4 w-4 text-muted-foreground" />
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium">
+                  Budget Health
+                </CardTitle>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-text-secondary/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px]">
+                    Percentage of your total budget consumed this period. Below 80% is healthy, above 100% means you&apos;ve overspent.
+                  </TooltipContent>
+                </UITooltip>
+              </div>
+              <div className="p-2 bg-accent rounded-xl">
+                <PiggyBank className="h-4 w-4 text-primary" />
               </div>
             </CardHeader>
             <CardContent>
@@ -491,10 +554,51 @@ export default function DashboardPage() {
                 </span>{" "}
                 of {formatCurrency(budgetStats.totalBudget)} used
               </p>
-              <Progress
-                value={Math.min(100, budgetStats.overallPercentage)}
-                className="h-1.5 mt-3 bg-muted"
-              />
+              <div className="relative h-1.5 mt-3 w-full overflow-hidden rounded-full bg-muted">
+                <div
+                  className={`h-full rounded-full transition-all ${budgetStats.overallPercentage >= 100 ? "bg-danger" : budgetStats.overallPercentage >= 80 ? "bg-warning" : "bg-success"}`}
+                  style={{ width: `${Math.min(budgetStats.overallPercentage, 100)}%` }}
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Upcoming Bills */}
+          <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 border border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <div className="flex items-center gap-1.5">
+                <CardTitle className="text-sm font-medium">
+                  Upcoming Bills
+                </CardTitle>
+                <UITooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="h-3.5 w-3.5 text-text-secondary/50 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="max-w-[220px]">
+                    Total amount due from unpaid bills in the next 15 days plus any overdue bills.
+                  </TooltipContent>
+                </UITooltip>
+              </div>
+              <div className="p-2 bg-accent rounded-xl">
+                <Calendar className="h-4 w-4 text-primary" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl sm:text-3xl font-bold tracking-tighter">
+                <AnimatedCounter
+                  target={upcomingBills.length + overdueBills.length}
+                />
+              </div>
+              <p className="text-xs text-text-secondary mt-2 font-medium">
+                {overdueBills.length > 0 ? (
+                  <span className="text-danger font-semibold">{overdueBills.length} overdue</span>
+                ) : (
+                  <span className="text-success">All bills on track</span>
+                )}
+                {upcomingBills.length > 0 && (
+                  <span> · {upcomingBills.length} upcoming</span>
+                )}
+              </p>
             </CardContent>
           </Card>
         </motion.div>
@@ -506,7 +610,7 @@ export default function DashboardPage() {
         >
           {/* Monthly Cash Flow */}
           <div className="lg:col-span-8">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 border border-border/60">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
@@ -576,7 +680,7 @@ export default function DashboardPage() {
 
           {/* Spending Distribution */}
           <div className="lg:col-span-4">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader>
                 <CardTitle className="text-lg">Spending Distribution</CardTitle>
                 <CardDescription>Top Categories</CardDescription>
@@ -628,7 +732,7 @@ export default function DashboardPage() {
         >
           {/* Net Worth Trend */}
           <div className="lg:col-span-5">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader>
                 <CardTitle className="text-lg">Net Cash Flow Trend</CardTitle>
                 <CardDescription>Monthly income minus expenses</CardDescription>
@@ -696,14 +800,17 @@ export default function DashboardPage() {
 
           {/* Budget Progress */}
           <div className="lg:col-span-7">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader>
                 <CardTitle className="text-lg">Budget Progress</CardTitle>
                 <CardDescription>Monthly spending by category</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {activeBudgetSummary.slice(0, 4).map((item, index) => (
+                  {activeBudgetSummary.slice(0, 4).map((item, index) => {
+                    const pct = item.percentage_used ?? 0;
+                    const barColor = pct >= 100 ? "bg-danger" : pct >= 80 ? "bg-warning" : "bg-success";
+                    return (
                     <div
                       key={
                         item.budget_id ||
@@ -719,12 +826,15 @@ export default function DashboardPage() {
                           {formatCurrency(item.budget_amount)}
                         </span>
                       </div>
-                      <Progress
-                        value={item.percentage_used}
-                        className="h-2.5 rounded-full"
-                      />
+                      <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-muted">
+                        <div
+                          className={`h-full rounded-full transition-all ${barColor}`}
+                          style={{ width: `${Math.min(pct, 100)}%` }}
+                        />
+                      </div>
                     </div>
-                  ))}
+                    );
+                  })}
                   {activeBudgetSummary.length === 0 && (
                     <div className="text-sm text-center text-muted-foreground py-4">
                       <p>No active budgets found.</p>
@@ -750,7 +860,7 @@ export default function DashboardPage() {
         >
           {/* Recent Transactions */}
           <div className="lg:col-span-5">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader className="flex flex-row items-center justify-between pb-6">
                 <CardTitle className="text-lg">Recent Transactions</CardTitle>
                 <Button
@@ -817,7 +927,7 @@ export default function DashboardPage() {
 
           {/* Bills Snapshot */}
           <div className="lg:col-span-3">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader className="pb-6">
                 <CardTitle className="text-lg text-primary">
                   Bills Snapshot
@@ -908,7 +1018,7 @@ export default function DashboardPage() {
 
           {/* Financial Overview */}
           <div className="lg:col-span-4">
-            <Card className="shadow-sm hover:shadow-md transition-all duration-300 h-full border border-border">
+            <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader className="pb-6">
                 <CardTitle className="text-lg">Financial Overview</CardTitle>
                 <CardDescription>Actionable health indicators</CardDescription>

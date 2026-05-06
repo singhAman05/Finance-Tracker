@@ -10,8 +10,6 @@ export interface ApiResult<T> {
     } | null;
 }
 
-const TOKEN_EXPIRY_BUFFER_MS = 30_000;
-
 function notifyApiError(error: ApiResult<any>["error"]) {
     if (!error) return;
 
@@ -35,7 +33,6 @@ function notifyApiError(error: ApiResult<any>["error"]) {
 
 function redirectToLogin() {
     if (typeof window !== "undefined") {
-        sessionStorage.removeItem("jwt");
         sessionStorage.removeItem("user");
         window.location.replace("/login");
     }
@@ -43,61 +40,34 @@ function redirectToLogin() {
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-/** Decode JWT and check if expired (returns true if expired or invalid) */
-function isTokenExpired(token: string): boolean {
-    try {
-        const payload = JSON.parse(atob(token.split(".")[1]));
-        return payload.exp * 1000 <= Date.now() + TOKEN_EXPIRY_BUFFER_MS;
-    } catch {
-        return true;
-    }
+/** Read a cookie value by name */
+function getCookie(name: string): string | undefined {
+    if (typeof document === "undefined") return undefined;
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : undefined;
 }
 
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
 ): Promise<ApiResult<T>> {
-    const token =
-        typeof window !== "undefined" ? sessionStorage.getItem("jwt") : null;
-
-    // 1. Pre-fetch Auth Check
-    if (!token) {
-        const error = {
-            message: "Session missing",
-            status: 401,
-            type: "AUTH" as const,
-        };
-        notifyApiError(error);
-        redirectToLogin();
-        return { result: null, error };
-    }
-
-    // 1b. Token expiry check (#7)
-    if (isTokenExpired(token)) {
-        const error = {
-            message: "Session expired. Please login again.",
-            status: 401,
-            type: "AUTH" as const,
-        };
-        notifyApiError(error);
-        redirectToLogin();
-        return { result: null, error };
-    }
-
     try {
         const { headers: userHeaders, ...rest } = options;
         const url = new URL(path, baseUrl).toString();
 
+        const csrfToken = getCookie("csrf-token");
+
         const response = await fetch(url, {
             ...rest,
+            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
+                ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
                 ...userHeaders,
             },
         });
 
-        // 2. HTTP Errors
+        // HTTP Errors
         if (!response.ok) {
             let errorData: any = {};
             try {
@@ -150,7 +120,7 @@ export async function apiClient<T = any>(
             return { result: null, error };
         }
 
-        // 3. Success
+        // Success
         const result = await response.json();
         return { result: result as T, error: null };
 

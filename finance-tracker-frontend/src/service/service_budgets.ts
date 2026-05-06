@@ -51,14 +51,21 @@ export const calculateBudgetSummaryStats = (summary: any[]) => {
         exceededCount: 0
     };
 
-    const activeSummaries = summary.filter((s) => Boolean(s.is_active));
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const activeSummaries = summary.filter((s) => {
+        if (!s.is_active) return false;
+        if (s.end_date && new Date(s.end_date) < today) return false;
+        return true;
+    });
 
     const totalBudget = activeSummaries.reduce((acc, curr) => acc + (Number(curr.budget_amount) || 0), 0);
     const totalSpent = activeSummaries.reduce((acc, curr) => acc + (Number(curr.total_spent) || 0), 0);
     const overallPercentage = totalBudget > 0 ? (totalSpent / totalBudget) * 100 : 0;
 
-    const healthyCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) < 90).length;
-    const warningCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) >= 90 && (Number(s.percentage_used) || 0) < 100).length;
+    const healthyCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) < 80).length;
+    const warningCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) >= 80 && (Number(s.percentage_used) || 0) < 100).length;
     const exceededCount = activeSummaries.filter(s => (Number(s.percentage_used) || 0) >= 100).length;
 
     return {

@@ -107,13 +107,13 @@ export default function AuthForm() {
           {/* Card */}
           <motion.div
             variants={fadeUp}
-            className="rounded-2xl border border-border bg-card p-8 md:p-10 relative z-10"
+            className="rounded-xl border border-border/60 bg-card p-8 md:p-10 relative z-10 shadow-elevated"
           >
             {/* Brand Header */}
             <motion.div variants={fadeUp} className="flex flex-col items-center mb-10">
               <div className="mb-6">
-                <div className="w-12 h-12 bg-black dark:bg-white rounded-xl flex items-center justify-center">
-                  <Wallet className="w-5 h-5 text-white dark:text-black" />
+                <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center shadow-elevated">
+                  <Wallet className="w-5 h-5 text-white" />
                 </div>
               </div>
 
@@ -171,7 +171,7 @@ export default function AuthForm() {
                 disabled={
                   !phone || !isValidPhoneNumber(phone) || loadingType === "phone"
                 }
-                className={`w-full h-12 bg-primary text-white dark:text-black font-medium rounded-full hover:opacity-90 active:scale-[0.98] transition-all duration-200 ${
+                className={`w-full h-12 gradient-primary text-white font-medium rounded-full hover:opacity-90 active:scale-[0.98] transition-all duration-200 shadow-md hover:shadow-lg ${
                   loadingType === "phone" ? "opacity-80" : ""
                 }`}
               >

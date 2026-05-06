@@ -85,16 +85,21 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
   const [accountId, setAccountId] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  const activeAccounts = useMemo(
+    () => accounts.filter((a) => a.status !== "inactive"),
+    [accounts]
+  );
+
   const selectedAcctCurrency = accounts.find((a) => a.id === accountId)?.currency;
   const activeSymbol = selectedAcctCurrency
     ? SYMBOL_MAP[selectedAcctCurrency] ?? selectedAcctCurrency
     : SYMBOL_MAP.INR;
 
   useEffect(() => {
-    if (!accountId && accounts.length > 0) {
-      setAccountId(String(accounts[0].id));
+    if (!accountId && activeAccounts.length > 0) {
+      setAccountId(String(activeAccounts[0].id));
     }
-  }, [accountId, accounts]);
+  }, [accountId, activeAccounts]);
 
   const isBootstrapping = useMemo(
     () => accounts.length === 0 && categories.length === 0,
@@ -134,7 +139,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
 
   return (
     <div className="w-full max-w-2xl relative mx-auto">
-      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-[2rem] sm:rounded-3xl relative">
+      <Card className="border border-border shadow-2xl bg-card transition-all duration-300 overflow-hidden rounded-xl relative">
         <div
           className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
           style={{
@@ -209,14 +214,14 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
               <Loader2 className="h-8 w-8 animate-spin text-text-secondary/20" />
               <p className="text-sm text-text-secondary">Fetching financial data...</p>
             </div>
-          ) : accounts.length === 0 ? (
+          ) : activeAccounts.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="bg-muted p-4 rounded-full mb-4">
                 <Plus className="h-8 w-8 text-text-secondary" />
               </div>
-              <h3 className="text-lg font-semibold text-text-primary">No accounts found</h3>
+              <h3 className="text-lg font-semibold text-text-primary">No active accounts</h3>
               <p className="text-text-secondary text-sm max-w-[280px] mt-2">
-                You need to add at least one account before recording a transaction.
+                You need at least one active account to record a transaction. Activate an account or add a new one.
               </p>
             </div>
           ) : (
@@ -231,7 +236,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                       <SelectValue placeholder="Which account?" />
                     </SelectTrigger>
                     <SelectContent className="bg-card border border-border rounded-xl">
-                      {accounts.map((a) => (
+                      {activeAccounts.map((a) => (
                         <SelectItem key={a.id} value={a.id} className="py-3">
                           <div className="flex justify-between w-full gap-2">
                             <span className="font-semibold text-text-primary">{a.name}</span>
@@ -309,6 +314,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
                     <Input
                       type="number"
                       min="0"
+                      max="9999999999"
                       step="0.01"
                       placeholder="0.00"
                       value={amount}

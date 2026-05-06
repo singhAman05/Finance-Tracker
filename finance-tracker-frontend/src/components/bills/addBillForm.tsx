@@ -104,7 +104,6 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
         onClose(); // parent's onClose calls loadData(true) to refresh
       }
     } catch (err) {
-      console.error("Failed to create bill:", err);
       toast.error("Failed to create bill. Please try again.");
     } finally {
       setLoading(false);
@@ -114,7 +113,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
   const expenseCategories = categories.filter((c: any) => c.type === "expense" || !c.type);
 
   return (
-    <Card className="w-full max-w-2xl shadow-2xl border border-border bg-card overflow-hidden rounded-[2rem] sm:rounded-3xl relative">
+    <Card className="w-full max-w-2xl shadow-2xl border border-border bg-card overflow-hidden rounded-xl relative">
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
         style={{
@@ -166,6 +165,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
                 id="bill-amount"
                 type="number"
                 min="0"
+                max="9999999999"
                 step="0.01"
                 placeholder="0.00"
                 value={form.amount}
@@ -206,7 +206,7 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
                   <SelectValue placeholder="Select account" />
                 </SelectTrigger>
                 <SelectContent className="bg-card border border-border rounded-xl">
-                  {accounts.map((acc: any) => (
+                  {accounts.filter((acc: any) => acc.status !== "inactive").map((acc: any) => (
                     <SelectItem key={acc.id} value={acc.id}>
                       {acc.name}
                     </SelectItem>
@@ -346,3 +346,4 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
     </Card>
   );
 }
+

@@ -47,8 +47,8 @@ export const fetchBillsRoute = async () => {
     return res.result;
 };
 
-export const fetchBillInstancesRoute = async () => {
-    const res = await apiClient<BillInstancesResponse>("/api/bills/fetch-bill-instances?limit=500", {
+export const fetchBillInstancesRoute = async (page = 1, limit = 50) => {
+    const res = await apiClient<BillInstancesResponse>(`/api/bills/fetch-bill-instances?page=${page}&limit=${limit}`, {
         method: "GET",
     });
     if (res.error) throw new Error(res.error.message);

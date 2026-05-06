@@ -1,0 +1,13 @@
+{
+  "out": "./src/bones",
+  "routes": [
+    "/boneyard"
+  ],
+  "animate": "shimmer",
+  "color": "#e5e5e5",
+  "darkColor": "#2a2a2a",
+  "shimmerColor": "#ebebeb",
+  "darkShimmerColor": "#333333",
+  "speed": "1.8s",
+  "transition": 300
+}

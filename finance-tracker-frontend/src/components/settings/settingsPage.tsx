@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -9,7 +9,8 @@ import { RootState } from "@/app/store";
 import { fetchSettings, updateSettings, ClientSettings, exportAllData } from "@/service/service_settings";
 import { setSettings, updateLocalSettings, setLoading, setError } from "@/components/redux/slices/slice_settings";
 import { Bell, Globe, Database, Download, Trash2, ArrowLeft, Receipt, TrendingUp, Calendar } from "lucide-react";
-import Loader from "@/utils/loader";
+import { Skeleton } from "boneyard-js/react";
+import { SettingsFixture } from "@/bones/fixtures";
 import { useRouter } from "next/navigation";
 import { openModal } from "@/components/redux/slices/slice_modal";
 import { cn } from "@/lib/utils";
@@ -20,34 +21,64 @@ export default function SettingsPage() {
   const { settings, loading } = useSelector((state: RootState) => state.settings);
   const [isSaving, setIsSaving] = useState(false);
 
+  // Debounce timer ref to batch rapid changes
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingUpdates = useRef<Partial<ClientSettings>>({});
+
   useEffect(() => {
     const loadSettings = async () => {
-      if (!settings) dispatch(setLoading(true));
-      try {
-        const data = await fetchSettings();
-        if (data?.data) dispatch(setSettings(data.data));
-      } catch (err) {
-        console.error(err);
-        dispatch(setError("Failed to load settings"));
-      } finally {
-        dispatch(setLoading(false));
+      if (!settings) {
+        dispatch(setLoading(true));
+        try {
+          const data = await fetchSettings();
+          if (data?.data) dispatch(setSettings(data.data));
+        } catch (err) {
+          dispatch(setError("Failed to load settings"));
+        } finally {
+          dispatch(setLoading(false));
+        }
       }
     };
     loadSettings();
-  }, [dispatch, settings]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
-  const handleUpdate = async (updates: Partial<ClientSettings>) => {
-    dispatch(updateLocalSettings(updates));
+  const flushUpdates = useCallback(async () => {
+    const updates = { ...pendingUpdates.current };
+    pendingUpdates.current = {};
+    if (Object.keys(updates).length === 0) return;
+
     setIsSaving(true);
     try {
-      await updateSettings(updates);
+      const result = await updateSettings(updates);
+      if (result?.data) dispatch(setSettings(result.data));
     } catch (err) {
-      console.error(err);
       dispatch(setError("Failed to save settings"));
     } finally {
       setIsSaving(false);
     }
-  };
+  }, [dispatch]);
+
+  const handleUpdate = useCallback((updates: Partial<ClientSettings>) => {
+    // Update UI immediately
+    dispatch(updateLocalSettings(updates));
+
+    // Accumulate changes and debounce the API call
+    pendingUpdates.current = { ...pendingUpdates.current, ...updates };
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(flushUpdates, 600);
+  }, [dispatch, flushUpdates]);
+
+  // Flush on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+        flushUpdates();
+      }
+    };
+  }, [flushUpdates]);
 
   const handleExportCSV = () => {
     exportAllData()
@@ -101,9 +132,11 @@ export default function SettingsPage() {
 
   if (loading && !settings) {
     return (
-      <div className="w-full flex items-center justify-center min-h-[400px]">
-        <Loader size="md" text="Loading settings..." />
-      </div>
+      <Skeleton name="settings" loading={true} fixture={<SettingsFixture />}>
+        <div className="w-full min-h-[400px]">
+          <div className="h-[400px]" />
+        </div>
+      </Skeleton>
     );
   }
 
@@ -137,7 +170,7 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -151,7 +184,7 @@ export default function SettingsPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="flex flex-col gap-6 relative z-10 mx-auto w-full"
+        className="flex flex-col gap-6 relative z-10 max-w-[1280px] mx-auto w-full"
       >
         {/* Header */}
         <motion.div variants={fadeUp} className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-2">
@@ -186,7 +219,7 @@ export default function SettingsPage() {
 
             {/* Preferences */}
             <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+              <Card className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <CardHeader className="border-b border-border/50 pb-4">
                   <CardTitle className="flex items-center gap-3 text-base">
                     <div className="p-2 rounded-xl bg-primary/10">
@@ -236,7 +269,7 @@ export default function SettingsPage() {
 
             {/* Notifications */}
             <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+              <Card className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <CardHeader className="border-b border-border/50 pb-4">
                   <CardTitle className="flex items-center gap-3 text-base">
                     <div className="p-2 rounded-xl bg-primary/10">
@@ -287,7 +320,7 @@ export default function SettingsPage() {
           {/* Right Column — Data Management */}
           <div>
             <motion.div variants={fadeUp}>
-              <Card className="rounded-3xl border border-border bg-card shadow-sm overflow-hidden">
+              <Card className="rounded-xl border border-border bg-card shadow-sm overflow-hidden">
                 <CardHeader className="border-b border-border/50 pb-4">
                   <CardTitle className="flex items-center gap-3 text-base">
                     <div className="p-2 rounded-xl bg-primary/10">
@@ -331,3 +364,4 @@ export default function SettingsPage() {
     </div>
   );
 }
+

@@ -107,7 +107,10 @@ export default function OverviewTab({ monthlyData, categoryData, budgetData, for
           <CardHeader>
             <CardTitle className="text-base">Forecast Watch</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
+            <p className="text-xs text-text-secondary/60 leading-relaxed">
+              Calculated by projecting your current balance forward using your average daily spending rate and upcoming bill payments over the selected horizon.
+            </p>
             {nextRisk ? (
               <>
                 <p className="text-sm text-danger font-semibold">Projected negative balance risk detected.</p>
@@ -117,6 +120,9 @@ export default function OverviewTab({ monthlyData, categoryData, budgetData, for
                 <p className="text-sm text-text-secondary">
                   Projected balance:{" "}
                   <span className="font-medium text-danger">{formatCurrency(nextRisk.projectedBalance)}</span>
+                </p>
+                <p className="text-xs text-text-secondary/60 mt-2">
+                  Consider reducing discretionary spending or ensuring funds are available before this date.
                 </p>
               </>
             ) : (

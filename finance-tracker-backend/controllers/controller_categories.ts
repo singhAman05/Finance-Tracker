@@ -1,6 +1,6 @@
 ﻿import { Request, Response } from 'express';
-import { addingCategory, getSystemCategories } from '../services/service_categories';
-import { validateCategory } from '../utils/validationUtils';
+import { addingCategory, getSystemCategories, verifyCategoryOwnership } from '../services/service_categories';
+import { validateCategory, validateUUID } from '../utils/validationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getUser } from '../middleware/jwt';
 import { AppError } from '../utils/AppError';
@@ -11,13 +11,23 @@ export const handleCategoryCreation = asyncHandler(async (req: Request, res: Res
 
   const valid = validateCategory(name, type);
 
+  // Validate and verify parent_id ownership if provided
+  let validatedParentId: string | undefined;
+  if (typeof parent_id === 'string' && parent_id.trim()) {
+    validatedParentId = validateUUID(parent_id, 'Parent category ID');
+    const ownsParent = await verifyCategoryOwnership(validatedParentId, user.id);
+    if (!ownsParent) {
+      throw AppError.forbidden('Parent category does not belong to you');
+    }
+  }
+
   const result = await addingCategory({
     client_id: user.id,
     name: valid.name,
     type: valid.type,
     color: typeof color === 'string' ? color : undefined,
     icon: typeof icon === 'string' ? icon : undefined,
-    parent_id: typeof parent_id === 'string' ? parent_id : undefined,
+    parent_id: validatedParentId,
     is_default: typeof is_default === 'boolean' ? is_default : undefined,
   });
 

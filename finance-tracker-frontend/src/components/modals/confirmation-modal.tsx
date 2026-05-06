@@ -65,7 +65,7 @@ export function ConfirmationModal({
         onClick={(e) => e.stopPropagation()}
         className="w-full max-w-md px-4"
       >
-        <Card className="rounded-3xl border border-border bg-card p-6 shadow-2xl overflow-hidden relative">
+        <Card className="rounded-xl border border-border bg-card p-6 shadow-2xl overflow-hidden relative">
           <div
             className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
             style={{
@@ -113,3 +113,4 @@ export function ConfirmationModal({
     </motion.div>
   );
 }
+

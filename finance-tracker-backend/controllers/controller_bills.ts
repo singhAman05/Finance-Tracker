@@ -16,9 +16,10 @@ import {
 import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getUser } from '../middleware/jwt';
-import { validateBillPayload } from '../utils/validationUtils';
+import { validateBillPayload, validateUUID } from '../utils/validationUtils';
 import { AppError } from '../utils/AppError';
 import { CACHE_TTL } from '../types';
+import { getAccountStatus } from '../services/service_accounts';
 
 export const handleBillCreation = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
@@ -103,10 +104,15 @@ export const handleBillInstancesFetch = asyncHandler(async (req: Request, res: R
 
 export const handleBillInstancePayment = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
-  const { bill_instance_id } = req.params;
+  const bill_instance_id = validateUUID(req.params.bill_instance_id, 'Bill instance ID');
 
-  if (!bill_instance_id) {
-    throw AppError.validation('Bill instance id is required');
+  // Check if the bill's linked account is inactive
+  const { account_id } = req.body as Record<string, unknown>;
+  if (typeof account_id === 'string' && account_id) {
+    const { status: accountStatus } = await getAccountStatus(account_id, user.id);
+    if (accountStatus === 'inactive') {
+      throw AppError.validation('Cannot pay bill from an inactive account. Please activate the account first.');
+    }
   }
 
   await markBillInstanceAsPaid(bill_instance_id, user.id);

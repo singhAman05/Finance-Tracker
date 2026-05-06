@@ -9,7 +9,8 @@ import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/servi
 import { openModal } from "@/components/redux/slices/slice_modal";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "boneyard-js/react";
+import { BudgetsFixture } from "@/bones/fixtures";
 import { Target, PieChart, LayoutGrid } from "lucide-react";
 import BudgetCard from "./BudgetCard";
 import BudgetsHeader from "./BudgetsHeader";
@@ -43,6 +44,8 @@ export default function BudgetsPage() {
   const dispatch = useDispatch();
   const { summary, loading } = useSelector((state: RootState) => state.budgets);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeVisible, setActiveVisible] = useState(20);
+  const [expiredVisible, setExpiredVisible] = useState(20);
 
   const loadData = async (refresh = false) => {
     try {
@@ -53,7 +56,7 @@ export default function BudgetsPage() {
 
       if (summaryRes?.data) dispatch(setSummary(summaryRes.data));
     } catch (err) {
-      console.error("Failed to fetch budget data:", err);
+      // Error surfaced via notifications
     } finally {
       dispatch(setLoading(false));
       setIsRefreshing(false);
@@ -80,14 +83,20 @@ export default function BudgetsPage() {
   const { activeBudgets, expiredBudgets } = useMemo(() => {
     if (!Array.isArray(summary)) return { activeBudgets: [], expiredBudgets: [] };
     
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
     const active: typeof summary = [];
     const expired: typeof summary = [];
     
     summary.forEach(s => {
-       if (s.is_active) {
-          active.push(s);
-       } else {
+       const endDate = s.end_date ? new Date(s.end_date) : null;
+       const isPastEndDate = endDate ? endDate < today : false;
+
+       if (!s.is_active || isPastEndDate) {
           expired.push(s);
+       } else {
+          active.push(s);
        }
     });
     
@@ -108,33 +117,22 @@ export default function BudgetsPage() {
 
   if (loading && summary.length === 0) {
     return (
-      <div className="min-h-screen bg-background relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
-            backgroundSize: "32px 32px",
-          }}
-        />
-        <div className="p-6 space-y-8 w-full mx-auto relative z-10">
-          <Skeleton className="h-20 w-full rounded-2xl bg-muted" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Skeleton className="h-32 rounded-3xl bg-muted" />
-            <Skeleton className="h-32 rounded-3xl bg-muted" />
-            <Skeleton className="h-32 rounded-3xl bg-muted" />
-            <Skeleton className="h-32 rounded-3xl bg-muted" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Skeleton className="h-64 rounded-3xl bg-muted col-span-1 md:col-span-2" />
-            <Skeleton className="h-64 rounded-3xl bg-muted" />
-          </div>
+      <Skeleton name="budgets" loading={true} fixture={<BudgetsFixture />}>
+        <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
+          <div
+            className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
+            style={{
+              backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
+              backgroundSize: "32px 32px",
+            }}
+          />
         </div>
-      </div>
+      </Skeleton>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -161,7 +159,7 @@ export default function BudgetsPage() {
         {/* Global Overview Chart */}
         <motion.div 
           variants={fadeUp}
-          className="p-6 rounded-3xl bg-card border border-border shadow-sm group hover:border-primary/20 transition-all duration-300"
+          className="p-6 rounded-xl bg-card border border-border shadow-sm group hover:border-primary/20 transition-all duration-300"
         >
           <div className="flex items-center justify-between mb-8">
             <div className="flex items-center gap-3">
@@ -264,7 +262,7 @@ export default function BudgetsPage() {
                                 <div className="h-px bg-border flex-1 opacity-50" />
                             </div>
                             <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" layout>
-                                {activeBudgets.map((s: any) => (
+                                {activeBudgets.slice(0, activeVisible).map((s: any) => (
                                 <BudgetCard 
                                     key={s.budget_id} 
                                     summary={s} 
@@ -272,6 +270,13 @@ export default function BudgetsPage() {
                                 />
                                 ))}
                             </motion.div>
+                            {activeBudgets.length > activeVisible && (
+                              <div className="flex justify-center py-2">
+                                <Button variant="outline" onClick={() => setActiveVisible((c) => c + 20)} className="min-w-[140px]">
+                                  Load More
+                                </Button>
+                              </div>
+                            )}
                          </div>
                      )}
 
@@ -282,7 +287,7 @@ export default function BudgetsPage() {
                                 <div className="h-px bg-border flex-1 opacity-50" />
                             </div>
                             <motion.div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" layout>
-                                {expiredBudgets.map((s: any) => (
+                                {expiredBudgets.slice(0, expiredVisible).map((s: any) => (
                                 <BudgetCard 
                                     key={s.budget_id} 
                                     summary={s} 
@@ -290,6 +295,13 @@ export default function BudgetsPage() {
                                 />
                                 ))}
                             </motion.div>
+                            {expiredBudgets.length > expiredVisible && (
+                              <div className="flex justify-center py-2">
+                                <Button variant="outline" onClick={() => setExpiredVisible((c) => c + 20)} className="min-w-[140px]">
+                                  Load More
+                                </Button>
+                              </div>
+                            )}
                          </div>
                      )}
                 </div>
@@ -300,3 +312,4 @@ export default function BudgetsPage() {
     </div>
   );
 }
+

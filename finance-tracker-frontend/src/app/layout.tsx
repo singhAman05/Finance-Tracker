@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { ThemeProvider } from "next-themes";
-import { Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
+import "../bones/registry";
 import ReduxProvider from "./ReduxProvider";
 
-const outfit = Outfit({
+const inter = Inter({
   subsets: ["latin"],
   weight: ["300", "400", "500", "600", "700"],
-  variable: "--font-outfit",
+  variable: "--font-inter",
 });
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export const metadata: Metadata = {
 };
 
 import { RootModal } from "@/components/modals/root-modal";
+import { ErrorBoundary } from "@/components/common/ErrorBoundary";
 
 export default function RootLayout({
   children,
@@ -25,15 +27,17 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={outfit.variable}>
+      <body className={inter.variable}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
+          defaultTheme="dark"
           enableSystem={false}
           disableTransitionOnChange
         >
           <ReduxProvider>
-            {children}
+            <ErrorBoundary>
+              {children}
+            </ErrorBoundary>
             <RootModal />
             <Toaster
               position="top-right"

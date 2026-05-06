@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -115,6 +116,11 @@ export default function BillsInstanceList({
     return dateA - dateB;
   });
 
+  const PAGE_SIZE = 20;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const visibleInstances = sorted.slice(0, visibleCount);
+  const hasMore = sorted.length > visibleCount;
+
   if (sorted.length === 0) {
     return (
       <motion.div
@@ -136,7 +142,7 @@ export default function BillsInstanceList({
       className="grid grid-cols-1 gap-4"
     >
       <AnimatePresence mode="popLayout">
-        {sorted.map((instance, i) => {
+        {visibleInstances.map((instance, i) => {
           const bill = billMap[instance.bill_id];
           
           // Determine effective status for display
@@ -161,7 +167,7 @@ export default function BillsInstanceList({
               exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.2 } }}
               layout
             >
-              <Card className="bg-card border-border shadow-sm hover:shadow-md transition-all duration-300">
+              <Card className="bg-card border-border/60 shadow-soft hover:shadow-elevated transition-all duration-300">
                 <CardContent className="p-4 sm:p-5">
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     {/* Left: icon + info */}
@@ -244,6 +250,17 @@ export default function BillsInstanceList({
           );
         })}
       </AnimatePresence>
+      {hasMore && (
+        <div className="flex justify-center py-4">
+          <Button
+            variant="outline"
+            onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+            className="min-w-[140px]"
+          >
+            Load More
+          </Button>
+        </div>
+      )}
     </motion.div>
   );
 }

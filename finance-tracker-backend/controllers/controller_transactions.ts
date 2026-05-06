@@ -1,6 +1,7 @@
 ﻿import { Request, Response } from 'express';
 import { fetchTransactions, createTransaction, deleteTransaction } from '../services/service_transactions';
-import { validateTransactionPayload } from '../utils/validationUtils';
+import { getAccountStatus } from '../services/service_accounts';
+import { validateTransactionPayload, validateUUID } from '../utils/validationUtils';
 import {
   CacheKey,
   getCache,
@@ -18,6 +19,12 @@ import { CACHE_TTL, RECURRENCE_VALUES } from '../types';
 export const handleTransactionsAdd = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
   const { account_id, category_id, amount, type } = validateTransactionPayload(req.body);
+
+  // Block transactions on inactive accounts
+  const { status: accountStatus } = await getAccountStatus(account_id, user.id);
+  if (accountStatus === 'inactive') {
+    throw AppError.validation('Cannot add transactions to an inactive account. Please activate the account first.');
+  }
 
   const {
     date,
@@ -61,7 +68,12 @@ export const handleTransactionsAdd = asyncHandler(async (req: Request, res: Resp
 export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
   const { page, limit, from, to } = parsePagination(req);
-  const cacheKey = CacheKey.transactions(user.id, page, limit);
+
+  // Optional date-range filters
+  const start_date = typeof req.query.start_date === 'string' ? req.query.start_date : undefined;
+  const end_date = typeof req.query.end_date === 'string' ? req.query.end_date : undefined;
+
+  const cacheKey = CacheKey.transactions(user.id, page, limit) + (start_date ? `:s${start_date}` : '') + (end_date ? `:e${end_date}` : '');
 
   const cached = await getCache(cacheKey);
   if (cached) {
@@ -69,7 +81,7 @@ export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Re
     return;
   }
 
-  const result = await fetchTransactions(user.id, { from, to });
+  const result = await fetchTransactions(user.id, { from, to }, { start_date, end_date });
   if (result.error) {
     throw AppError.internal('Failed to fetch transactions', result.error);
   }
@@ -86,7 +98,7 @@ export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Re
 
 export const handleTransactionDelete = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
-  const { transaction_id } = req.params;
+  const transaction_id = validateUUID(req.params.transaction_id, 'Transaction ID');
 
   const result = await deleteTransaction(transaction_id, user.id);
   if (result.error) {

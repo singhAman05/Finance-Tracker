@@ -101,7 +101,6 @@ export default function ProfilePage() {
       toast.success("Profile setup complete!");
       router.push("/dashboard");
     } catch (err) {
-      console.error("Profile update failed:", err);
       toast.error("Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
@@ -158,7 +157,7 @@ export default function ProfilePage() {
 
         <div className="grid md:grid-cols-3 gap-6 md:gap-8">
           <div className="md:col-span-2">
-            <div className="bg-card rounded-3xl border border-border shadow-sm p-6 md:p-8 space-y-6">
+            <div className="bg-card rounded-xl border border-border shadow-sm p-6 md:p-8 space-y-6">
               <h2 className="text-lg font-bold text-text-primary border-b border-border pb-4">
                 Basic Details
               </h2>
@@ -278,7 +277,7 @@ export default function ProfilePage() {
 
           {/* Side Panel Tips */}
           <div className="hidden md:block">
-            <div className="bg-card border border-border rounded-3xl p-6 shadow-sm">
+            <div className="bg-card border border-border rounded-xl p-6 shadow-sm">
               <h3 className="font-bold text-text-primary text-sm mb-4 tracking-tight">
                 ✦ Why complete this?
               </h3>
@@ -294,3 +293,4 @@ export default function ProfilePage() {
     </div>
   );
 }
+

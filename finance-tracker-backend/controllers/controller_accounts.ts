@@ -3,10 +3,12 @@ import {
   creatingAccount,
   fetchAllaccounts,
   deleteAccount,
+  updateAccount,
+  getAccountStatus,
   processRecurringAccounts,
   fetchRecurringAccounts,
 } from '../services/service_accounts';
-import { validateAccount, validateAccountDetails } from '../utils/validationUtils';
+import { validateAccount, validateAccountDetails, validateUUID } from '../utils/validationUtils';
 import {
   getCache,
   setCache,
@@ -103,7 +105,7 @@ export const handleAccountFetch = asyncHandler(async (req: Request, res: Respons
 
 export const handleAccountDeletion = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
-  const { account_id } = req.params;
+  const account_id = validateUUID(req.params.account_id, 'Account ID');
 
   const result = await deleteAccount(account_id, user.id);
   if (result.error) {
@@ -117,6 +119,51 @@ export const handleAccountDeletion = asyncHandler(async (req: Request, res: Resp
     success: true,
     message: 'Account deleted successfully',
     data: { account_id },
+  });
+});
+
+export const handleAccountUpdate = asyncHandler(async (req: Request, res: Response) => {
+  const user = getUser(req);
+  const account_id = validateUUID(req.params.account_id, 'Account ID');
+
+  const { account_holder_name, bank_name, account_type, account_number_last4, currency, status } = req.body as Record<string, unknown>;
+
+  const updates: Record<string, unknown> = {};
+
+  if (typeof account_holder_name === 'string' && account_holder_name.trim()) {
+    updates.account_holder_name = account_holder_name.trim();
+  }
+  if (typeof bank_name === 'string' && bank_name.trim()) {
+    updates.bank_name = bank_name.trim();
+  }
+  if (typeof account_type === 'string' && ['savings', 'current', 'digital_wallet', 'loan', 'credit_card', 'cash', 'investment'].includes(account_type)) {
+    updates.account_type = account_type;
+  }
+  if (typeof account_number_last4 === 'string' && /^\d{4}$/.test(account_number_last4)) {
+    updates.account_number_last4 = account_number_last4;
+  }
+  if (typeof currency === 'string' && ['INR', 'USD', 'EUR', 'GBP', 'JPY', 'AUD', 'CAD'].includes(currency)) {
+    updates.currency = currency;
+  }
+  if (typeof status === 'string' && ['active', 'inactive'].includes(status)) {
+    updates.status = status;
+  }
+
+  if (Object.keys(updates).length === 0) {
+    throw AppError.validation('No valid fields to update');
+  }
+
+  const result = await updateAccount(account_id, user.id, updates as any);
+  if (result.error) {
+    throw AppError.notFound('Account not found or unauthorized');
+  }
+
+  await invalidateAccounts(user.id);
+
+  res.status(200).json({
+    success: true,
+    message: 'Account updated successfully',
+    data: result.data,
   });
 });
 

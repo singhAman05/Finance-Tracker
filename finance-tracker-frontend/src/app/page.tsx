@@ -38,9 +38,8 @@ export default function Home() {
 
   const handleAuthNavigation = () => {
     if (typeof window !== "undefined") {
-      const token = sessionStorage.getItem("jwt");
       const user = sessionStorage.getItem("user");
-      if (token && user) {
+      if (user) {
         router.push("/dashboard");
         return;
       }
@@ -51,15 +50,15 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-background text-text-primary overflow-x-hidden">
       {/* Navigation */}
-      <nav className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-50">
+      <nav className="border-b border-border/40 bg-background/80 glass sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <motion.div 
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 bg-primary text-white dark:text-black rounded-lg flex items-center justify-center">
-              <Wallet className="w-4 h-4 text-white dark:text-black" />
+            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
+              <Wallet className="w-4 h-4 text-white" />
             </div>
             <span className="text-xl font-bold tracking-tight">
               FinanceTracker
@@ -77,7 +76,7 @@ export default function Home() {
             </button>
             <button 
               onClick={handleAuthNavigation}
-              className="px-5 py-2 rounded-full bg-primary text-white dark:text-black text-sm font-medium hover:brightness-110 transition-all cursor-pointer"
+              className="px-5 py-2 rounded-full gradient-primary text-white text-sm font-medium hover:opacity-90 transition-all cursor-pointer shadow-sm hover:shadow-md"
             >
               Get Started
             </button>
@@ -118,7 +117,7 @@ export default function Home() {
             <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={handleAuthNavigation}
-                className="group px-8 py-4 rounded-full bg-primary text-white dark:text-black hover:brightness-110 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit cursor-pointer"
+                className="group px-8 py-4 rounded-full gradient-primary text-white hover:opacity-90 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit cursor-pointer shadow-md hover:shadow-lg"
               >
                 Start Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
@@ -147,7 +146,7 @@ export default function Home() {
             transition={{ duration: 0.7, delay: 0.3, ease: [0.25, 0.46, 0.45, 0.94] }}
             className="relative"
           >
-            <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-lg dark:shadow-none">
+            <div className="rounded-xl border border-border bg-card overflow-hidden shadow-lg dark:shadow-none">
               {/* Mock browser bar */}
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
                 <div className="flex gap-1.5">
@@ -305,15 +304,15 @@ export default function Home() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: idx * 0.1 }}
-                className="group p-8 rounded-2xl border border-border hover:bg-muted transition-all duration-300 relative overflow-hidden"
+                className="group p-8 rounded-xl border border-border/60 hover:border-primary/20 hover:bg-accent/50 transition-all duration-300 relative overflow-hidden shadow-soft hover:shadow-elevated"
               >
                 {/* Hover background effect */}
                 <div className="transition-opacity duration-300" />
                 
                 <div className="relative z-10">
                   <div className="mb-6 flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-xl border border-border flex items-center justify-center group-hover:bg-muted transition-colors">
-                      <feature.icon className="w-5 h-5 text-text-primary stroke-[1.5]" />
+                    <div className="w-12 h-12 rounded-xl border border-border/60 bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                      <feature.icon className="w-5 h-5 text-primary stroke-[1.5]" />
                     </div>
                     <span className="text-[10px] font-medium uppercase tracking-widest text-text-secondary group-hover:text-text-primary transition-colors">
                       {feature.stat}
@@ -378,11 +377,11 @@ export default function Home() {
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="rounded-3xl bg-primary text-white dark:text-black p-12 md:p-24 text-center relative overflow-hidden"
+          className="rounded-xl gradient-primary text-white p-12 md:p-24 text-center relative overflow-hidden shadow-lg"
         >
           {/* Background pattern */}
-          <div className="absolute inset-0 opacity-5" style={{
-            backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
           }} />
 
@@ -391,20 +390,20 @@ export default function Home() {
               initial={{ opacity: 0 }}
               whileInView={{ opacity: 1 }}
               viewport={{ once: true }}
-              className="text-sm font-medium uppercase tracking-widest mb-6 text-text-secondary"
+              className="text-sm font-medium uppercase tracking-widest mb-6 text-white/70"
             >
               Start today
             </motion.p>
-            <h2 className="text-4xl md:text-6xl font-bold mb-4 tracking-tighter">
+            <h2 className="text-4xl md:text-6xl font-bold mb-4 tracking-tighter text-white">
               Ready to clarify your finances?
             </h2>
-            <p className="text-text-secondary mb-10 max-w-md mx-auto">
+            <p className="text-white/70 mb-10 max-w-md mx-auto">
               Join thousands who have already transformed their relationship with money.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <button 
                 onClick={handleAuthNavigation}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-background text-text-primary hover:bg-muted text-black dark:text-white hover:scale-105 transition-transform font-medium cursor-pointer"
+                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 hover:bg-gray-100 hover:scale-105 transition-all font-medium cursor-pointer shadow-md"
               >
                 Create Free Account
                 <ArrowRight className="w-4 h-4" />

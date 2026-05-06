@@ -87,6 +87,44 @@ const percentageChange = (current: number, previous: number): number | null => {
   return ((current - previous) / Math.abs(previous)) * 100;
 };
 
+/**
+ * Compute ISO date strings (YYYY-MM-DD) for a report period.
+ * Returns undefined values for "allTime".
+ */
+export const getDateRangeForPeriod = (
+  period: ReportPeriod,
+  customStart?: string,
+  customEnd?: string
+): { start_date?: string; end_date?: string } => {
+  const now = new Date();
+  const refMonthStart = monthStart(now);
+
+  let start: Date | undefined;
+  let end: Date | undefined;
+
+  if (period === "thisMonth") {
+    start = refMonthStart;
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0); // last day of month
+  } else if (period === "lastMonth") {
+    start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    end = new Date(now.getFullYear(), now.getMonth(), 0); // last day of prev month
+  } else if (period === "last3Months") {
+    start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (period === "last6Months") {
+    start = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+    end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  } else if (period === "custom") {
+    return { start_date: customStart, end_date: customEnd };
+  } else {
+    // allTime
+    return {};
+  }
+
+  const fmt = (d: Date) => d.toISOString().slice(0, 10);
+  return { start_date: fmt(start!), end_date: fmt(end!) };
+};
+
 export const filterTransactionsByPeriod = (
   transactions: Transaction[],
   period: ReportPeriod,
@@ -241,7 +279,7 @@ export const getBudgetInsights = (budgetSummary: BudgetSummary[]): BudgetInsight
       const usage = toNumber(b.percentage_used);
       let health: BudgetInsight["health"] = "healthy";
       if (usage >= 100) health = "exceeded";
-      else if (usage >= 80) health = "warning";
+      else if (usage >= 90) health = "warning";
       return { ...b, health };
     })
     .sort((a, b) => Number(b.is_active) - Number(a.is_active) || b.percentage_used - a.percentage_used);

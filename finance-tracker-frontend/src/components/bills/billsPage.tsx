@@ -10,7 +10,9 @@ import { setTransactions } from "@/components/redux/slices/slice_transactions";
 import { payBillInstance } from "@/service/service_bills";
 import { fetchBillInstancesRoute, fetchBillsRoute } from "@/routes/route_bills";
 import { fetchTransactions } from "@/service/service_transactions";
-import { Skeleton } from "@/components/ui/skeleton";
+import { notify } from "@/lib/notifications";
+import { Skeleton } from "boneyard-js/react";
+import { BillsFixture } from "@/bones/fixtures";
 
 import BillsHeader from "@/components/bills/billsHeader";
 import BillsSummaryCards from "@/components/bills/billsSummaryCards";
@@ -31,17 +33,6 @@ const fadeUp = {
     transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const },
   },
 };
-
-const LoadingSkeleton = () => (
-  <div className="space-y-4 p-6">
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-      {[1, 2, 3].map((i) => (
-        <Skeleton key={i} className="h-32 w-full rounded-2xl bg-muted" />
-      ))}
-    </div>
-    <Skeleton className="h-[400px] w-full rounded-2xl bg-muted" />
-  </div>
-);
 
 export default function BillsPage() {
   const dispatch = useDispatch();
@@ -67,7 +58,7 @@ export default function BillsPage() {
         if (billsRes?.data) dispatch(setBills(billsRes.data));
         if (instancesRes?.data) dispatch(setInstances(instancesRes.data));
       } catch (err) {
-        console.error("Failed to load bills:", err);
+        // Error surfaced via notifications
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
@@ -122,6 +113,19 @@ export default function BillsPage() {
 
   // ── Pay Handler ────────────────────────────────────────────────────────────
   const handlePay = async (instanceId: string) => {
+    // Find the instance and its parent bill to check account status
+    const instance = instances.find((i) => i.id === instanceId);
+    if (instance) {
+      const bill = bills.find((b) => b.id === instance.bill_id);
+      if (bill?.account_id) {
+        const account = accounts.find((a: any) => a.id === bill.account_id);
+        if (account?.status === "inactive") {
+          notify.error("Cannot pay bill from an inactive account. Please activate the account first.");
+          return;
+        }
+      }
+    }
+
     setPayingId(instanceId);
     try {
       const result = await payBillInstance(instanceId);
@@ -137,7 +141,7 @@ export default function BillsPage() {
         if (txRes?.data) dispatch(setTransactions(txRes.data));
       }
     } catch (err) {
-      console.error("Failed to pay bill:", err);
+      // Error surfaced via notifications
     } finally {
       setPayingId(null);
     }
@@ -153,23 +157,9 @@ export default function BillsPage() {
   }, [modalType, prevModalType, loadData]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
-  if (isLoading && instances.length === 0) {
-    return (
-      <div className="min-h-screen bg-background relative overflow-hidden">
-        <div
-          className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
-          style={{
-            backgroundImage: `radial-gradient(circle, var(--color-text-primary) 1px, transparent 1px)`,
-            backgroundSize: "32px 32px",
-          }}
-        />
-        <LoadingSkeleton />
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background text-text-primary px-4 md:px-6 py-6 md:py-8 relative overflow-hidden">
+    <Skeleton name="bills" loading={isLoading && instances.length === 0} fixture={<BillsFixture />}>
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       {/* Background dot pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -211,5 +201,6 @@ export default function BillsPage() {
       </motion.div>
 
     </div>
+    </Skeleton>
   );
 }

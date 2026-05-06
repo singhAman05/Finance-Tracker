@@ -58,6 +58,38 @@ export const fetchAllaccounts = async (client_id: string, pagination?: { from: n
   return { data, error, count: count ?? 0 };
 };
 
+export const updateAccount = async (
+  account_id: string,
+  client_id: string,
+  updates: {
+    account_holder_name?: string;
+    bank_name?: string;
+    account_type?: string;
+    account_number_last4?: string;
+    currency?: string;
+    status?: 'active' | 'inactive';
+  }
+) => {
+  const { data, error } = await supabase
+    .from('accounts')
+    .update(updates)
+    .eq('id', account_id)
+    .eq('client_id', client_id)
+    .select()
+    .single();
+  return { data, error };
+};
+
+export const getAccountStatus = async (account_id: string, client_id: string) => {
+  const { data, error } = await supabase
+    .from('accounts')
+    .select('status')
+    .eq('id', account_id)
+    .eq('client_id', client_id)
+    .single();
+  return { status: data?.status as string | undefined, error };
+};
+
 export const deleteAccount = async (account_id: string, client_id: string) => {
   const { data, error } = await supabase
     .from('accounts')

@@ -9,6 +9,8 @@ const FORMAT_MAP: Record<string, string> = {
   "DD/MM/YYYY": "dd/MM/yyyy",
   "MM/DD/YYYY": "MM/dd/yyyy",
   "YYYY-MM-DD": "yyyy-MM-dd",
+  "DD-MM-YYYY": "dd-MM-yyyy",
+  "DD.MM.YYYY": "dd.MM.yyyy",
 };
 
 export function useDateFormat() {

@@ -166,18 +166,18 @@ export function Sidebar() {
   return (
     <aside
       className={cn(
-        "hidden md:flex flex-col bg-card border-r border-border min-h-screen overflow-hidden relative",
-        "transition-[width] duration-300 ease-in-out shadow-sm",
+        "hidden md:flex flex-col bg-card border-r border-border/60 min-h-screen overflow-hidden relative",
+        "transition-[width] duration-300 ease-in-out",
         expanded ? "w-64" : "w-20"
       )}
       onMouseEnter={() => isCollapsed && setIsHoverExpand(true)}
       onMouseLeave={() => setIsHoverExpand(false)}
     >
       {/* Header */}
-      <div className="h-20 flex items-center px-4 shrink-0 border-b border-border/50">
+      <div className="h-20 flex items-center px-4 shrink-0 border-b border-border/40">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 bg-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm transition-transform hover:scale-105 active:scale-95">
-            <Wallet className="w-5 h-5 text-primary-foreground" />
+          <div className="h-10 w-10 gradient-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-elevated transition-transform hover:scale-105 active:scale-95">
+            <Wallet className="w-5 h-5 text-white" />
           </div>
           <span
             className={cn(
@@ -212,7 +212,7 @@ export function Sidebar() {
       </ScrollArea>
 
       {/* Footer Section */}
-      <div className="border-t border-slate-200/50 dark:border-slate-800/50 px-1 pt-4 pb-6 bg-slate-50/30 dark:bg-slate-900/20 space-y-3">
+      <div className="border-t border-border/40 px-1 pt-4 pb-6 space-y-1">
         {utilityItems.map((item) => {
           const { icon: Icon } = item;
           const isActive = pathname.startsWith(item.href);

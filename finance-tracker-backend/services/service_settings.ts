@@ -35,7 +35,9 @@ export const updateSettingsService = async (
   client_id: string,
   settings: Partial<ClientSettings>
 ): Promise<ClientSettings> => {
-  const payload = { ...defaultSettings, ...settings, client_id };
+  // Fetch current settings to avoid overwriting unrelated fields with defaults
+  const current = await getSettingsService(client_id);
+  const payload = { ...current, ...settings, client_id };
 
   const { data, error } = await supabase
     .from('client_settings')
@@ -76,59 +78,9 @@ export const exportUserDataService = async (client_id: string) => {
 export const clearHistoryService = async (client_id: string) => {
   const { data, error } = await supabase.rpc('clear_client_history', { p_client_id: client_id });
 
-  if (!error) {
-    return { deleted: data };
+  if (error) {
+    throw error;
   }
 
-  // Fallback for environments where RPC has not been applied yet.
-  const { data: txData, error: txFetchError } = await supabase
-    .from('transactions')
-    .select('account_id, amount, type')
-    .eq('client_id', client_id);
-
-  if (txFetchError) throw txFetchError;
-
-  const accountDelta = new Map<string, number>();
-  (txData ?? []).forEach((tx: { account_id: string; amount: number; type: string }) => {
-    const delta = tx.type === 'income' ? Number(tx.amount) : -Number(tx.amount);
-    accountDelta.set(tx.account_id, (accountDelta.get(tx.account_id) ?? 0) + delta);
-  });
-
-  for (const [accountId, delta] of accountDelta.entries()) {
-    if (!delta) continue;
-    const { error: rpcError } = await supabase.rpc('adjust_account_balance', {
-      p_account_id: accountId,
-      p_amount: -delta,
-    });
-    if (rpcError) throw rpcError;
-  }
-
-  const { data: deletedInstances, error: instError } = await supabase
-    .from('bill_instances')
-    .delete()
-    .eq('client_id', client_id)
-    .select('id');
-  if (instError) throw instError;
-
-  const { data: deletedBills, error: billsError } = await supabase
-    .from('bills')
-    .delete()
-    .eq('client_id', client_id)
-    .select('id');
-  if (billsError) throw billsError;
-
-  const { data: deletedTx, error: delTxError } = await supabase
-    .from('transactions')
-    .delete()
-    .eq('client_id', client_id)
-    .select('id');
-  if (delTxError) throw delTxError;
-
-  return {
-    deleted: {
-      transactions: deletedTx?.length ?? 0,
-      bills: deletedBills?.length ?? 0,
-      bill_instances: deletedInstances?.length ?? 0,
-    },
-  };
+  return { deleted: data };
 };

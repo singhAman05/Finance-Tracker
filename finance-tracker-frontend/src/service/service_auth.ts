@@ -2,15 +2,15 @@ import { phoneLoginRoute } from "@/routes/route_auth";
 import { login } from "@/components/redux/slices/slice_auth";
 import { AppDispatch } from "@/app/store";
 import { signIn, signOut } from "next-auth/react";
+import { baseUrl } from "@/utils/Error_handler";
 
 export const loginService = async (phone: string, dispatch: AppDispatch) => {
   try {
-    const { token, user } = await phoneLoginRoute(phone);
+    const { user } = await phoneLoginRoute(phone);
 
-    sessionStorage.setItem("jwt", token);
     sessionStorage.setItem("user", JSON.stringify(user));
 
-    dispatch(login({ user, token }));
+    dispatch(login({ user }));
 
     return user.profile_complete;
   } catch (error) {
@@ -28,10 +28,13 @@ export const loginWithGoogle = async () => {
 
 export const logoutService = async () => {
   try {
-    sessionStorage.removeItem("jwt");
-    sessionStorage.removeItem("user");
-    await signOut({ callbackUrl: process.env.NEXTAUTH_URL });
-  } catch (error) {
-    console.error("Logout failed:", error);
+    await fetch(`${baseUrl}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
+  } catch {
+    // Logout API failure is non-critical
   }
+  sessionStorage.removeItem("user");
+  await signOut({ callbackUrl: process.env.NEXTAUTH_URL });
 };

@@ -6,7 +6,7 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from "
 import { format } from "date-fns";
 import { getTransactionStats, getFinancialHealth } from "@/service/service_transactions";
 import { RootState } from "@/app/store";
-import { cn } from "@/lib/utils";
+import { cn, getLocaleForCurrency } from "@/lib/utils";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useDateFormat } from "@/hooks/useDateFormat";
 
@@ -32,7 +32,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "boneyard-js/react";
+import { TransactionsFixture } from "@/bones/fixtures";
 import {
   Table,
   TableHeader,
@@ -59,6 +60,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
+
 // Icons
 import {
   Search,
@@ -75,6 +82,7 @@ import {
   Calendar,
   ArrowLeft,
   RefreshCw,
+  Info,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -93,9 +101,9 @@ const fadeUp = {
   },
 };
 
-function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: number }) {
+function AnimatedCounter({ target, duration = 2, locale = "en-IN" }: { target: number; duration?: number; locale?: string }) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString("en-IN"));
+  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString(locale));
   const [display, setDisplay] = useState("0");
 
   useEffect(() => {
@@ -154,6 +162,9 @@ export default function TransactionPage() {
   // Local State
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
   const { type: modalType } = useSelector((state: RootState) => state.modal);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
@@ -164,6 +175,8 @@ export default function TransactionPage() {
     id: string;
     description: string;
   } | null>(null);
+
+  const PAGE_SIZE = 20;
 
   // --- Mappers ---
   const accountMap = useMemo(
@@ -195,9 +208,7 @@ export default function TransactionPage() {
           accounts.length === 0 || isRefresh
             ? fetchAccounts()
             : Promise.resolve({ data: accounts }),
-          transactions.length === 0 || isRefresh
-            ? fetchTransactions()
-            : Promise.resolve({ data: transactions }),
+          fetchTransactions(1, PAGE_SIZE),
           categories.length === 0 || isRefresh
             ? fetchCategories()
             : Promise.resolve({ data: categories }),
@@ -205,27 +216,43 @@ export default function TransactionPage() {
 
         if (accounts.length === 0 || isRefresh)
           dispatch(setAccounts(accRes?.data ?? []));
-        if (transactions.length === 0 || isRefresh)
-          dispatch(setTransactions(txRes?.data ?? []));
+        dispatch(setTransactions(txRes?.data ?? []));
         if (categories.length === 0 || isRefresh)
           dispatch(setCategories(catRes?.data ?? []));
+
+        setCurrentPage(1);
+        const pagination = txRes?.pagination;
+        setHasMore(pagination ? pagination.page < pagination.pages : false);
       } catch (err) {
-        console.error("Failed to load data:", err);
+        // Error surfaced via notifications
       } finally {
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [
-      dispatch,
-      accounts.length,
-      transactions.length,
-      categories.length,
-      accounts,
-      transactions,
-      categories,
-    ]
+    [dispatch, accounts, categories]
   );
+
+  const loadMore = useCallback(async () => {
+    if (isLoadingMore || !hasMore) return;
+    setIsLoadingMore(true);
+    try {
+      const nextPage = currentPage + 1;
+      const txRes = await fetchTransactions(nextPage, PAGE_SIZE);
+      if (txRes?.data?.length) {
+        dispatch(setTransactions([...transactions, ...txRes.data]));
+        setCurrentPage(nextPage);
+        const pagination = txRes.pagination;
+        setHasMore(pagination ? pagination.page < pagination.pages : false);
+      } else {
+        setHasMore(false);
+      }
+    } catch {
+      // Error surfaced via notifications
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMore, currentPage, transactions, dispatch]);
 
   // --- Refresh on Modal Close ---
   const [prevModalType, setPrevModalType] = useState<string | null>(null);
@@ -238,7 +265,8 @@ export default function TransactionPage() {
 
   useEffect(() => {
     loadData();
-  }, []); // Run once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // --- Filtering & Stats ---
   const filteredTransactions = useMemo(() => {
@@ -288,9 +316,12 @@ export default function TransactionPage() {
     if (!deleteData) return;
     try {
       dispatch(removeTransaction(deleteData.id)); // Optimistic update
-      const res = await deleteTransaction(deleteData.id);
+      await deleteTransaction(deleteData.id);
+      // Re-fetch accounts to update balances/net worth after deletion
+      const accRes = await fetchAccounts();
+      if (accRes?.data) dispatch(setAccounts(accRes.data));
     } catch (err) {
-      loadData(true); // Revert
+      loadData(true); // Revert on error
     } finally {
       setDeleteData(null);
     }
@@ -299,28 +330,9 @@ export default function TransactionPage() {
   const { formatCurrency, symbol, currency } = useCurrency();
   const { formatDate } = useDateFormat();
 
-  // --- Skeleton Component ---
-  const LoadingSkeleton = () => (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-28 w-full rounded-xl bg-muted" />
-        ))}
-      </div>
-      <Skeleton className="h-[500px] w-full rounded-xl bg-muted" />
-    </div>
-  );
-
   // --- Render ---
-  if (isLoading && transactions.length === 0) {
-    return (
-      <div className="p-6 space-y-8 max-w-7xl mx-auto">
-        <LoadingSkeleton />
-      </div>
-    );
-  }
-
   return (
+    <Skeleton name="transactions" loading={isLoading && transactions.length === 0} fixture={<TransactionsFixture />}>
     <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
       {/* Background Pattern matched from page.tsx */}
       <div
@@ -335,7 +347,7 @@ export default function TransactionPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative w-full space-y-6 p-2 md:p-6 mx-auto"
+        className="relative w-full space-y-6 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-[1280px] mx-auto"
       >
       {/* Delete Dialog */}
       <AlertDialog
@@ -427,21 +439,24 @@ export default function TransactionPage() {
             value: stats.income,
             icon: ArrowDownLeft,
             trend: financialHealth.incomeGrowth,
-            trendLabel: "vs last month"
+            trendLabel: "vs last month",
+            tooltip: "Total money received this month across all accounts. Compared with last month to show growth.",
           },
           {
             label: "Total Expenses",
             value: stats.expense,
             icon: ArrowUpRight,
             trend: financialHealth.expenseGrowth,
-            trendLabel: "vs last month"
+            trendLabel: "vs last month",
+            tooltip: "Total money spent this month across all accounts. A decrease in expenses is shown in green.",
           },
           {
             label: "Net Flow",
             value: stats.net,
             icon: Wallet,
             trend: null, 
-            trendLabel: ""
+            trendLabel: "",
+            tooltip: "Income minus expenses for this month. Positive means you saved money, negative means you overspent.",
           },
         ].map((stat, idx) => (
           <motion.div
@@ -452,16 +467,26 @@ export default function TransactionPage() {
           >
             <div className="p-6 rounded-2xl bg-card border border-border hover:border-ring transition-all duration-300">
               <div className="flex items-center justify-between mb-4">
-                <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
-                  {stat.label}
-                </p>
+                <div className="flex items-center gap-1.5">
+                  <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
+                    {stat.label}
+                  </p>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="h-3.5 w-3.5 text-text-secondary/40 cursor-help" />
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-[220px]">
+                      {stat.tooltip}
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center">
                   <stat.icon className="h-4 w-4 text-text-primary" />
                 </div>
               </div>
 
               <div className="text-2xl sm:text-3xl font-bold tracking-tighter text-text-primary mb-2">
-                {symbol}<AnimatedCounter target={Math.abs(stat.value)} />
+                {symbol}<AnimatedCounter target={Math.abs(stat.value)} locale={getLocaleForCurrency(currency)} />
               </div>
 
               {stat.trend !== null && (
@@ -628,8 +653,8 @@ export default function TransactionPage() {
                               <span className="text-[11px] text-text-secondary truncate">{category?.name || "Uncategorized"}</span>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className={cn("font-mono font-bold text-sm", isExpense ? "text-danger" : "text-success")}>
+                          <div className="flex items-center gap-2 shrink-0 ml-2">
+                            <span className={cn("font-mono font-bold text-xs sm:text-sm whitespace-nowrap", isExpense ? "text-danger" : "text-success")}>
                               {isExpense ? "-" : "+"}{txAmount}
                             </span>
                             <Button
@@ -646,6 +671,23 @@ export default function TransactionPage() {
                     })}
                   </AnimatePresence>
                 </div>
+
+                {/* Load More (mobile) */}
+                {hasMore && (
+                  <div className="md:hidden flex justify-center py-4">
+                    <Button
+                      variant="outline"
+                      onClick={loadMore}
+                      disabled={isLoadingMore}
+                      className="min-w-[140px]"
+                    >
+                      {isLoadingMore ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      {isLoadingMore ? "Loading..." : "Load More"}
+                    </Button>
+                  </div>
+                )}
 
                 {/* Desktop table (>= md) */}
                 <div className="hidden md:block overflow-x-auto">
@@ -684,7 +726,7 @@ export default function TransactionPage() {
                                 </div>
                               </TableCell>
                               <TableCell>
-                                <span className="font-medium text-sm text-text-primary">{tx.description || `${category?.name} side income/expense`}</span>
+                                <span className="font-medium text-sm text-text-primary">{tx.description || `${category?.name} ${tx.type}`}</span>
                               </TableCell>
                               <TableCell>
                                 <Badge variant="secondary" className="font-normal text-xs bg-muted text-text-secondary hover:bg-muted/80 border-0">
@@ -700,7 +742,7 @@ export default function TransactionPage() {
                                 </div>
                               </TableCell>
                               <TableCell className="text-right pr-8">
-                                <span className={cn("font-mono font-medium tracking-tight", isExpense ? "text-danger" : "text-success")}>
+                                <span className={cn("font-mono font-medium tracking-tight whitespace-nowrap", isExpense ? "text-danger" : "text-success")}>
                                   {isExpense ? "-" : "+"}{txAmount}
                                 </span>
                               </TableCell>
@@ -721,6 +763,21 @@ export default function TransactionPage() {
                     </TableBody>
                   </Table>
                 </div>
+                {hasMore && (
+                  <div className="flex justify-center py-4">
+                    <Button
+                      variant="outline"
+                      onClick={loadMore}
+                      disabled={isLoadingMore}
+                      className="min-w-[140px]"
+                    >
+                      {isLoadingMore ? (
+                        <RefreshCw className="h-4 w-4 animate-spin mr-2" />
+                      ) : null}
+                      {isLoadingMore ? "Loading..." : "Load More"}
+                    </Button>
+                  </div>
+                )}
               </>
             )}
           </CardContent>
@@ -728,5 +785,6 @@ export default function TransactionPage() {
       </motion.div>
       </motion.div>
     </div>
+    </Skeleton>
   );
 }

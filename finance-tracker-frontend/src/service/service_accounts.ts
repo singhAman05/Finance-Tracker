@@ -1,5 +1,5 @@
 // src/services/service_account.ts
-import { createAccountRoute, fetchAccountsRoute, deleteAccountRoute, processRecurringRoute } from '@/routes/route_accounts';
+import { createAccountRoute, fetchAccountsRoute, deleteAccountRoute, processRecurringRoute, updateAccountRoute } from '@/routes/route_accounts';
 import { notify } from '@/lib/notifications';
 
 export const createAccount = async (data: object) => {
@@ -86,5 +86,11 @@ export const processRecurringAccounts = async () => {
 export const deleteAccount = async (accountId: string) => {
   const result = await deleteAccountRoute(accountId);
   notify.success(result?.message || "Account deleted successfully");
+  return result;
+};
+
+export const updateAccount = async (accountId: string, payload: object) => {
+  const result = await updateAccountRoute(accountId, payload);
+  notify.success(result?.message || "Account updated successfully");
   return result;
 };

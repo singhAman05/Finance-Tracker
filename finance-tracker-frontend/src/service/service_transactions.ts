@@ -17,10 +17,14 @@ export const createTransaction = async (payload: {
     return result;
 };
 
-export const fetchTransactions = async () => {
-    const result = await fetchTransactionsRoute();
+export const fetchTransactions = async (
+    page = 1,
+    limit = 20,
+    options?: { start_date?: string; end_date?: string }
+) => {
+    const result = await fetchTransactionsRoute(page, limit, options);
     if (!result || !Array.isArray(result.data)) {
-        return { message: result?.message || "", data: [] as Transaction[] };
+        return { message: result?.message || "", data: [] as Transaction[], pagination: undefined };
     }
 
     const mappedData = result.data.map((tx: any) => ({

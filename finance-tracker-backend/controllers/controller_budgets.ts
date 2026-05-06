@@ -12,6 +12,7 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { getUser } from '../middleware/jwt';
 import { AppError } from '../utils/AppError';
 import { CACHE_TTL } from '../types';
+import { validateUUID } from '../utils/validationUtils';
 
 const allowedPeriods = ['weekly', 'monthly', 'quarterly', 'yearly', 'custom'];
 
@@ -23,9 +24,14 @@ export const handleBudgetCreation = asyncHandler(async (req: Request, res: Respo
     throw AppError.validation('Missing required fields');
   }
 
+  validateUUID(category_id, 'Category ID');
+
   const parsedAmount = Number(amount);
   if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
     throw AppError.validation('Invalid amount');
+  }
+  if (parsedAmount > 9_999_999_999) {
+    throw AppError.validation('Amount exceeds maximum allowed (₹999 crore)');
   }
 
   if (!allowedPeriods.includes(String(period_type))) {
@@ -87,7 +93,7 @@ export const handleBudgetFetch = asyncHandler(async (req: Request, res: Response
 
 export const handleBudgetDeletion = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
-  const { budget_id } = req.params;
+  const budget_id = validateUUID(req.params.budget_id, 'Budget ID');
 
   const result = await deleteBudget(budget_id, user.id);
   if (result.error) {
@@ -105,7 +111,7 @@ export const handleBudgetDeletion = asyncHandler(async (req: Request, res: Respo
 
 export const handleBudgetUpdate = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
-  const { budget_id } = req.params;
+  const budget_id = validateUUID(req.params.budget_id, 'Budget ID');
 
   const existing = await fetchBudgets(user.id);
   const budget = existing.data?.find((b: { id: string; is_active: boolean }) => b.id === budget_id);
@@ -115,12 +121,48 @@ export const handleBudgetUpdate = asyncHandler(async (req: Request, res: Respons
 
   const { amount, period_type, start_date, end_date, notes, name } = req.body as Record<string, unknown>;
   const safeUpdates: Record<string, unknown> = {};
-  if (amount !== undefined) safeUpdates.amount = amount;
-  if (period_type !== undefined) safeUpdates.period_type = period_type;
-  if (start_date !== undefined) safeUpdates.start_date = start_date;
-  if (end_date !== undefined) safeUpdates.end_date = end_date;
-  if (notes !== undefined) safeUpdates.notes = notes;
-  if (name !== undefined) safeUpdates.name = name;
+
+  if (amount !== undefined) {
+    const parsedAmount = Number(amount);
+    if (Number.isNaN(parsedAmount) || parsedAmount <= 0) {
+      throw AppError.validation('Amount must be a positive number');
+    }
+    if (parsedAmount > 9_999_999_999) {
+      throw AppError.validation('Amount exceeds maximum allowed (₹999 crore)');
+    }
+    safeUpdates.amount = parsedAmount;
+  }
+
+  if (period_type !== undefined) {
+    if (!allowedPeriods.includes(String(period_type))) {
+      throw AppError.validation('Invalid period type');
+    }
+    safeUpdates.period_type = String(period_type);
+  }
+
+  if (start_date !== undefined) {
+    if (typeof start_date !== 'string' || !start_date.trim()) {
+      throw AppError.validation('start_date must be a valid date string');
+    }
+    safeUpdates.start_date = start_date;
+  }
+
+  if (end_date !== undefined) {
+    if (typeof end_date !== 'string' || !end_date.trim()) {
+      throw AppError.validation('end_date must be a valid date string');
+    }
+    safeUpdates.end_date = end_date;
+  }
+
+  // Cross-field validation for dates
+  const effectiveStart = safeUpdates.start_date ?? budget?.start_date;
+  const effectiveEnd = safeUpdates.end_date ?? budget?.end_date;
+  if (effectiveStart && effectiveEnd && new Date(String(effectiveStart)) >= new Date(String(effectiveEnd))) {
+    throw AppError.validation('End date must be after start date');
+  }
+
+  if (notes !== undefined) safeUpdates.notes = typeof notes === 'string' ? notes.trim() : null;
+  if (name !== undefined) safeUpdates.name = typeof name === 'string' ? name.trim() : null;
 
   const result = await updateBudget(budget_id, user.id, safeUpdates);
   if (result.error || !result.data) {
@@ -134,7 +176,7 @@ export const handleBudgetUpdate = asyncHandler(async (req: Request, res: Respons
 
 export const handleBudgetExpire = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
-  const { budget_id } = req.params;
+  const budget_id = validateUUID(req.params.budget_id, 'Budget ID');
 
   const updates = { end_date: new Date().toISOString().split('T')[0], is_active: false };
   const result = await updateBudget(budget_id, user.id, updates);

@@ -13,53 +13,68 @@
   --color-ring: var(--ring);
   --color-primary-foreground: var(--primary-foreground);
 
-  /* New semantic colors */
+  /* Semantic colors */
   --color-success: var(--success);
   --color-danger: var(--danger);
   --color-warning: var(--warning);
   --color-info: var(--info);
+
+  /* Extended palette */
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-card-elevated: var(--card-elevated);
 }
 
 /* ===============================
-   LIGHT MODE (Default)
+   LIGHT MODE — FinTech Professional
+   Primary: Midnight Navy #0F172A
+   Secondary: Electric Indigo #6366F1
+   Success: Emerald Mint #10B981
+   Danger: Rosewood #F43F5E
+   Background: Slate Frost #F8FAFC
+   Surface: Pure White #FFFFFF
 ================================ */
 .light {
-  --background: hsl(0 0% 96%);
-  --card: hsl(0 0% 100%);
-  --muted: hsl(0 0% 94%);
-  --border: hsl(0 0% 91%);
-  --ring: hsl(222 47% 20%);
-  --primary: hsl(222 47% 11%);
-  --text-primary: hsl(220 15% 15%);
-  --text-secondary: hsl(220 9% 46%);
-  --primary-foreground: hsl(0 0% 100%);
+  --background: hsl(210 40% 98%);          /* #F8FAFC Slate Frost */
+  --card: hsl(0 0% 100%);                  /* #FFFFFF Pure White */
+  --card-elevated: hsl(0 0% 100%);         /* #FFFFFF */
+  --muted: hsl(210 40% 96%);               /* F1F5F9 */
+  --border: hsl(214 32% 91%);              /* E2E8F0 */
+  --ring: hsl(239 84% 67%);                /* #6366F1 Electric Indigo */
+  --primary: hsl(239 84% 67%);             /* #6366F1 Electric Indigo */
+  --text-primary: hsl(222 47% 11%);        /* #0F172A Midnight Navy */
+  --text-secondary: hsl(215 16% 47%);      /* #64748B Slate */
+  --primary-foreground: hsl(0 0% 100%);    /* White on indigo */
+  --accent: hsl(239 84% 97%);              /* Very light indigo */
+  --accent-foreground: hsl(239 84% 67%);   /* #6366F1 */
 
-  /* New */
-  --success: hsl(142 71% 45%);
-  --danger: hsl(0 84% 60%);
-  --warning: hsl(38 92% 50%);
-  --info: hsl(200 98% 39%);
+  --success: hsl(160 84% 39%);             /* #10B981 Emerald Mint */
+  --danger: hsl(350 89% 60%);              /* #F43F5E Rosewood */
+  --warning: hsl(38 92% 50%);              /* Amber */
+  --info: hsl(217 91% 60%);                /* Blue */
 }
 
 /* ===============================
-   DARK MODE
+   DARK MODE — Deep Navy Professional
 ================================ */
 .dark {
-  --background: hsl(0 0% 0%);
-  --card: hsl(0 0% 5%);
-  --muted: hsl(0 0% 9%);
-  --border: hsl(0 0% 15%);
-  --ring: hsl(210 40% 70%);
-  --primary: hsl(210 40% 92%);
-  --text-primary: hsl(0 0% 100%);
-  --text-secondary: hsl(220 9% 60%);
-  --primary-foreground: hsl(222 47% 11%);
+  --background: hsl(222 47% 6%);           /* Deep navy bg */
+  --card: hsl(222 44% 9%);                 /* Card surface */
+  --card-elevated: hsl(222 40% 12%);       /* Elevated card */
+  --muted: hsl(222 36% 13%);               /* Muted fills */
+  --border: hsl(222 28% 18%);              /* Subtle borders */
+  --ring: hsl(239 84% 67%);                /* #6366F1 */
+  --primary: hsl(239 84% 67%);             /* #6366F1 Electric Indigo */
+  --text-primary: hsl(210 40% 98%);        /* Near white */
+  --text-secondary: hsl(215 20% 55%);      /* Muted slate */
+  --primary-foreground: hsl(0 0% 100%);    /* White */
+  --accent: hsl(239 40% 16%);              /* Dark indigo tint */
+  --accent-foreground: hsl(239 84% 74%);   /* Lighter indigo */
 
-  /* New */
-  --success: hsl(142 70% 55%);
-  --danger: hsl(0 84% 65%);
-  --warning: hsl(38 92% 60%);
-  --info: hsl(200 98% 55%);
+  --success: hsl(160 84% 45%);             /* Brighter emerald */
+  --danger: hsl(350 89% 65%);              /* Brighter rose */
+  --warning: hsl(38 92% 60%);              /* Brighter amber */
+  --info: hsl(217 91% 67%);                /* Brighter blue */
 }
 
 /* ===============================
@@ -67,10 +82,42 @@
 ================================ */
 @layer base {
   :root {
-    --font-outfit: 'Outfit', sans-serif;
+    --font-inter: 'Inter', sans-serif;
   }
 
   body {
-    @apply bg-background text-[var(--color-text-primary)] font-[family-name:var(--font-outfit)];
+    @apply bg-background text-[var(--color-text-primary)] font-[family-name:var(--font-inter)] antialiased;
+  }
+
+  /* Smooth transitions for theme switching */
+  * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.15s ease;
+  }
+}
+
+/* ===============================
+   UTILITY CLASSES
+================================ */
+@layer utilities {
+  .glass {
+    backdrop-filter: blur(12px) saturate(180%);
+    -webkit-backdrop-filter: blur(12px) saturate(180%);
+  }
+
+  /* Subtle soft shadow per spec: 0 4px 6px -1px rgb(0 0 0 / 0.1) */
+  .shadow-soft {
+    box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+  }
+
+  .shadow-elevated {
+    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.06);
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, hsl(239 84% 67%) 0%, hsl(255 78% 62%) 100%);
+  }
+
+  .dark .gradient-primary {
+    background: linear-gradient(135deg, hsl(239 84% 67%) 0%, hsl(255 78% 68%) 100%);
   }
 }

@@ -9,11 +9,23 @@
 } from '../types';
 import { AppError } from './AppError';
 
+const MAX_AMOUNT = 9_999_999_999; // ~₹999 crore / $10B – practical upper bound
+
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
 const asString = (value: unknown, field: string) => {
   if (typeof value !== 'string' || value.trim() === '') {
     throw AppError.validation(`${field} is required`);
   }
   return value.trim();
+};
+
+export const validateUUID = (value: unknown, field: string): string => {
+  const parsed = asString(value, field);
+  if (!UUID_REGEX.test(parsed)) {
+    throw AppError.validation(`${field} must be a valid UUID`);
+  }
+  return parsed;
 };
 
 export const validatePhone = (phone: unknown) => {
@@ -51,6 +63,9 @@ export const validateAccountDetails = (balance: unknown, currency: unknown, acco
   if (Number.isNaN(parsedBalance) || parsedBalance < 0) {
     throw AppError.validation('Balance must be a non-negative number');
   }
+  if (parsedBalance > MAX_AMOUNT) {
+    throw AppError.validation('Balance exceeds maximum allowed (₹999 crore)');
+  }
 
   const parsedCurrency = currency ? String(currency) : 'INR';
   if (!CURRENCY_VALUES.includes(parsedCurrency as (typeof CURRENCY_VALUES)[number])) {
@@ -75,13 +90,16 @@ export const validateCategory = (name: unknown, type: unknown) => {
 };
 
 export const validateTransactionPayload = (body: Record<string, unknown>) => {
-  const account_id = asString(body.account_id, 'Account ID');
-  const category_id = asString(body.category_id, 'Category ID');
+  const account_id = validateUUID(body.account_id, 'Account ID');
+  const category_id = validateUUID(body.category_id, 'Category ID');
   const amount = Number(body.amount);
   const type = asString(body.type, 'Type');
 
   if (Number.isNaN(amount) || amount <= 0) {
     throw AppError.validation('Amount must be a positive number');
+  }
+  if (amount > MAX_AMOUNT) {
+    throw AppError.validation('Amount exceeds maximum allowed (₹999 crore)');
   }
 
   if (!TX_TYPE_VALUES.includes(type as (typeof TX_TYPE_VALUES)[number])) {
@@ -127,13 +145,16 @@ export const validateSettingsPayload = (input: Record<string, unknown>) => {
 };
 
 export const validateBillPayload = (input: Record<string, unknown>) => {
-  const system_category_id = asString(input.system_category_id, 'System category id');
+  const system_category_id = validateUUID(input.system_category_id, 'System category id');
   const name = asString(input.name, 'Bill name');
   const amount = Number(input.amount);
   const start_date = asString(input.start_date, 'Start date');
 
   if (Number.isNaN(amount) || amount <= 0) {
     throw AppError.validation('Amount must be greater than 0');
+  }
+  if (amount > MAX_AMOUNT) {
+    throw AppError.validation('Amount exceeds maximum allowed (₹999 crore)');
   }
 
   if (input.recurrence_type !== undefined && input.recurrence_type !== null) {

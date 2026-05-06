@@ -35,6 +35,15 @@ export const deleteAccountRoute = async (accountId: string) => {
   return res.result;
 };
 
+export const updateAccountRoute = async (accountId: string, payload: object) => {
+  const res = await apiClient<SingleAccountResponse>(`/api/accounts/update-account/${accountId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+  if (res.error) throw new Error(res.error.message);
+  return res.result;
+};
+
 export const processRecurringRoute = async () => {
   const res = await apiClient<{ message: string }>("/api/accounts/process-recurring", {
     method: "POST",

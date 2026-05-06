@@ -12,6 +12,7 @@ import {
 } from "@/components/redux/slices/slice_accounts";
 import { setTransactions } from "@/components/redux/slices/slice_transactions";
 import { AddAccount } from "./addAccount";
+import { EditAccountModal } from "./editAccount";
 import {
   fetchAccounts,
   getBankLogoUrl,
@@ -44,9 +45,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Skeleton } from "boneyard-js/react";
+import { AccountsFixture } from "@/bones/fixtures";
 import { Badge } from "@/components/ui/badge";
-import { cn } from "@/lib/utils";
+import { cn, getLocaleForCurrency } from "@/lib/utils";
+
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from "@/components/ui/tooltip";
 
 // Icons
 import {
@@ -61,6 +69,7 @@ import {
   Wallet,
   ArrowLeft,
   ArrowUpRight,
+  Info,
 } from "lucide-react";
 
 // Animation Variants (Matched to page.tsx)
@@ -78,9 +87,9 @@ const fadeUp = {
   },
 };
 
-function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: number }) {
+function AnimatedCounter({ target, duration = 2, locale = "en-IN" }: { target: number; duration?: number; locale?: string }) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString("en-IN"));
+  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString(locale));
   const [display, setDisplay] = useState("0");
 
   useEffect(() => {
@@ -108,7 +117,9 @@ export default function AccountsPage() {
     id: string;
     name: string;
   } | null>(null);
+  const [editAccountData, setEditAccountData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(20);
 
   // --- Logic ---
 
@@ -127,7 +138,7 @@ export default function AccountsPage() {
         dispatch(setAccounts(accountsRes?.data ?? []));
         dispatch(setTransactions(transactionsRes?.data ?? []));
       } catch (err) {
-        console.error("Error fetching accounts:", err);
+        // Error handled by API client notifications
       } finally {
         setLoading(false);
         setIsRefreshing(false);
@@ -147,9 +158,9 @@ export default function AccountsPage() {
 
   // Auto-process recurring accounts on page load
   useEffect(() => {
-    processRecurringAccounts().catch((err) =>
-      console.error("Recurring accounts processing failed:", err)
-    );
+    processRecurringAccounts().catch(() => {
+      // Silently handle — user-visible errors are surfaced via notifications
+    });
   }, []);
 
   useEffect(() => {
@@ -168,7 +179,7 @@ export default function AccountsPage() {
       const res = await deleteAccount(id);
       dispatch(removeAccount(id));
     } catch (err) {
-      console.error("Delete error:", err);
+      // Error surfaced via notifications
       loadAccounts(true);
     } finally {
       setDeleteAccountData(null);
@@ -185,13 +196,19 @@ export default function AccountsPage() {
     });
   }, [accounts, searchQuery]);
 
+  const visibleAccounts = useMemo(
+    () => filteredAccounts.slice(0, visibleCount),
+    [filteredAccounts, visibleCount]
+  );
+  const hasMoreAccounts = filteredAccounts.length > visibleCount;
+
   const stats = useMemo(
     () => ({
       total: accounts.reduce((sum, acc) => sum + acc.balance, 0),
       debt: accounts
-        .filter((acc) => acc.balance < 0)
-        .reduce((sum, acc) => sum + acc.balance, 0),
-      count: accounts.length,
+        .filter((acc) => (acc.type === "credit_card" || acc.type === "loan") && acc.balance !== 0)
+        .reduce((sum, acc) => sum + Math.abs(acc.balance), 0),
+      count: accounts.filter((acc) => acc.status === "active").length,
     }),
     [accounts]
   );
@@ -204,7 +221,7 @@ export default function AccountsPage() {
   // Net worth growth from cash flow month-over-month
   const netWorthTrend = financialHealth.netWorthGrowth;
 
-  const { formatCurrency, symbol } = useCurrency();
+  const { formatCurrency, symbol, currency } = useCurrency();
 
   /** Format a balance using the account's own currency, e.g. USD → "$" locale */
   const formatAccountBalance = (balance: number, accountCurrency?: string) => {
@@ -217,33 +234,10 @@ export default function AccountsPage() {
     }).format(balance);
   };
 
-  // --- Sub Components ---
-
-  const LoadingSkeleton = () => (
-    <div className="space-y-4">
-      <div className="flex gap-4">
-        {[1, 2, 3].map((i) => (
-          <Skeleton
-            key={i}
-            className="h-32 w-full rounded-2xl bg-muted"
-          />
-        ))}
-      </div>
-      <Skeleton className="h-[400px] w-full rounded-2xl bg-muted" />
-    </div>
-  );
-
   // --- Render ---
 
-  if (loading && accounts.length === 0) {
-    return (
-      <div className="p-6 space-y-8 w-full mx-auto">
-        <LoadingSkeleton />
-      </div>
-    );
-  }
-
   return (
+    <Skeleton name="accounts" loading={loading && accounts.length === 0} fixture={<AccountsFixture />}>
     <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
       {/* Background Pattern matched from page.tsx */}
       <div
@@ -258,7 +252,7 @@ export default function AccountsPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative w-full space-y-6 p-2 md:p-6 mx-auto"
+        className="relative w-full space-y-6 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-[1280px] mx-auto"
       >
 
         {/* Delete Confirmation Dialog */}
@@ -293,6 +287,16 @@ export default function AccountsPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+        {/* Edit Account Modal */}
+        {editAccountData && (
+          <EditAccountModal
+            open={!!editAccountData}
+            onClose={() => setEditAccountData(null)}
+            account={editAccountData}
+            onUpdated={() => loadAccounts(true)}
+          />
+        )}
 
         {/* Header Section */}
         <motion.div
@@ -348,17 +352,21 @@ export default function AccountsPage() {
               val: stats.total,
               icon: Wallet,
               trend: netWorthTrend,
+              tooltip: "Sum of all account balances including inactive accounts. Represents your total financial position.",
             },
             {
               label: "Total Liabilities",
               val: stats.debt,
               icon: CreditCard,
+              isDanger: true,
+              tooltip: "Outstanding balances on credit cards and loans with non-zero balances.",
             },
             {
               label: "Active Accounts",
               val: stats.count,
               isCount: true,
               icon: Landmark,
+              tooltip: "Number of accounts currently active. Inactive accounts cannot process transactions or bill payments.",
             },
           ].map((item) => (
             <motion.div
@@ -370,35 +378,48 @@ export default function AccountsPage() {
               {/* Stats card */}
               <div className="p-6 rounded-2xl bg-card border border-border hover:border-ring transition-all duration-300">
                 <div className="flex items-center justify-between mb-4">
-                  <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
-                    {item.label}
-                  </p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-medium uppercase tracking-widest text-text-secondary">
+                      {item.label}
+                    </p>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Info className="h-3.5 w-3.5 text-text-secondary/40 cursor-help" />
+                      </TooltipTrigger>
+                      <TooltipContent side="top" className="max-w-[220px]">
+                        {item.tooltip}
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
                   <div className="w-8 h-8 rounded-full bg-card border border-border flex items-center justify-center">
                     <item.icon className="h-4 w-4 text-text-primary" />
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2">
-                  <span className="text-2xl sm:text-3xl font-bold tracking-tighter text-text-primary">
+                  <span className={cn(
+                    "text-2xl sm:text-3xl font-bold tracking-tighter",
+                    item.isDanger ? "text-danger" : !item.isCount && (item.val as number) < 0 ? "text-danger" : "text-text-primary"
+                  )}>
                     {item.isCount ? (
                       <AnimatedCounter target={item.val as number} />
                     ) : (
                       <>
-                        {symbol}<AnimatedCounter target={Math.abs(item.val as number)} />
+                        {(item.val as number) < 0 ? "-" : ""}{symbol}<AnimatedCounter target={Math.abs(item.val as number)} locale={getLocaleForCurrency(currency)} />
                       </>
                     )}
                   </span>
                   {item.trend !== undefined && item.trend !== null && (
                     <div className={cn(
                       "flex items-center gap-1 px-2 py-0.5 rounded-full",
-                      (item.trend as number) >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"
+                      (item.val as number) < 0 ? "bg-red-500/10" : (item.trend as number) >= 0 ? "bg-emerald-500/10" : "bg-red-500/10"
                     )}>
                       <TrendingUp className={cn(
                         "h-3 w-3",
-                        (item.trend as number) >= 0 ? "text-emerald-500" : "text-red-500 rotate-180"
+                        (item.val as number) < 0 ? "text-red-500 rotate-180" : (item.trend as number) >= 0 ? "text-emerald-500" : "text-red-500 rotate-180"
                       )} />
                       <span className={cn(
                         "text-[10px] font-bold",
-                        (item.trend as number) >= 0 ? "text-emerald-500" : "text-red-500"
+                        (item.val as number) < 0 ? "text-red-500" : (item.trend as number) >= 0 ? "text-emerald-500" : "text-red-500"
                       )}>
                         {(item.trend as number) > 0 ? "+" : ""}{item.trend}% vs last month
                       </span>
@@ -417,7 +438,7 @@ export default function AccountsPage() {
 
         {/* Main Table Card */}
         <motion.div variants={fadeUp}>
-          <div className="rounded-2xl border border-border bg-card overflow-hidden shadow-sm">
+          <div className="rounded-xl border border-border bg-card overflow-hidden shadow-sm">
             {/* Table Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-8 py-6 border-b border-border">
               <div className="space-y-1">
@@ -478,7 +499,7 @@ export default function AccountsPage() {
                   {/* Mobile card list (< md) */}
                   <div className="md:hidden divide-y divide-border">
                     <AnimatePresence mode="popLayout">
-                      {filteredAccounts.map((account) => (
+                      {visibleAccounts.map((account) => (
                         <motion.div
                           key={account.id}
                           layout
@@ -536,7 +557,7 @@ export default function AccountsPage() {
                       </TableHeader>
                       <TableBody>
                         <AnimatePresence mode="popLayout">
-                          {filteredAccounts.map((account) => (
+                          {visibleAccounts.map((account) => (
                             <motion.tr
                               key={account.id}
                               layout
@@ -544,7 +565,10 @@ export default function AccountsPage() {
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0, x: -20 }}
                               transition={{ duration: 0.2 }}
-                              className="group hover:bg-muted transition-colors border-b border-border last:border-0"
+                              className={cn(
+                                "group hover:bg-muted transition-colors border-b border-border last:border-0",
+                                account.status === "inactive" && "opacity-60"
+                              )}
                             >
                               <TableCell className="pl-8 py-5">
                                 <div className="flex items-center gap-4">
@@ -589,7 +613,7 @@ export default function AccountsPage() {
                               </TableCell>
                               <TableCell className="text-right pr-8">
                                 <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-text-secondary hover:text-text-primary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border">
+                                  <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full text-text-secondary hover:text-text-primary hover:bg-card hover:shadow-sm transition-all border border-transparent hover:border-border" onClick={() => setEditAccountData(account)}>
                                     <Pencil className="h-4 w-4" />
                                   </Button>
                                   <Button
@@ -608,6 +632,17 @@ export default function AccountsPage() {
                       </TableBody>
                     </Table>
                   </div>
+                  {hasMoreAccounts && (
+                    <div className="flex justify-center py-4">
+                      <Button
+                        variant="outline"
+                        onClick={() => setVisibleCount((c) => c + 20)}
+                        className="min-w-[140px]"
+                      >
+                        Load More
+                      </Button>
+                    </div>
+                  )}
                 </>
               )}
             </div>
@@ -615,5 +650,6 @@ export default function AccountsPage() {
         </motion.div>
       </motion.div>
     </div>
+    </Skeleton>
   );
 }

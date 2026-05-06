@@ -31,10 +31,18 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
     const spent_amount = total_spent;
     const remaining_amount = remaining;
 
-    const isExpired = !summary.is_active;
+    const isExpired = (() => {
+        if (!summary.is_active) return true;
+        if (end_date) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            return new Date(end_date) < today;
+        }
+        return false;
+    })();
 
     const isOverBudget = percentage_used >= 100;
-    const isWarning = percentage_used >= 90 && percentage_used < 100;
+    const isWarning = percentage_used >= 80 && percentage_used < 100;
 
     const getStatusColor = () => {
         if (isOverBudget) return "text-danger";
@@ -63,7 +71,7 @@ export default function BudgetCard({ summary, onClick, onRefresh }: BudgetCardPr
                 window.location.reload(); 
             }
         } catch (error) {
-            console.error("Failed to expire budget", error);
+            // Error surfaced via notifications
         } finally {
             setIsExpiring(false);
             setShowConfirm(false);

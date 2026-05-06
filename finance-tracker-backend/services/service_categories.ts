@@ -46,3 +46,14 @@ export const getSystemCategories = async () => {
   return { data, error };
 };
 
+export const verifyCategoryOwnership = async (categoryId: string, clientId: string): Promise<boolean> => {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id')
+    .eq('id', categoryId)
+    .eq('client_id', clientId)
+    .single();
+
+  return !error && !!data;
+};
+

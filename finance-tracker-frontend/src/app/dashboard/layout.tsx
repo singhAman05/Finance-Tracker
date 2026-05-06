@@ -28,7 +28,7 @@ export default function DashboardLayout({
   const [isHydrated, setIsHydrated] = useState(false);
   const bootstrapping = useRef(false);
 
-  const token = useSelector((state: RootState) => state.auth.token);
+  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
   const existingSettings = useSelector((state: RootState) => state.settings.settings);
   const existingAccounts = useSelector((state: RootState) => state.accounts.accounts);
   const existingCategories = useSelector((state: RootState) => state.categories.categories);
@@ -39,14 +39,14 @@ export default function DashboardLayout({
 
   // Auth guard
   useEffect(() => {
-    if (isHydrated && !token) {
+    if (isHydrated && !isAuthenticated) {
       router.replace("/login");
     }
-  }, [isHydrated, token, router]);
+  }, [isHydrated, isAuthenticated, router]);
 
   // Bootstrap shared data ONCE per session — only fetch what's missing
   useEffect(() => {
-    if (!token || bootstrapping.current) return;
+    if (!isAuthenticated || bootstrapping.current) return;
 
     const needsSettings = !existingSettings;
     const needsAccounts = existingAccounts.length === 0;
@@ -93,9 +93,9 @@ export default function DashboardLayout({
     void Promise.allSettled(tasks).finally(() => {
       bootstrapping.current = false;
     });
-  }, [token, existingSettings, existingAccounts.length, existingCategories.length, dispatch]);
+  }, [isAuthenticated, existingSettings, existingAccounts.length, existingCategories.length, dispatch]);
 
-  if (!isHydrated || !token) {
+  if (!isHydrated || !isAuthenticated) {
     return (
       <div className="flex h-screen items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-3">
@@ -114,7 +114,7 @@ export default function DashboardLayout({
       </div>
 
       {/* Mobile Top Header */}
-      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-card/90 backdrop-blur-md border-b border-border flex items-center px-4 gap-3">
+      <header className="md:hidden fixed top-0 left-0 right-0 z-30 h-14 bg-card/80 glass border-b border-border/40 flex items-center px-4 gap-3">
         <button
           className="p-2 rounded-lg hover:bg-muted transition-colors"
           onClick={() => setMobileOpen(true)}
@@ -123,7 +123,7 @@ export default function DashboardLayout({
           <Menu className="h-5 w-5 text-text-primary" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 bg-primary text-primary-foreground rounded-lg flex items-center justify-center">
+          <div className="w-7 h-7 gradient-primary text-white rounded-lg flex items-center justify-center shadow-sm">
             <Wallet className="w-4 h-4" />
           </div>
           <span className="text-base font-bold tracking-tight text-text-primary">Finance</span>

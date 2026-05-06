@@ -5,6 +5,7 @@ import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Calendar, AlertCircle, CheckCircle2 } from "lucide-react";
 import { useCurrency } from "@/hooks/useCurrency";
+import { getLocaleForCurrency } from "@/lib/utils";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -18,15 +19,17 @@ const fadeUp = {
 function AnimatedCounter({
   target,
   prefix = "",
+  locale = "en-IN",
 }: {
   target: number;
   prefix?: string;
+  locale?: string;
 }) {
   const count = useMotionValue(0);
   const rounded = useTransform(
     count,
     (v) =>
-      `${prefix}${Math.floor(v).toLocaleString("en-IN", {
+      `${prefix}${Math.floor(v).toLocaleString(locale, {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       })}`
@@ -60,14 +63,15 @@ export default function BillsSummaryCards({
   paidThisMonthCount,
   paidThisMonthTotal,
 }: BillsSummaryCardsProps) {
-  const { symbol } = useCurrency();
+  const { symbol, currency } = useCurrency();
+  const locale = getLocaleForCurrency(currency);
   return (
     <motion.div
       variants={fadeUp}
       className="grid grid-cols-1 sm:grid-cols-3 gap-6"
     >
       {/* Upcoming */}
-      <Card className="bg-info/5 border-info/20 shadow-sm hover:shadow-md transition-all duration-300">
+      <Card className="bg-info/5 border-info/20 shadow-soft hover:shadow-elevated transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-info">
             Upcoming Bills
@@ -78,7 +82,7 @@ export default function BillsSummaryCards({
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold tracking-tighter">
-            <AnimatedCounter target={upcomingTotal} prefix={symbol} />
+            <AnimatedCounter target={upcomingTotal} prefix={symbol} locale={locale} />
           </div>
           <p className="text-xs text-text-secondary mt-2 font-medium">
             <span className="text-text-primary font-semibold">{upcomingCount}</span>{" "}
@@ -88,7 +92,7 @@ export default function BillsSummaryCards({
       </Card>
 
       {/* Overdue */}
-      <Card className="bg-danger/5 border-danger/20 shadow-sm hover:shadow-md transition-all duration-300">
+      <Card className="bg-danger/5 border-danger/20 shadow-soft hover:shadow-elevated transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-danger">
             Overdue
@@ -110,7 +114,7 @@ export default function BillsSummaryCards({
       </Card>
 
       {/* Paid this month */}
-      <Card className="bg-success/5 border-success/20 shadow-sm hover:shadow-md transition-all duration-300">
+      <Card className="bg-success/5 border-success/20 shadow-soft hover:shadow-elevated transition-all duration-300">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium text-success">
             Paid This Month
@@ -121,7 +125,7 @@ export default function BillsSummaryCards({
         </CardHeader>
         <CardContent>
           <div className="text-3xl font-bold tracking-tighter text-success">
-            <AnimatedCounter target={paidThisMonthTotal} prefix={symbol} />
+            <AnimatedCounter target={paidThisMonthTotal} prefix={symbol} locale={locale} />
           </div>
           <p className="text-xs text-text-secondary mt-2 font-medium">
             <span className="text-text-primary font-semibold">{paidThisMonthCount}</span>{" "}
