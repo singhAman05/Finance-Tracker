@@ -15,14 +15,6 @@ export const TX_TYPE_VALUES = ['income', 'expense'] as const;
 export const RECURRENCE_VALUES = ['weekly', 'bi-weekly', 'monthly', 'quarterly', 'yearly'] as const;
 export const BILL_RECURRENCE_VALUES = ['weekly', 'monthly', 'quarterly', 'yearly'] as const;
 
-export const CACHE_TTL = {
-  short: 300,
-  medium: 900,
-  long: 3600,
-  bills: 3600,
-  billInstances: 1800,
-} as const;
-
 export type Currency = typeof CURRENCY_VALUES[number];
 export type DateFormat = typeof DATE_FORMAT_VALUES[number];
 export type AccountType = typeof ACCOUNT_TYPE_VALUES[number];

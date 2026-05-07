@@ -19,14 +19,14 @@ import { errorHandler } from './middleware/errorHandler';
 import { verifyCsrf } from './middleware/csrf';
 import { logger } from './utils/logger';
 import { connectRedis } from './config/redisClient';
+import { appConfig, APP_PROFILE } from './config/appConfig';
 import { startScheduler } from './services/service_scheduler';
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-
-const allowedOrigins = ['http://localhost:3000', process.env.FRONTEND_URL].filter(Boolean) as string[];
+const allowedOrigins = appConfig.server.cors.allowedOrigins;
 
 app.use((req, res, next) => {
   const started = Date.now();
@@ -44,22 +44,28 @@ app.use((req, res, next) => {
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", ...allowedOrigins],
+      defaultSrc: appConfig.server.helmet.contentSecurityPolicy.defaultSrc,
+      scriptSrc: appConfig.server.helmet.contentSecurityPolicy.scriptSrc,
+      styleSrc: appConfig.server.helmet.contentSecurityPolicy.styleSrc,
+      imgSrc: appConfig.server.helmet.contentSecurityPolicy.imgSrc,
+      connectSrc: appConfig.server.helmet.contentSecurityPolicy.connectSrc,
     },
   },
 }));
 app.use(
   cors({
-    origin: allowedOrigins,
-    credentials: true,
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin not allowed by CORS: ${origin}`));
+    },
+    credentials: appConfig.server.cors.credentials,
   })
 );
 app.use(cookieParser());
-app.use(express.json({ limit: '10kb' }));
+app.use(express.json({ limit: appConfig.server.jsonBodyLimit }));
 
 app.get('/health', (_req, res) => {
   res.status(200).json({ success: true, status: 'ok', timestamp: new Date().toISOString() });
@@ -86,13 +92,14 @@ app.use((_req, res) => {
 
 app.use(errorHandler);
 
-const PORT = Number(process.env.PORT || 8000);
+const PORT = appConfig.server.port;
 
 async function bootstrap() {
+  logger.setLevel(appConfig.logger.level);
   await connectRedis();
   startScheduler();
   server.listen(PORT, () => {
-    logger.info('server_started', { port: PORT });
+    logger.info('server_started', { port: PORT, profile: APP_PROFILE, allowedOrigins });
   });
 }
 
@@ -110,7 +117,7 @@ function gracefulShutdown(signal: string) {
   setTimeout(() => {
     logger.error('shutdown_forced_timeout');
     process.exit(1);
-  }, 15000).unref();
+  }, appConfig.server.shutdownTimeoutMs).unref();
 }
 
 process.on('SIGINT', () => gracefulShutdown('SIGINT'));

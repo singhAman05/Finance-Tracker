@@ -1,20 +1,22 @@
 ﻿import { Request, Response, NextFunction } from 'express';
 import redisClient, { getRedisReady } from '../config/redisClient';
 import { getClientIp } from '../utils/Ip';
+import { appConfig } from '../config/appConfig';
 
 const memoryStore = new Map<string, number[]>();
+const rateLimitConfig = appConfig.rateLimit;
 
 const cleanup = setInterval(() => {
   const now = Date.now();
   for (const [key, hits] of memoryStore) {
-    const fresh = hits.filter((ts) => now - ts <= 30 * 60 * 1000);
+    const fresh = hits.filter((ts) => now - ts <= rateLimitConfig.memoryCleanupWindowMs);
     if (fresh.length === 0) {
       memoryStore.delete(key);
       continue;
     }
     memoryStore.set(key, fresh);
   }
-}, 10 * 60 * 1000);
+}, rateLimitConfig.memoryCleanupIntervalMs);
 cleanup.unref();
 
 async function consumeRedisWindow(key: string, maxHits: number, windowMs: number): Promise<boolean> {
@@ -25,7 +27,7 @@ async function consumeRedisWindow(key: string, maxHits: number, windowMs: number
   await redisClient.zRemRangeByScore(key, 0, min);
   await redisClient.zAdd(key, [{ score: now, value: member }]);
   const count = await redisClient.zCard(key);
-  await redisClient.expire(key, Math.ceil(windowMs / 1000) + 5);
+  await redisClient.expire(key, Math.ceil(windowMs / 1000) + rateLimitConfig.redisExpiryBufferSeconds);
   return count <= maxHits;
 }
 
@@ -38,7 +40,7 @@ function consumeMemoryWindow(key: string, maxHits: number, windowMs: number): bo
   return fresh.length <= maxHits;
 }
 
-function createLimiter(scope: string, maxHits: number, windowMs: number) {
+function createLimiter(scope: string, maxHits: number, windowMs: number, message: string) {
   return async (req: Request, res: Response, next: NextFunction) => {
     const ip = getClientIp(req);
     const key = `rl:${scope}:${ip}`;
@@ -49,7 +51,7 @@ function createLimiter(scope: string, maxHits: number, windowMs: number) {
         : consumeMemoryWindow(key, maxHits, windowMs);
 
       if (!allowed) {
-        res.status(429).json({ success: false, message: 'Too many requests. Please try again later.' });
+        res.status(429).json({ success: false, message });
         return;
       }
 
@@ -61,5 +63,15 @@ function createLimiter(scope: string, maxHits: number, windowMs: number) {
   };
 }
 
-export const authLimiter = createLimiter('auth', 10, 15 * 60 * 1000);
-export const apiLimiter = createLimiter('api', 100, 60 * 1000);
+export const authLimiter = createLimiter(
+  rateLimitConfig.auth.scope,
+  rateLimitConfig.auth.maxHits,
+  rateLimitConfig.auth.windowMs,
+  rateLimitConfig.auth.message
+);
+export const apiLimiter = createLimiter(
+  rateLimitConfig.api.scope,
+  rateLimitConfig.api.maxHits,
+  rateLimitConfig.api.windowMs,
+  rateLimitConfig.api.message
+);

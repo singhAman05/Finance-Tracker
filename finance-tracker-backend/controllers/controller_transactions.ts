@@ -14,7 +14,10 @@ import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getUser } from '../middleware/jwt';
 import { AppError } from '../utils/AppError';
-import { CACHE_TTL, RECURRENCE_VALUES } from '../types';
+import { RECURRENCE_VALUES } from '../types';
+import { appConfig } from '../config/appConfig';
+
+const cacheTtl = appConfig.cache.ttl;
 
 export const handleTransactionsAdd = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
@@ -91,7 +94,7 @@ export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Re
     pagination: buildPaginationMeta(page, limit, result.count),
   };
 
-  await setCache(cacheKey, responseBody, CACHE_TTL.long);
+  await setCache(cacheKey, responseBody, cacheTtl.long);
 
   res.status(200).json({ success: true, message: 'Transactions fetched', ...responseBody });
 });

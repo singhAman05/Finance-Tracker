@@ -20,7 +20,9 @@ import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { AppError } from '../utils/AppError';
 import { getUser } from '../middleware/jwt';
-import { CACHE_TTL } from '../types';
+import { appConfig } from '../config/appConfig';
+
+const cacheTtl = appConfig.cache.ttl;
 
 export const handleAccountCreation = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
@@ -98,7 +100,7 @@ export const handleAccountFetch = asyncHandler(async (req: Request, res: Respons
     pagination: buildPaginationMeta(page, limit, result.count),
   };
 
-  await setCache(cacheKey, responseBody, CACHE_TTL.long);
+  await setCache(cacheKey, responseBody, cacheTtl.long);
 
   res.status(200).json({ success: true, message: 'Accounts fetched', ...responseBody });
 });

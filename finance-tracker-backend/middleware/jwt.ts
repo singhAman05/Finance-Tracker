@@ -3,6 +3,7 @@ import jwt, { JwtPayload } from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import { AppError } from '../utils/AppError';
 import { AuthPayload } from '../types';
+import { appConfig } from '../config/appConfig';
 
 dotenv.config();
 
@@ -11,39 +12,38 @@ if (!SECRET_KEY) {
   throw new Error('FATAL: JWT_SECRET environment variable is not set.');
 }
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const JWT_MAX_AGE_MS = 60 * 60 * 1000; // 1 hour
+const jwtConfig = appConfig.auth.jwt;
 
 type TokenEnvelope = JwtPayload & { payload?: AuthPayload };
 
 export const tokenGenerator = (payload: AuthPayload) =>
-  jwt.sign({ payload }, SECRET_KEY, { expiresIn: '1h', algorithm: 'HS256' });
+  jwt.sign({ payload }, SECRET_KEY, { expiresIn: jwtConfig.expiresIn, algorithm: jwtConfig.algorithm });
 
 /** Set JWT as an httpOnly cookie on the response */
 export const setAuthCookie = (res: Response, token: string) => {
-  res.cookie('jwt', token, {
-    httpOnly: true,
-    secure: IS_PRODUCTION,
-    sameSite: 'lax',
-    maxAge: JWT_MAX_AGE_MS,
-    path: '/',
+  res.cookie(jwtConfig.cookieName, token, {
+    httpOnly: jwtConfig.httpOnly,
+    secure: jwtConfig.secure,
+    sameSite: jwtConfig.sameSite,
+    maxAge: jwtConfig.maxAgeMs,
+    path: jwtConfig.path,
   });
 };
 
 /** Clear the JWT cookie */
 export const clearAuthCookie = (res: Response) => {
-  res.clearCookie('jwt', {
-    httpOnly: true,
-    secure: IS_PRODUCTION,
-    sameSite: 'lax',
-    path: '/',
+  res.clearCookie(jwtConfig.cookieName, {
+    httpOnly: jwtConfig.httpOnly,
+    secure: jwtConfig.secure,
+    sameSite: jwtConfig.sameSite,
+    path: jwtConfig.path,
   });
 };
 
 export const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   // Read token from httpOnly cookie (primary) or Authorization header (fallback)
   const token =
-    (req.cookies as Record<string, string>)?.jwt ||
+    (req.cookies as Record<string, string>)?.[jwtConfig.cookieName] ||
     req.header('Authorization')?.replace('Bearer ', '').trim();
 
   if (!token) {

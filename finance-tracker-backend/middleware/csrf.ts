@@ -1,19 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import crypto from 'crypto';
+import { appConfig } from '../config/appConfig';
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
-const CSRF_COOKIE = 'csrf-token';
-const CSRF_HEADER = 'x-csrf-token';
+const csrfConfig = appConfig.auth.csrf;
+const CSRF_COOKIE = csrfConfig.cookieName;
+const CSRF_HEADER = csrfConfig.headerName;
 
 /** Set a CSRF token cookie (readable by JS) on the response */
 export const setCsrfCookie = (res: Response): string => {
-  const token = crypto.randomBytes(32).toString('hex');
+  const token = crypto.randomBytes(csrfConfig.tokenBytes).toString('hex');
   res.cookie(CSRF_COOKIE, token, {
-    httpOnly: false, // JS must read this to send back as header
-    secure: IS_PRODUCTION,
-    sameSite: 'lax',
-    maxAge: 60 * 60 * 1000, // 1 hour
-    path: '/',
+    httpOnly: csrfConfig.httpOnly,
+    secure: csrfConfig.secure,
+    sameSite: csrfConfig.sameSite,
+    maxAge: csrfConfig.maxAgeMs,
+    path: csrfConfig.path,
   });
   return token;
 };
@@ -24,7 +25,7 @@ export const setCsrfCookie = (res: Response): string => {
  * Only enforced on state-changing methods (POST, PUT, PATCH, DELETE).
  */
 export const verifyCsrf = (req: Request, res: Response, next: NextFunction) => {
-  const safeMethods = ['GET', 'HEAD', 'OPTIONS'];
+  const safeMethods = csrfConfig.safeMethods;
   if (safeMethods.includes(req.method)) {
     return next();
   }

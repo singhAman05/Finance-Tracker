@@ -1,21 +1,23 @@
 ﻿import { createClient } from 'redis';
 import dotenv from 'dotenv';
 import { logger } from '../utils/logger';
+import { appConfig } from './appConfig';
 
 dotenv.config();
 
 const redisUrl = process.env.REDIS_URL;
+const redisConfig = appConfig.redis;
 const redisClient = createClient(
   redisUrl
     ? { url: redisUrl }
     : {
         socket: {
           reconnectStrategy(retries: number) {
-            if (retries >= 6) {
+            if (retries >= redisConfig.reconnectMaxRetries) {
               logger.error('Redis reconnect retries exhausted', { retries });
               return false;
             }
-            return Math.min(1000 * 2 ** retries, 15000);
+            return Math.min(redisConfig.reconnectBaseDelayMs * 2 ** retries, redisConfig.reconnectMaxDelayMs);
           },
         },
       }

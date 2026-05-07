@@ -1,8 +1,9 @@
 ﻿import redisClient, { getRedisReady } from '../config/redisClient';
-import { CACHE_TTL } from '../types';
+import { appConfig } from '../config/appConfig';
 import { logger } from './logger';
 
 type JsonValue = unknown;
+const cacheTtl = appConfig.cache.ttl;
 
 export const CacheKey = {
   accounts: (clientId: string, page: number, limit: number) => `accounts:${clientId}:${page}:${limit}`,
@@ -35,7 +36,7 @@ export async function getCache<T = JsonValue>(key: string): Promise<T | null> {
   }
 }
 
-export async function setCache(key: string, value: JsonValue, ttlSeconds: number = CACHE_TTL.long): Promise<void> {
+export async function setCache(key: string, value: JsonValue, ttlSeconds: number = cacheTtl.long): Promise<void> {
   if (!canUseRedis()) return;
   try {
     await redisClient.set(key, JSON.stringify(value), { EX: ttlSeconds });

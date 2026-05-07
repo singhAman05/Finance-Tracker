@@ -11,8 +11,10 @@ import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { getUser } from '../middleware/jwt';
 import { AppError } from '../utils/AppError';
-import { CACHE_TTL } from '../types';
+import { appConfig } from '../config/appConfig';
 import { validateUUID } from '../utils/validationUtils';
+
+const cacheTtl = appConfig.cache.ttl;
 
 const allowedPeriods = ['weekly', 'monthly', 'quarterly', 'yearly', 'custom'];
 
@@ -86,7 +88,7 @@ export const handleBudgetFetch = asyncHandler(async (req: Request, res: Response
     pagination: buildPaginationMeta(page, limit, result.count),
   };
 
-  await setCache(cacheKey, responseBody, CACHE_TTL.long);
+  await setCache(cacheKey, responseBody, cacheTtl.long);
 
   res.status(200).json({ success: true, message: 'Budgets fetched', ...responseBody });
 });
@@ -205,7 +207,7 @@ export const handleBudgetSummary = asyncHandler(async (req: Request, res: Respon
     throw AppError.internal('Failed to fetch budget summary', result.error);
   }
 
-  await setCache(cacheKey, result.data ?? [], CACHE_TTL.medium);
+  await setCache(cacheKey, result.data ?? [], cacheTtl.medium);
 
   res.status(200).json({ success: true, message: 'Budget summary fetched', data: result.data ?? [] });
 });

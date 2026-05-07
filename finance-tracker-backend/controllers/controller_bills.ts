@@ -18,8 +18,10 @@ import { asyncHandler } from '../utils/asyncHandler';
 import { getUser } from '../middleware/jwt';
 import { validateBillPayload, validateUUID } from '../utils/validationUtils';
 import { AppError } from '../utils/AppError';
-import { CACHE_TTL } from '../types';
+import { appConfig } from '../config/appConfig';
 import { getAccountStatus } from '../services/service_accounts';
+
+const cacheTtl = appConfig.cache.ttl;
 
 export const handleBillCreation = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
@@ -74,7 +76,7 @@ export const handleBillsFetch = asyncHandler(async (req: Request, res: Response)
     pagination: buildPaginationMeta(page, limit, result.count),
   };
 
-  await setCache(cacheKey, responseBody, CACHE_TTL.bills);
+  await setCache(cacheKey, responseBody, cacheTtl.bills);
 
   res.status(200).json({ success: true, message: 'Bills fetched', ...responseBody });
 });
@@ -97,7 +99,7 @@ export const handleBillInstancesFetch = asyncHandler(async (req: Request, res: R
     pagination: buildPaginationMeta(page, limit, result.count),
   };
 
-  await setCache(cacheKey, responseBody, CACHE_TTL.billInstances);
+  await setCache(cacheKey, responseBody, cacheTtl.billInstances);
 
   res.status(200).json({ success: true, message: 'Bill instances fetched', ...responseBody });
 });

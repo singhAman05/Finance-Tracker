@@ -5,6 +5,7 @@ import { sendEmail, billReminderTemplate, recurringTransactionTemplate, budgetEx
 import { createTransaction } from './service_transactions';
 import { generateNextInstance } from './service_bills';
 import { logger } from '../utils/logger';
+import { appConfig } from '../config/appConfig';
 
 // --- Helpers ---
 
@@ -249,7 +250,7 @@ async function processBudgetAlerts() {
 
     // Mark as sent in Redis (expires at end of day)
     if (getRedisReady()) {
-      await redisClient.set(cacheKey, '1', { EX: 86400 });
+      await redisClient.set(cacheKey, '1', { EX: appConfig.scheduler.budgetAlertCacheTtlSeconds });
     }
 
     logger.info('budget_alert_sent', { budget_id: budget.id, client_id: budget.client_id, spent: totalSpent, limit: budget.amount });
@@ -275,8 +276,12 @@ async function markOverdueInstances() {
 // --- Main Scheduler Setup ---
 
 export function startScheduler() {
-  // Run every day at 8:00 AM
-  cron.schedule('0 8 * * *', async () => {
+  if (!appConfig.scheduler.enabled) {
+    logger.info('scheduler_disabled');
+    return;
+  }
+
+  cron.schedule(appConfig.scheduler.cron, async () => {
     logger.info('scheduler_run_started', { time: new Date().toISOString() });
 
     try {
@@ -291,5 +296,5 @@ export function startScheduler() {
     logger.info('scheduler_run_completed', { time: new Date().toISOString() });
   });
 
-  logger.info('scheduler_initialized', { schedule: 'daily at 08:00' });
+  logger.info('scheduler_initialized', { schedule: appConfig.scheduler.cron });
 }

@@ -1,0 +1,259 @@
+{
+  "DEV": {
+    "server": {
+      "port": 8000,
+      "jsonBodyLimit": "10kb",
+      "shutdownTimeoutMs": 15000,
+      "cors": {
+        "credentials": true,
+        "allowedOrigins": [
+          "http://localhost:3000",
+          "${FRONTEND_URL}"
+        ]
+      },
+      "helmet": {
+        "contentSecurityPolicy": {
+          "defaultSrc": ["'self'"],
+          "scriptSrc": ["'self'"],
+          "styleSrc": ["'self'", "'unsafe-inline'"],
+          "imgSrc": ["'self'", "data:", "https:"],
+          "connectSrc": ["'self'"]
+        }
+      }
+    },
+    "auth": {
+      "jwt": {
+        "cookieName": "jwt",
+        "expiresIn": "1h",
+        "maxAgeMs": 3600000,
+        "algorithm": "HS256",
+        "httpOnly": true,
+        "secure": false,
+        "sameSite": "lax",
+        "path": "/"
+      },
+      "csrf": {
+        "cookieName": "csrf-token",
+        "headerName": "x-csrf-token",
+        "tokenBytes": 32,
+        "maxAgeMs": 3600000,
+        "httpOnly": false,
+        "secure": false,
+        "sameSite": "lax",
+        "path": "/",
+        "safeMethods": ["GET", "HEAD", "OPTIONS"]
+      }
+    },
+    "rateLimit": {
+      "memoryCleanupWindowMs": 1800000,
+      "memoryCleanupIntervalMs": 600000,
+      "redisExpiryBufferSeconds": 5,
+      "auth": {
+        "scope": "auth",
+        "maxHits": 20,
+        "windowMs": 900000,
+        "message": "Too many login attempts. Please try again later."
+      },
+      "api": {
+        "scope": "api",
+        "maxHits": 300,
+        "windowMs": 60000,
+        "message": "Too many requests. Please try again later."
+      }
+    },
+    "redis": {
+      "reconnectMaxRetries": 6,
+      "reconnectBaseDelayMs": 1000,
+      "reconnectMaxDelayMs": 15000
+    },
+    "scheduler": {
+      "enabled": false,
+      "cron": "0 8 * * *",
+      "budgetAlertCacheTtlSeconds": 86400
+    },
+    "cache": {
+      "ttl": {
+        "short": 300,
+        "medium": 900,
+        "long": 3600,
+        "bills": 3600,
+        "billInstances": 1800
+      }
+    },
+    "logger": {
+      "level": "debug"
+    }
+  },
+  "PRE-PROD": {
+    "server": {
+      "port": 8000,
+      "jsonBodyLimit": "10kb",
+      "shutdownTimeoutMs": 15000,
+      "cors": {
+        "credentials": true,
+        "allowedOrigins": [
+          "${FRONTEND_URL}",
+          "${FRONTEND_PREVIEW_URL}",
+          "${VERCEL_URL}"
+        ]
+      },
+      "helmet": {
+        "contentSecurityPolicy": {
+          "defaultSrc": ["'self'"],
+          "scriptSrc": ["'self'"],
+          "styleSrc": ["'self'", "'unsafe-inline'"],
+          "imgSrc": ["'self'", "data:", "https:"],
+          "connectSrc": ["'self'"]
+        }
+      }
+    },
+    "auth": {
+      "jwt": {
+        "cookieName": "jwt",
+        "expiresIn": "1h",
+        "maxAgeMs": 3600000,
+        "algorithm": "HS256",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "none",
+        "path": "/"
+      },
+      "csrf": {
+        "cookieName": "csrf-token",
+        "headerName": "x-csrf-token",
+        "tokenBytes": 32,
+        "maxAgeMs": 3600000,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "none",
+        "path": "/",
+        "safeMethods": ["GET", "HEAD", "OPTIONS"]
+      }
+    },
+    "rateLimit": {
+      "memoryCleanupWindowMs": 1800000,
+      "memoryCleanupIntervalMs": 600000,
+      "redisExpiryBufferSeconds": 5,
+      "auth": {
+        "scope": "auth",
+        "maxHits": 10,
+        "windowMs": 900000,
+        "message": "Too many login attempts. Please try again later."
+      },
+      "api": {
+        "scope": "api",
+        "maxHits": 150,
+        "windowMs": 60000,
+        "message": "Too many requests. Please try again later."
+      }
+    },
+    "redis": {
+      "reconnectMaxRetries": 6,
+      "reconnectBaseDelayMs": 1000,
+      "reconnectMaxDelayMs": 15000
+    },
+    "scheduler": {
+      "enabled": true,
+      "cron": "0 8 * * *",
+      "budgetAlertCacheTtlSeconds": 86400
+    },
+    "cache": {
+      "ttl": {
+        "short": 300,
+        "medium": 900,
+        "long": 3600,
+        "bills": 3600,
+        "billInstances": 1800
+      }
+    },
+    "logger": {
+      "level": "info"
+    }
+  },
+  "PROD": {
+    "server": {
+      "port": 8000,
+      "jsonBodyLimit": "10kb",
+      "shutdownTimeoutMs": 15000,
+      "cors": {
+        "credentials": true,
+        "allowedOrigins": [
+          "${FRONTEND_URL}",
+          "${FRONTEND_WWW_URL}",
+          "${VERCEL_URL}"
+        ]
+      },
+      "helmet": {
+        "contentSecurityPolicy": {
+          "defaultSrc": ["'self'"],
+          "scriptSrc": ["'self'"],
+          "styleSrc": ["'self'", "'unsafe-inline'"],
+          "imgSrc": ["'self'", "data:", "https:"],
+          "connectSrc": ["'self'"]
+        }
+      }
+    },
+    "auth": {
+      "jwt": {
+        "cookieName": "jwt",
+        "expiresIn": "1h",
+        "maxAgeMs": 3600000,
+        "algorithm": "HS256",
+        "httpOnly": true,
+        "secure": true,
+        "sameSite": "none",
+        "path": "/"
+      },
+      "csrf": {
+        "cookieName": "csrf-token",
+        "headerName": "x-csrf-token",
+        "tokenBytes": 32,
+        "maxAgeMs": 3600000,
+        "httpOnly": false,
+        "secure": true,
+        "sameSite": "none",
+        "path": "/",
+        "safeMethods": ["GET", "HEAD", "OPTIONS"]
+      }
+    },
+    "rateLimit": {
+      "memoryCleanupWindowMs": 1800000,
+      "memoryCleanupIntervalMs": 600000,
+      "redisExpiryBufferSeconds": 5,
+      "auth": {
+        "scope": "auth",
+        "maxHits": 10,
+        "windowMs": 900000,
+        "message": "Too many login attempts. Please try again later."
+      },
+      "api": {
+        "scope": "api",
+        "maxHits": 100,
+        "windowMs": 60000,
+        "message": "Too many requests. Please try again later."
+      }
+    },
+    "redis": {
+      "reconnectMaxRetries": 6,
+      "reconnectBaseDelayMs": 1000,
+      "reconnectMaxDelayMs": 15000
+    },
+    "scheduler": {
+      "enabled": true,
+      "cron": "0 8 * * *",
+      "budgetAlertCacheTtlSeconds": 86400
+    },
+    "cache": {
+      "ttl": {
+        "short": 300,
+        "medium": 900,
+        "long": 3600,
+        "bills": 3600,
+        "billInstances": 1800
+      }
+    },
+    "logger": {
+      "level": "warn"
+    }
+  }
+}
