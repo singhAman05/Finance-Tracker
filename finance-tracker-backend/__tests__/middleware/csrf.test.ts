@@ -86,5 +86,20 @@ describe('CSRF middleware', () => {
 
       expect(next).toHaveBeenCalled();
     });
+
+    it('allows DELETE with matching tokens', () => {
+      const token = 'valid-csrf-token-456';
+      const req = mockRequest({
+        method: 'DELETE',
+        cookies: { 'csrf-token': token },
+      });
+      (req.header as jest.Mock).mockReturnValue(token);
+      const res = mockResponse();
+      const next: NextFunction = jest.fn();
+
+      verifyCsrf(req, res, next);
+
+      expect(next).toHaveBeenCalled();
+    });
   });
 });

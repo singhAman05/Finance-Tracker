@@ -179,7 +179,7 @@ export default function TransactionPage() {
     description: string;
   } | null>(null);
 
-  const PAGE_SIZE = 20;
+  const PAGE_SIZE = 100;
 
   // --- Mappers ---
   const accountMap = useMemo(
@@ -219,7 +219,13 @@ export default function TransactionPage() {
 
         if (accounts.length === 0 || isRefresh)
           dispatch(setAccounts(accRes?.data ?? []));
-        dispatch(setTransactions(txRes?.data ?? []));
+
+        // Keep locally present items (e.g., optimistic/newly-added rows) while syncing with server pages.
+        if (transactions.length > 0) {
+          dispatch(setTransactions([...(transactions ?? []), ...(txRes?.data ?? [])]));
+        } else {
+          dispatch(setTransactions(txRes?.data ?? []));
+        }
         if (categories.length === 0 || isRefresh)
           dispatch(setCategories(catRes?.data ?? []));
 
@@ -233,7 +239,7 @@ export default function TransactionPage() {
         setIsRefreshing(false);
       }
     },
-    [dispatch, accounts, categories]
+    [dispatch, accounts, categories, transactions]
   );
 
   const loadMore = useCallback(async () => {
@@ -261,14 +267,10 @@ export default function TransactionPage() {
   const [prevModalType, setPrevModalType] = useState<string | null>(null);
   useEffect(() => {
     if (prevModalType === "ADD_TRANSACTION" && modalType === null) {
-      // Only refetch accounts (for updated balances).
-      // The new transaction is already in redux via addTransaction dispatch.
-      fetchAccounts().then((res) => {
-        if (res?.data) dispatch(setAccounts(res.data));
-      });
+      loadData(true);
     }
     setPrevModalType(modalType);
-  }, [modalType, prevModalType, dispatch]);
+  }, [modalType, prevModalType, loadData]);
 
   useEffect(() => {
     loadData();

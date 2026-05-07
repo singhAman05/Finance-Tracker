@@ -90,7 +90,17 @@ type ProfileConfig = {
 
 type ConfigMap = Record<AppProfile, ProfileConfig>;
 
-const configPath = path.resolve(process.cwd(), 'config', 'appProfiles.json');
+const configPathCandidates = [
+  path.resolve(__dirname, 'appProfiles.json'),
+  path.resolve(process.cwd(), 'config', 'appProfiles.json'),
+  path.resolve(process.cwd(), 'dist', 'config', 'appProfiles.json'),
+];
+
+const configPath = configPathCandidates.find((candidate) => fs.existsSync(candidate));
+if (!configPath) {
+  throw new Error(`FATAL: appProfiles.json not found. Checked: ${configPathCandidates.join(', ')}`);
+}
+
 const raw = fs.readFileSync(configPath, 'utf-8');
 const configMap = JSON.parse(raw) as ConfigMap;
 

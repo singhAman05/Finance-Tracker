@@ -17,7 +17,6 @@ import {
   fetchAccounts,
   getBankLogoUrl,
   deleteAccount,
-  processRecurringAccounts,
 } from "@/service/service_accounts";
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
 import { RootState as TxRootState } from "@/app/store";
@@ -162,13 +161,6 @@ export default function AccountsPage() {
     }
     setPrevModalType(modalType);
   }, [modalType, prevModalType, loadAccounts]);
-
-  // Auto-process recurring accounts on page load
-  useEffect(() => {
-    processRecurringAccounts().catch(() => {
-      // Silently handle — user-visible errors are surfaced via notifications
-    });
-  }, []);
 
   useEffect(() => {
     if (accounts.length === 0) {
