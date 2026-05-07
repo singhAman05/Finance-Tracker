@@ -90,7 +90,7 @@ type ProfileConfig = {
 
 type ConfigMap = Record<AppProfile, ProfileConfig>;
 
-const configPath = path.join(__dirname, 'appProfiles.json');
+const configPath = path.resolve(process.cwd(), 'config', 'appProfiles.json');
 const raw = fs.readFileSync(configPath, 'utf-8');
 const configMap = JSON.parse(raw) as ConfigMap;
 

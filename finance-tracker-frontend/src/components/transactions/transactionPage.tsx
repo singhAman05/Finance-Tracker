@@ -103,8 +103,10 @@ const fadeUp = {
 
 function AnimatedCounter({ target, duration = 2, locale = "en-IN" }: { target: number; duration?: number; locale?: string }) {
   const count = useMotionValue(0);
-  const rounded = useTransform(count, (v) => Math.floor(v).toLocaleString(locale));
-  const [display, setDisplay] = useState("0");
+  const rounded = useTransform(count, (v) =>
+    (Math.round(v * 100) / 100).toLocaleString(locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  );
+  const [display, setDisplay] = useState("0.00");
 
   useEffect(() => {
     const controls = animate(count, target, { duration });
@@ -142,7 +144,8 @@ function formatForAccount(amount: number, accountCurrency?: string, fallbackCurr
   return new Intl.NumberFormat(localeMap[currency] || "en-US", {
     style: "currency",
     currency,
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
 }
 
@@ -258,10 +261,14 @@ export default function TransactionPage() {
   const [prevModalType, setPrevModalType] = useState<string | null>(null);
   useEffect(() => {
     if (prevModalType === "ADD_TRANSACTION" && modalType === null) {
-      loadData(true);
+      // Only refetch accounts (for updated balances).
+      // The new transaction is already in redux via addTransaction dispatch.
+      fetchAccounts().then((res) => {
+        if (res?.data) dispatch(setAccounts(res.data));
+      });
     }
     setPrevModalType(modalType);
-  }, [modalType, prevModalType, loadData]);
+  }, [modalType, prevModalType, dispatch]);
 
   useEffect(() => {
     loadData();
@@ -333,7 +340,7 @@ export default function TransactionPage() {
   // --- Render ---
   return (
     <Skeleton name="transactions" loading={isLoading && transactions.length === 0} fixture={<TransactionsFixture />}>
-    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern matched from page.tsx */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -347,7 +354,7 @@ export default function TransactionPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative w-full space-y-6 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-[1280px] mx-auto"
+        className="relative w-full space-y-6 max-w-[1280px] mx-auto"
       >
       {/* Delete Dialog */}
       <AlertDialog

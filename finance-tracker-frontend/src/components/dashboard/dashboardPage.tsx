@@ -298,7 +298,7 @@ export default function DashboardPage() {
   }, [billInstances]);
 
   // Charts — memoized
-  const monthlyData = useMemo(() => getMonthlyInsights(transactions).slice(-6), [transactions]);
+  const monthlyData = useMemo(() => getMonthlyInsights(transactions).slice(-3), [transactions]);
 
   const thisMonthTransactions = useMemo(
     () => filterTransactionsByPeriod(transactions, "thisMonth"),
@@ -615,7 +615,7 @@ export default function DashboardPage() {
                 <div>
                   <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
                   <CardDescription>
-                    Income vs Expenses over last 6 months
+                    Income vs Expenses over last 3 months
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">

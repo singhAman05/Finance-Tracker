@@ -238,7 +238,7 @@ export default function AccountsPage() {
 
   return (
     <Skeleton name="accounts" loading={loading && accounts.length === 0} fixture={<AccountsFixture />}>
-    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary px-4 md:px-8 lg:px-12 py-6 md:py-8 relative overflow-hidden">
       {/* Background Pattern matched from page.tsx */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"
@@ -252,7 +252,7 @@ export default function AccountsPage() {
         variants={staggerContainer}
         initial="hidden"
         animate="visible"
-        className="relative w-full space-y-6 px-4 md:px-8 lg:px-12 py-6 md:py-8 max-w-[1280px] mx-auto"
+        className="relative w-full space-y-6 max-w-[1280px] mx-auto"
       >
 
         {/* Delete Confirmation Dialog */}
