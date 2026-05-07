@@ -251,32 +251,32 @@ export default function AuthForm() {
             <motion.div variants={fadeUp} className="mt-10 pt-6 border-t border-border">
               <p className="text-center text-xs text-text-secondary leading-relaxed">
                 By continuing, you agree to our{" "}
-                <a
-                  href="#"
+                <Link
+                  href="/terms"
                   className="font-medium text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors"
                 >
                   Terms of Service
-                </a>{" "}
+                </Link>{" "}
                 and{" "}
-                <a
-                  href="#"
+                <Link
+                  href="/privacy"
                   className="font-medium text-text-secondary hover:text-text-primary underline underline-offset-2 transition-colors"
                 >
                   Privacy Policy
-                </a>
+                </Link>
                 .
               </p>
 
               {/* Help Link */}
               <div className="mt-5 text-center">
-                <a
-                  href="#"
+                <Link
+                  href="/help"
                   className="inline-flex items-center gap-1.5 text-xs font-medium text-text-secondary hover:text-text-primary transition-colors group"
                 >
                   <HelpCircle className="h-3.5 w-3.5" />
                   <span>Need help signing in?</span>
                   <ChevronRight className="h-3 w-3 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0.5 transition-all duration-200" />
-                </a>
+                </Link>
               </div>
             </motion.div>
           </motion.div>

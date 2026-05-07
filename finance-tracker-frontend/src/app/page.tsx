@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, TrendingUp, Wallet, PieChart, Shield, Smartphone, Zap, BarChart3, Lock, ArrowUpRight } from "lucide-react";
+import { ArrowRight, TrendingUp, Wallet, PieChart, Shield, Smartphone, Zap, BarChart3, Lock, ArrowUpRight, Clock, Database, Globe, Users, Code2 } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 function AnimatedCounter({ target, duration = 2 }: { target: number; duration?: number }) {
   const count = useMotionValue(0);
@@ -52,7 +52,7 @@ export default function Home() {
       {/* Navigation */}
       <nav className="border-b border-border/40 bg-background/80 glass sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
@@ -60,21 +60,23 @@ export default function Home() {
             <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
               <Wallet className="w-4 h-4 text-white" />
             </div>
-            <span className="text-xl font-bold tracking-tight">
-              FinanceTracker
-            </span>
+            <span className="text-xl font-bold tracking-tight">FinanceTracker</span>
           </motion.div>
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             className="flex gap-4 items-center"
           >
-            <button 
+            <Link href="/blog/engineering" className="text-sm font-medium hover:text-primary transition-colors hidden sm:block">
+              Engineering
+            </Link>
+            <button
               onClick={handleAuthNavigation}
-              className="text-sm font-medium hover:text-primary transition-colors cursor-pointer">
+              className="text-sm font-medium hover:text-primary transition-colors cursor-pointer"
+            >
               Log in
             </button>
-            <button 
+            <button
               onClick={handleAuthNavigation}
               className="px-5 py-2 rounded-full gradient-primary text-white text-sm font-medium hover:opacity-90 transition-all cursor-pointer shadow-sm hover:shadow-md"
             >
@@ -85,47 +87,47 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-6 pt-28 pb-36 relative">
-        {/* Subtle grid background */}
+      <section className="container mx-auto px-6 pt-20 pb-16 relative">
         <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]" style={{
           backgroundImage: `radial-gradient(circle, currentColor 1px, transparent 1px)`,
           backgroundSize: '32px 32px',
         }} />
 
-        <div className="grid lg:grid-cols-2 gap-16 items-center relative">
-          <motion.div
-            variants={staggerContainer}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div variants={fadeUp} className="mb-6">
+        <div className="grid lg:grid-cols-2 gap-12 items-center relative">
+          <motion.div variants={staggerContainer} initial="hidden" animate="visible">
+            <motion.div variants={fadeUp} className="mb-5">
               <span className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-border text-xs font-medium tracking-wide uppercase text-text-secondary">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 Free to get started
               </span>
             </motion.div>
 
-            <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl md:text-8xl font-bold mb-8 leading-[0.95] tracking-tighter">
+            <motion.h1 variants={fadeUp} className="text-4xl sm:text-6xl md:text-7xl font-bold mb-6 leading-[0.95] tracking-tighter">
               Master your <br />
               <span className="text-text-secondary">money flow.</span>
             </motion.h1>
 
-            <motion.p variants={fadeUp} className="text-xl text-text-secondary mb-10 leading-relaxed max-w-lg">
-              Precision financial tracking for the modern era. Visualize expenses and manage accounts without the clutter.
+            <motion.p variants={fadeUp} className="text-lg text-text-secondary mb-8 leading-relaxed max-w-lg">
+              Precision financial tracking for the modern era. Visualize expenses, manage accounts, set budgets, and track bills &mdash; without the clutter.
             </motion.p>
 
-            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-4">
-              <button 
+            <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
+              <button
                 onClick={handleAuthNavigation}
-                className="group px-8 py-4 rounded-full gradient-primary text-white hover:opacity-90 transition-all font-medium text-lg flex items-center justify-center gap-2 w-fit cursor-pointer shadow-md hover:shadow-lg"
+                className="group px-8 py-3.5 rounded-full gradient-primary text-white hover:opacity-90 transition-all font-medium flex items-center justify-center gap-2 w-fit cursor-pointer shadow-md hover:shadow-lg"
               >
                 Start Free Trial
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
               </button>
+              <Link
+                href="/blog/engineering"
+                className="px-8 py-3.5 rounded-full border border-border text-text-primary hover:bg-muted transition-all font-medium flex items-center justify-center gap-2 w-fit"
+              >
+                How we built it
+              </Link>
             </motion.div>
 
-            {/* Trust indicators */}
-            <motion.div variants={fadeUp} className="mt-12 flex items-center gap-8">
+            <motion.div variants={fadeUp} className="mt-8 flex items-center gap-6">
               <div className="flex -space-x-2">
                 {[...Array(4)].map((_, i) => (
                   <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-border flex items-center justify-center text-[10px] font-bold text-text-secondary">
@@ -147,7 +149,6 @@ export default function Home() {
             className="relative"
           >
             <div className="rounded-xl border border-border bg-card overflow-hidden shadow-lg dark:shadow-none">
-              {/* Mock browser bar */}
               <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
                 <div className="flex gap-1.5">
                   <div className="w-2.5 h-2.5 rounded-full bg-muted" />
@@ -161,10 +162,7 @@ export default function Home() {
                   </div>
                 </div>
               </div>
-
-              {/* Dashboard content */}
               <div className="p-6 space-y-4">
-                {/* Stats row */}
                 <div className="grid grid-cols-3 gap-3">
                   {[
                     { label: "Balance", value: "24,580", prefix: "$" },
@@ -186,8 +184,6 @@ export default function Home() {
                     </motion.div>
                   ))}
                 </div>
-
-                {/* Chart placeholder - animated bars */}
                 <motion.div
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
@@ -216,8 +212,6 @@ export default function Home() {
                 </motion.div>
               </div>
             </div>
-
-            {/* Floating notification */}
             <motion.div
               initial={{ opacity: 0, x: 20, y: 20 }}
               animate={{ opacity: 1, x: 0, y: 0 }}
@@ -238,89 +232,146 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Marquee Stats Band */}
-      <section className="border-y border-border py-6 overflow-hidden">
+      {/* Stats Band */}
+      <section className="border-y border-border py-5 overflow-hidden">
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="grid grid-cols-2 md:grid-cols-4 gap-6 px-6 max-w-3xl mx-auto"
+          className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 max-w-3xl mx-auto"
         >
           {[
             { value: "50K+", label: "Transactions Tracked" },
             { value: "99.9%", label: "Uptime" },
             { value: "2.4K", label: "Active Users" },
-            { value: "4.9★", label: "User Rating" },
+            { value: "4.9\u2605", label: "User Rating" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-2xl md:text-3xl font-bold tracking-tight">{stat.value}</p>
-              <p className="text-xs text-text-secondary mt-1">{stat.label}</p>
+              <p className="text-xs text-text-secondary mt-0.5">{stat.label}</p>
             </div>
           ))}
         </motion.div>
       </section>
 
-      {/* Features Section */}
-      <section className="py-32">
+      {/* What is FinanceTracker */}
+      <section className="py-16">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mb-20 max-w-2xl"
+            className="max-w-3xl mx-auto text-center"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
-              Essential utilities.
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+              What is FinanceTracker?
             </h2>
-            <p className="text-xl text-text-secondary max-w-xl">
+            <p className="text-lg text-text-secondary leading-relaxed mb-8">
+              A full-stack personal finance management platform that helps you track every rupee &mdash; income, expenses, budgets, recurring bills, and account balances &mdash; all in one place with real-time insights.
+            </p>
+            <div className="grid sm:grid-cols-3 gap-4 text-left">
+              {[
+                { icon: PieChart, text: "Visual dashboards & reports with monthly cash flow analysis" },
+                { icon: Shield, text: "Bank-grade security with encrypted data and CSRF protection" },
+                { icon: Zap, text: "Sub-100ms API responses with Redis caching layer" },
+              ].map((item) => (
+                <div key={item.text} className="flex gap-3 p-4 rounded-xl border border-border/60">
+                  <item.icon className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                  <p className="text-sm text-text-secondary">{item.text}</p>
+                </div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* What to Expect */}
+      <section className="py-16 border-t border-border">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-10 max-w-2xl"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+              What to expect.
+            </h2>
+            <p className="text-text-secondary">
               Everything you need to maintain financial clarity, stripped down to the essentials.
             </p>
           </motion.div>
 
-          <div className="grid md:grid-cols-3 gap-6">
+          <div className="grid md:grid-cols-3 gap-5">
             {[
-              {
-                icon: Smartphone,
-                title: "Multi-Platform",
-                description: "Seamless access across all your devices with synchronized data.",
-                stat: "3+ Platforms"
-              },
-              {
-                icon: PieChart,
-                title: "Smart Sorting",
-                description: "Intelligent categorization algorithms that learn from your spending.",
-                stat: "Auto-Categorize"
-              },
-              {
-                icon: Zap,
-                title: "Instant Sync",
-                description: "Real-time updates ensure your balance is always accurate to the second.",
-                stat: "< 100ms"
-              }
+              { icon: Smartphone, title: "Multi-Platform", description: "Seamless access across all your devices with synchronized data in real-time.", stat: "3+ Platforms" },
+              { icon: PieChart, title: "Smart Categorization", description: "Organize transactions by category with color-coded insights and spending breakdowns.", stat: "Auto-Categorize" },
+              { icon: Zap, title: "Instant Sync", description: "Real-time updates ensure your balance is always accurate. Redis-backed caching for speed.", stat: "< 100ms" },
+              { icon: BarChart3, title: "Budget Tracking", description: "Set monthly budgets per category, get alerts when you approach limits.", stat: "Smart Alerts" },
+              { icon: Clock, title: "Recurring Bills", description: "Never miss a payment. Auto-generated bill reminders and scheduled tracking.", stat: "Auto-Reminders" },
+              { icon: TrendingUp, title: "Reports & Analytics", description: "Monthly, quarterly, and custom period reports with exportable data.", stat: "Deep Insights" },
             ].map((feature, idx) => (
               <motion.div
                 key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ delay: idx * 0.1 }}
-                className="group p-8 rounded-xl border border-border/60 hover:border-primary/20 hover:bg-accent/50 transition-all duration-300 relative overflow-hidden shadow-soft hover:shadow-elevated"
+                transition={{ delay: idx * 0.08 }}
+                className="group p-6 rounded-xl border border-border/60 hover:border-primary/20 hover:bg-accent/50 transition-all duration-300 shadow-soft hover:shadow-elevated"
               >
-                {/* Hover background effect */}
-                <div className="transition-opacity duration-300" />
-                
-                <div className="relative z-10">
-                  <div className="mb-6 flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-xl border border-border/60 bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
-                      <feature.icon className="w-5 h-5 text-primary stroke-[1.5]" />
-                    </div>
-                    <span className="text-[10px] font-medium uppercase tracking-widest text-text-secondary group-hover:text-text-primary transition-colors">
-                      {feature.stat}
-                    </span>
+                <div className="mb-4 flex items-center justify-between">
+                  <div className="w-10 h-10 rounded-xl border border-border/60 bg-accent flex items-center justify-center group-hover:bg-primary/10 transition-colors">
+                    <feature.icon className="w-4 h-4 text-primary stroke-[1.5]" />
                   </div>
-                  <h3 className="text-xl font-bold mb-3 tracking-tight">{feature.title}</h3>
-                  <p className="text-text-secondary leading-relaxed text-sm">{feature.description}</p>
+                  <span className="text-[10px] font-medium uppercase tracking-widest text-text-secondary">
+                    {feature.stat}
+                  </span>
                 </div>
+                <h3 className="text-lg font-bold mb-2 tracking-tight">{feature.title}</h3>
+                <p className="text-text-secondary text-sm leading-relaxed">{feature.description}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Why Trust Us */}
+      <section className="py-16 border-t border-border">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="mb-10 text-center"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+              Why trust us?
+            </h2>
+            <p className="text-text-secondary max-w-lg mx-auto">
+              Built with production-grade security and reliability practices from day one.
+            </p>
+          </motion.div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 max-w-5xl mx-auto">
+            {[
+              { icon: Shield, title: "End-to-End Security", desc: "JWT + CSRF double-submit protection. httpOnly cookies. Row-level DB security." },
+              { icon: Database, title: "Your Data, Your Rules", desc: "Export or delete all data anytime. We never sell or share your financial info." },
+              { icon: Globe, title: "Open Architecture", desc: "Built on open standards: PostgreSQL, Redis, Next.js. No vendor lock-in." },
+              { icon: Users, title: "Community Driven", desc: "Feedback directly shapes the roadmap. Read our engineering blog for full transparency." },
+            ].map((item, idx) => (
+              <motion.div
+                key={item.title}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.1 }}
+                className="text-center p-6 rounded-xl border border-border/60"
+              >
+                <div className="w-12 h-12 rounded-xl bg-accent flex items-center justify-center mx-auto mb-4">
+                  <item.icon className="w-5 h-5 text-primary" />
+                </div>
+                <h3 className="font-bold mb-2 tracking-tight">{item.title}</h3>
+                <p className="text-xs text-text-secondary leading-relaxed">{item.desc}</p>
               </motion.div>
             ))}
           </div>
@@ -328,27 +379,27 @@ export default function Home() {
       </section>
 
       {/* How it works */}
-      <section className="border-t border-border py-32">
+      <section className="border-t border-border py-16">
         <div className="container mx-auto px-6">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="mb-20 text-center"
+            className="mb-12 text-center"
           >
-            <h2 className="text-3xl md:text-5xl font-bold mb-6 tracking-tight">
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
               Three steps to clarity.
             </h2>
-            <p className="text-lg text-text-secondary max-w-md mx-auto">
+            <p className="text-text-secondary max-w-md mx-auto">
               Get set up in minutes, not hours.
             </p>
           </motion.div>
 
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
             {[
-              { step: "01", title: "Create Account", desc: "Sign up for free in under 30 seconds." },
-              { step: "02", title: "Link Accounts", desc: "Add your bank accounts and credit cards." },
-              { step: "03", title: "Track & Grow", desc: "Watch your financial clarity improve daily." },
+              { step: "01", title: "Create Account", desc: "Sign up with phone or Google in under 30 seconds. No credit card required." },
+              { step: "02", title: "Add Accounts", desc: "Add your bank accounts, credit cards, and wallets. Set initial balances." },
+              { step: "03", title: "Track & Grow", desc: "Log transactions, set budgets, track bills. Watch your financial clarity improve." },
             ].map((item, idx) => (
               <motion.div
                 key={item.step}
@@ -358,71 +409,132 @@ export default function Home() {
                 transition={{ delay: idx * 0.15 }}
                 className="text-center"
               >
-                <div className="text-5xl md:text-6xl font-bold text-primary mb-4 tracking-tighter">
+                <div className="text-5xl font-bold text-primary mb-3 tracking-tighter">
                   {item.step}
                 </div>
                 <h3 className="text-lg font-bold mb-2 tracking-tight">{item.title}</h3>
-                <p className="text-sm text-text-secondary max-w-[200px] mx-auto">
-                  {item.desc}
-                </p>
+                <p className="text-sm text-text-secondary max-w-[220px] mx-auto">{item.desc}</p>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Tech Stack */}
+      <section className="py-16 border-t border-border">
+        <div className="container mx-auto px-6">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="text-center mb-10"
+          >
+            <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
+              Built with modern tech.
+            </h2>
+            <p className="text-text-secondary max-w-md mx-auto">
+              Production-grade stack designed for performance, security, and scalability.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            viewport={{ once: true }}
+            className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto"
+          >
+            {[
+              "Next.js 15", "React 19", "TypeScript", "Tailwind CSS", "Redux Toolkit",
+              "Node.js", "Express 5", "PostgreSQL", "Supabase", "Redis",
+              "Framer Motion", "Recharts", "JWT Auth", "Vercel", "Render",
+            ].map((tech) => (
+              <span
+                key={tech}
+                className="px-4 py-2 rounded-full border border-border text-sm font-medium text-text-secondary hover:border-primary/30 hover:text-text-primary transition-colors"
+              >
+                {tech}
+              </span>
+            ))}
+          </motion.div>
+
+          <div className="text-center mt-8">
+            <Link
+              href="/blog/engineering"
+              className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline underline-offset-2"
+            >
+              <Code2 className="w-4 h-4" />
+              Read the full engineering story
+            </Link>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
-      <section className="container mx-auto px-6 py-24">
+      <section className="container mx-auto px-6 py-16">
         <motion.div
           initial={{ opacity: 0, scale: 0.98 }}
           whileInView={{ opacity: 1, scale: 1 }}
           viewport={{ once: true }}
-          className="rounded-xl gradient-primary text-white p-12 md:p-24 text-center relative overflow-hidden shadow-lg"
+          className="rounded-xl gradient-primary text-white p-10 md:p-16 text-center relative overflow-hidden shadow-lg"
         >
-          {/* Background pattern */}
           <div className="absolute inset-0 opacity-10" style={{
             backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`,
             backgroundSize: '24px 24px',
           }} />
-
           <div className="relative z-10 max-w-2xl mx-auto">
-            <motion.p
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              className="text-sm font-medium uppercase tracking-widest mb-6 text-white/70"
-            >
+            <p className="text-sm font-medium uppercase tracking-widest mb-4 text-white/70">
               Start today
-            </motion.p>
-            <h2 className="text-4xl md:text-6xl font-bold mb-4 tracking-tighter text-white">
+            </p>
+            <h2 className="text-3xl md:text-5xl font-bold mb-4 tracking-tighter text-white">
               Ready to clarify your finances?
             </h2>
-            <p className="text-white/70 mb-10 max-w-md mx-auto">
+            <p className="text-white/70 mb-8 max-w-md mx-auto">
               Join thousands who have already transformed their relationship with money.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button 
-                onClick={handleAuthNavigation}
-                className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 hover:bg-gray-100 hover:scale-105 transition-all font-medium cursor-pointer shadow-md"
-              >
-                Create Free Account
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              onClick={handleAuthNavigation}
+              className="inline-flex items-center gap-2 px-8 py-4 rounded-full bg-white text-gray-900 hover:bg-gray-100 hover:scale-105 transition-all font-medium cursor-pointer shadow-md"
+            >
+              Create Free Account
+              <ArrowRight className="w-4 h-4" />
+            </button>
           </div>
         </motion.div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border bg-muted/40 py-12">
-        <div className="container mx-auto px-6 flex flex-col md:flex-row justify-between items-center gap-4">
-           <div className="flex items-center gap-2 opacity-50 hover:opacity-100 transition-all">
-             <Wallet className="w-5 h-5" />
-             <span className="font-bold tracking-tight">FinanceTracker</span>
-           </div>
-          <p className="text-sm text-text-secondary">
-            © 2026 FinanceTracker Inc.
-          </p>
+      <footer className="border-t border-border bg-muted/40 py-10">
+        <div className="container mx-auto px-6">
+          <div className="grid sm:grid-cols-3 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Wallet className="w-5 h-5" />
+                <span className="font-bold tracking-tight">FinanceTracker</span>
+              </div>
+              <p className="text-xs text-text-secondary leading-relaxed">
+                Personal finance management built for clarity and speed.
+              </p>
+            </div>
+            <div>
+              <p className="font-medium text-sm mb-3">Product</p>
+              <div className="space-y-2">
+                <Link href="/login" className="block text-xs text-text-secondary hover:text-text-primary transition-colors">Dashboard</Link>
+                <Link href="/blog/engineering" className="block text-xs text-text-secondary hover:text-text-primary transition-colors">Engineering Blog</Link>
+              </div>
+            </div>
+            <div>
+              <p className="font-medium text-sm mb-3">Legal</p>
+              <div className="space-y-2">
+                <Link href="/terms" className="block text-xs text-text-secondary hover:text-text-primary transition-colors">Terms of Service</Link>
+                <Link href="/privacy" className="block text-xs text-text-secondary hover:text-text-primary transition-colors">Privacy Policy</Link>
+                <Link href="/help" className="block text-xs text-text-secondary hover:text-text-primary transition-colors">Help Center</Link>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-border pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <p className="text-xs text-text-secondary">&copy; 2026 FinanceTracker Inc.</p>
+            <p className="text-xs text-text-secondary">Made with precision in India</p>
+          </div>
         </div>
       </footer>
     </div>
