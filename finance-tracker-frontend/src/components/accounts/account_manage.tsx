@@ -129,14 +129,21 @@ export default function AccountsPage() {
         if (isRefresh) setIsRefreshing(true);
         else setLoading(true);
 
-        const [accountsRes, transactionsRes] = await Promise.all([
+        const shouldFetchTransactions = transactions.length === 0 || isRefresh;
+        const [accountsRes, transactionsRes] = await Promise.allSettled([
           fetchAccounts(),
-          transactions.length === 0 || isRefresh
-            ? fetchTransactions()
-            : Promise.resolve({ data: transactions }),
+          shouldFetchTransactions ? fetchTransactions(1, 100) : Promise.resolve(null),
         ]);
-        dispatch(setAccounts(accountsRes?.data ?? []));
-        dispatch(setTransactions(transactionsRes?.data ?? []));
+
+        if (accountsRes.status === "fulfilled") {
+          dispatch(setAccounts(accountsRes.value?.data ?? []));
+        } else {
+          dispatch(setAccounts([]));
+        }
+
+        if (transactionsRes.status === "fulfilled" && transactionsRes.value?.data) {
+          dispatch(setTransactions(transactionsRes.value.data));
+        }
       } catch (err) {
         // Error handled by API client notifications
       } finally {
@@ -144,7 +151,7 @@ export default function AccountsPage() {
         setIsRefreshing(false);
       }
     },
-    [dispatch, transactions, transactions.length]
+    [dispatch, transactions.length]
   );
 
   // --- Refresh on Modal Close ---

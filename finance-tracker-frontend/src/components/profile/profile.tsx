@@ -101,7 +101,7 @@ export default function ProfilePage() {
       toast.success("Profile setup complete!");
       router.push("/dashboard");
     } catch (err) {
-      toast.error("Failed to update profile. Please try again.");
+      toast.error(err instanceof Error ? err.message : "Failed to update profile. Please try again.");
     } finally {
       setLoading(false);
     }

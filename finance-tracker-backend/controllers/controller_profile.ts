@@ -32,6 +32,17 @@ export const handleProfile = asyncHandler(async (req: Request, res: Response) =>
   });
 
   if (result.error || !result.data) {
+    const dbErr = result.error as { code?: string; details?: string; message?: string } | null;
+    if (dbErr?.code === '23505') {
+      const details = String(dbErr.details || dbErr.message || '').toLowerCase();
+      if (details.includes('email')) {
+        throw AppError.conflict('This email is already linked to another account. Please use a different email.');
+      }
+      if (details.includes('phone')) {
+        throw AppError.conflict('This phone number is already linked to another account. Please use a different number.');
+      }
+      throw AppError.conflict('Profile details already exist for another account. Please use different credentials.');
+    }
     throw AppError.internal('Failed to update profile', result.error);
   }
 
