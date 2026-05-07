@@ -47,6 +47,12 @@ function getCookie(name: string): string | undefined {
     return match ? decodeURIComponent(match[1]) : undefined;
 }
 
+/** Read CSRF token — prefer sessionStorage (works cross-origin), fallback to cookie */
+function getCsrfToken(): string | undefined {
+    if (typeof window === "undefined") return undefined;
+    return sessionStorage.getItem("csrf-token") || getCookie("csrf-token") || undefined;
+}
+
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
@@ -55,7 +61,7 @@ export async function apiClient<T = any>(
         const { headers: userHeaders, ...rest } = options;
         const url = new URL(path, baseUrl).toString();
 
-        const csrfToken = getCookie("csrf-token");
+        const csrfToken = getCsrfToken();
 
         const response = await fetch(url, {
             ...rest,
@@ -79,7 +85,7 @@ export async function apiClient<T = any>(
             const status = response.status;
             let error: ApiResult<any>["error"];
 
-            if (status === 401 || status === 403) {
+            if (status === 401) {
                 error = {
                     message: "Unauthorized",
                     status,
@@ -87,6 +93,16 @@ export async function apiClient<T = any>(
                 };
                 notifyApiError(error);
                 redirectToLogin();
+                return { result: null, error };
+            }
+
+            if (status === 403) {
+                error = {
+                    message: errorData.message || "Forbidden",
+                    status,
+                    type: "AUTH",
+                };
+                notifyApiError(error);
                 return { result: null, error };
             }
 
