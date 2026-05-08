@@ -43,9 +43,9 @@ import {
 } from "lucide-react";
 
 import { addTransaction } from "../redux/slices/slice_transactions";
+import { updateAccountInStore } from "../redux/slices/slice_accounts";
 import { filterCategoriesByType } from "@/service/service_categories";
 import { createTransaction } from "@/service/service_transactions";
-import { notifyTransactionMutation } from "@/utils/mutationNotifier";
 
 interface AddTransactionProps {
   onClose?: () => void;
@@ -129,7 +129,15 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
       const result = await createTransaction(payload);
       if (result?.data) {
         dispatch(addTransaction(result.data));
-        notifyTransactionMutation();
+        // Update account balance locally (backend already adjusted it)
+        const balanceChange = type === "income" ? numericAmount : -numericAmount;
+        const currentAccount = accounts.find((a) => a.id === accountId);
+        if (currentAccount) {
+          dispatch(updateAccountInStore({
+            id: accountId,
+            balance: (currentAccount.balance ?? 0) + balanceChange,
+          }));
+        }
       }
       if (onClose) onClose();
     } catch {

@@ -19,7 +19,6 @@ import {
   deleteAccount,
 } from "@/service/service_accounts";
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
-import { subscribeToTransactionMutation } from "@/utils/mutationNotifier";
 import { RootState as TxRootState } from "@/app/store";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -112,7 +111,6 @@ export default function AccountsPage() {
 
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { type: modalType } = useSelector((state: RootState) => state.modal);
   const [deleteAccountData, setDeleteAccountData] = useState<{
     id: string;
     name: string;
@@ -186,15 +184,6 @@ export default function AccountsPage() {
     }
   }, [isLoadingMore, hasMoreAccounts, accountsPage, dispatch, accounts]);
 
-  // --- Refresh on Modal Close ---
-  const [prevModalType, setPrevModalType] = useState<string | null>(null);
-  useEffect(() => {
-    if (prevModalType === "ADD_ACCOUNT" && modalType === null) {
-      loadAccounts(true);
-    }
-    setPrevModalType(modalType);
-  }, [modalType, prevModalType, loadAccounts]);
-
   useEffect(() => {
     if (accounts.length === 0) {
       loadAccounts();
@@ -202,12 +191,6 @@ export default function AccountsPage() {
       setLoading(false);
     }
   }, [loadAccounts, accounts.length]);
-
-  useEffect(() => {
-    return subscribeToTransactionMutation(() => {
-      loadAccounts(true);
-    });
-  }, [loadAccounts]);
 
   const confirmDelete = async () => {
     if (!deleteAccountData) return;

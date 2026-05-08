@@ -20,6 +20,9 @@ const billsSlice = createSlice({
         setBills(state, action: PayloadAction<Bill[]>) {
             state.bills = action.payload;
         },
+        addBill(state, action: PayloadAction<Bill>) {
+            state.bills.unshift(action.payload);
+        },
         setInstances(state, action: PayloadAction<BillInstance[]>) {
             state.instances = action.payload;
         },
@@ -43,6 +46,6 @@ const billsSlice = createSlice({
     },
 });
 
-export const { setBills, setInstances, markInstancePaid, setLoading, resetBills } =
+export const { setBills, addBill, setInstances, markInstancePaid, setLoading, resetBills } =
     billsSlice.actions;
 export default billsSlice.reducer;

@@ -6,15 +6,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
 import { setBills, setInstances, markInstancePaid } from "@/components/redux/slices/slice_bills";
-import { setTransactions } from "@/components/redux/slices/slice_transactions";
+import { setTransactions, addTransaction } from "@/components/redux/slices/slice_transactions";
+import { setAccounts } from "@/components/redux/slices/slice_accounts";
 import { payBillInstance } from "@/service/service_bills";
 import { fetchBillInstancesRoute, fetchBillsRoute } from "@/routes/route_bills";
-import { fetchTransactions } from "@/service/service_transactions";
+import { fetchAccounts } from "@/service/service_accounts";
 import { notify } from "@/lib/notifications";
-import {
-  notifyTransactionMutation,
-  subscribeToTransactionMutation,
-} from "@/utils/mutationNotifier";
 import { Skeleton } from "boneyard-js/react";
 import { BillsFixture } from "@/bones/fixtures";
 
@@ -45,7 +42,6 @@ export default function BillsPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const { type: modalType } = useSelector((state: RootState) => state.modal);
   const [payingId, setPayingId] = useState<string | null>(null);
 
   // ── Data Loading (matches accounts / transactions pattern) ─────────────────
@@ -135,15 +131,16 @@ export default function BillsPage() {
       const result = await payBillInstance(instanceId);
       if (result) {
         dispatch(markInstancePaid(instanceId));
-        // Re-fetch instances to pick up next recurring instance from backend
-        // Also refresh transactions since paying a bill creates a transaction
-        const [instancesRes, txRes] = await Promise.all([
-          fetchBillInstancesRoute(),
-          fetchTransactions()
-        ]);
+        // Re-fetch instances (recurring bills generate next instance on backend)
+        const instancesRes = await fetchBillInstancesRoute();
         if (instancesRes?.data) dispatch(setInstances(instancesRes.data));
-        if (txRes?.data) dispatch(setTransactions(txRes.data));
-        notifyTransactionMutation();
+        // Re-fetch accounts (balance changed on backend)
+        const accRes = await fetchAccounts();
+        if (accRes?.data) dispatch(setAccounts(accRes.data));
+        // Add the created transaction to store if returned
+        if (result.transaction) {
+          dispatch(addTransaction(result.transaction));
+        }
       }
     } catch (err) {
       // Error surfaced via notifications
@@ -152,20 +149,9 @@ export default function BillsPage() {
     }
   };
 
-  // ── Refresh on Modal Close ────────────────────────────────────────────────
-  const [prevModalType, setPrevModalType] = useState<string | null>(null);
   useEffect(() => {
-    if (prevModalType === "ADD_BILL" && modalType === null) {
-      loadData(true);
-    }
-    setPrevModalType(modalType);
-  }, [modalType, prevModalType, loadData]);
-
-  useEffect(() => {
-    return subscribeToTransactionMutation(() => {
-      loadData(true);
-    });
-  }, [loadData]);
+    loadData();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (

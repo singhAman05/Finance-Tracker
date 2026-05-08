@@ -19,8 +19,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { createBill, CreateBillPayload } from "@/service/service_bills";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts } from "@/service/service_accounts";
+import { fetchBillInstancesRoute } from "@/routes/route_bills";
 import { setCategories } from "@/components/redux/slices/slice_categories";
 import { setAccounts } from "@/components/redux/slices/slice_accounts";
+import { addBill, setInstances } from "@/components/redux/slices/slice_bills";
 import { X } from "lucide-react";
 import { toast } from "sonner";
 import { useCurrency } from "@/hooks/useCurrency";
@@ -99,10 +101,13 @@ export default function AddBillForm({ onClose }: AddBillFormProps) {
     try {
       setLoading(true);
       const result = await createBill(payload);
-      if (result) {
-        toast.success("Bill created successfully!");
-        onClose(); // parent's onClose calls loadData(true) to refresh
+      if (result?.data) {
+        dispatch(addBill(result.data));
+        // Re-fetch instances (backend generates initial instances)
+        const instancesRes = await fetchBillInstancesRoute();
+        if (instancesRes?.data) dispatch(setInstances(instancesRes.data));
       }
+      onClose();
     } catch (err) {
       toast.error("Failed to create bill. Please try again.");
     } finally {

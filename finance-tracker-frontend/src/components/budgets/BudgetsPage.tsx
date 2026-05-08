@@ -7,7 +7,6 @@ import { RootState } from "@/app/store";
 import { setSummary, setLoading } from "@/components/redux/slices/slice_budgets";
 import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
 import { openModal } from "@/components/redux/slices/slice_modal";
-import { subscribeToTransactionMutation } from "@/utils/mutationNotifier";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "boneyard-js/react";
@@ -81,12 +80,6 @@ export default function BudgetsPage() {
     }
     setPrevModalType(modalType);
   }, [modalType, prevModalType, loadData]);
-
-  useEffect(() => {
-    return subscribeToTransactionMutation(() => {
-      loadData(true);
-    });
-  }, [loadData]);
 
   const stats = useMemo(() => calculateBudgetSummaryStats(summary), [summary]);
 

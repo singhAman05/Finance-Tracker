@@ -25,10 +25,6 @@ import {
 } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
-import {
-  notifyTransactionMutation,
-  subscribeToTransactionMutation,
-} from "@/utils/mutationNotifier";
 
 // UI Components
 import { openModal } from "@/components/redux/slices/slice_modal";
@@ -172,7 +168,6 @@ export default function TransactionPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const { type: modalType } = useSelector((state: RootState) => state.modal);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | string>("all");
@@ -263,21 +258,6 @@ export default function TransactionPage() {
     }
   }, [isLoadingMore, hasMore, currentPage, transactions, dispatch]);
 
-  // --- Refresh on Modal Close ---
-  const [prevModalType, setPrevModalType] = useState<string | null>(null);
-  useEffect(() => {
-    if (prevModalType === "ADD_TRANSACTION" && modalType === null) {
-      loadData(true);
-    }
-    setPrevModalType(modalType);
-  }, [modalType, prevModalType, loadData]);
-
-  useEffect(() => {
-    return subscribeToTransactionMutation(() => {
-      loadData(true);
-    });
-  }, [loadData]);
-
   useEffect(() => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -330,14 +310,13 @@ export default function TransactionPage() {
   const confirmDelete = async () => {
     if (!deleteData) return;
     try {
-      dispatch(removeTransaction(deleteData.id)); // Optimistic update
       await deleteTransaction(deleteData.id);
-      notifyTransactionMutation();
-      // Re-fetch accounts to update balances/net worth after deletion
+      dispatch(removeTransaction(deleteData.id));
+      // Re-fetch accounts to update balances after deletion
       const accRes = await fetchAccounts();
       if (accRes?.data) dispatch(setAccounts(accRes.data));
     } catch (err) {
-      loadData(true); // Revert on error
+      loadData(true);
     } finally {
       setDeleteData(null);
     }
