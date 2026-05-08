@@ -194,51 +194,67 @@ export default function DashboardPage() {
   }, []);
 
   // Data Loading
+  const loadDashboard = async () => {
+    setLoading(true);
+    try {
+      const [txRes, accRes, catRes, budgetRes, billsRes, biRes] = await Promise.all([
+        fetchTransactions(),
+        fetchAccounts(),
+        fetchCategories(),
+        fetchBudgetSummary(),
+        fetchBills(),
+        fetchBillInstances(),
+      ]);
+
+      if (txRes?.data) dispatch(setTransactions(txRes.data));
+      if (accRes?.data) dispatch(setAccounts(accRes.data));
+      if (catRes?.data) dispatch(setCategories(catRes.data));
+      setBudgetSummary(budgetRes?.data || []);
+      setBills(billsRes?.data || []);
+      setBillInstances(biRes?.data || []);
+    } catch (error) {
+      // Error surfaced via notifications
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        const promises = [];
+    loadDashboard();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-        if (transactions.length === 0)
-          promises.push(
-            fetchTransactions().then((res) => {
-              if (res?.data) dispatch(setTransactions(res.data));
-            })
-          );
-        promises.push(
-          fetchAccounts().then((res) => {
-            if (res?.data) dispatch(setAccounts(res.data));
-          })
-        );
-        if (categories.length === 0)
-          promises.push(
-            fetchCategories().then((res) => {
-              if (res?.data) dispatch(setCategories(res.data));
-            })
-          );
+  // Re-fetch when coming back to this page after a mutation elsewhere
+  useEffect(() => {
+    const EVENT_NAME = "finance:transaction-changed";
+    const STORAGE_KEY = "finance:last-transaction-change";
+    let hydratedAt = Date.now();
 
-        promises.push(
-          fetchBudgetSummary().then((res) => setBudgetSummary(res?.data || []))
-        );
-        promises.push(
-          fetchBills().then((res) => setBills(res?.data || []))
-        );
-        promises.push(
-          fetchBillInstances().then((res) => {
-            setBillInstances(res?.data || []);
-          })
-        );
-
-        await Promise.all(promises);
-      } catch (error) {
-        // Error surfaced via notifications
-      } finally {
-        setLoading(false);
+    const maybeRefresh = () => {
+      const marker = Number(localStorage.getItem(STORAGE_KEY) || "0");
+      if (marker > hydratedAt) {
+        hydratedAt = Date.now();
+        loadDashboard();
       }
     };
-    loadData();
-  }, [dispatch, transactions.length, accounts.length, categories.length]);
+
+    const onEvent = () => maybeRefresh();
+    const onFocus = () => maybeRefresh();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") maybeRefresh();
+    };
+
+    window.addEventListener(EVENT_NAME, onEvent);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener(EVENT_NAME, onEvent);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Derived Data — all memoized
   const financialHealth = useMemo(

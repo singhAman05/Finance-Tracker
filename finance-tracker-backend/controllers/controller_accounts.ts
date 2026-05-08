@@ -19,6 +19,7 @@ import {
 import { parsePagination, buildPaginationMeta } from '../utils/paginationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { AppError } from '../utils/AppError';
+import { logger } from '../utils/logger';
 import { getUser } from '../middleware/jwt';
 import { appConfig } from '../config/appConfig';
 
@@ -67,8 +68,8 @@ export const handleAccountCreation = asyncHandler(async (req: Request, res: Resp
   });
 
   if (result.error || !result.data) {
-    console.log(result.error);
-    throw AppError.internal('Failed to create account', result.error);
+    logger.error('account_creation_failed', { error: result.error });
+    throw AppError.internal('Failed to create account');
   }
 
   await invalidateAccounts(user.id);

@@ -46,8 +46,8 @@ const toNumber = (value: unknown): number => {
   return Number.isFinite(n) ? n : 0;
 };
 
-export const fetchAccounts = async () => {
-  const result = await fetchAccountsRoute();
+export const fetchAccounts = async (page = 1, limit = 20) => {
+  const result = await fetchAccountsRoute(page, limit);
   if (!result || !result.data) return { data: [] as MappedAccount[], message: "" };
 
   const mappedData: MappedAccount[] = result.data.map((acc) => ({

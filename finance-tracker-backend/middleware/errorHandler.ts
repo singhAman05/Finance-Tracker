@@ -12,15 +12,15 @@ function mapDbError(err: PgLikeError): AppError | null {
   if (!err.code) return null;
   switch (err.code) {
     case '23505':
-      return AppError.conflict('Resource already exists', err.details || err.message);
+      return AppError.conflict('Resource already exists');
     case '23503':
-      return AppError.badRequest('Related resource not found', err.details || err.message);
+      return AppError.badRequest('Related resource not found');
     case '23514':
-      return AppError.validation('Constraint validation failed', err.details || err.message);
+      return AppError.validation('Constraint validation failed');
     case 'P0001':
-      return AppError.badRequest(err.message || 'Operation rejected by database');
+      return AppError.badRequest('Operation rejected by database');
     case '42501':
-      return AppError.unauthorized('RLS is Violated', err.details || err.message);
+      return AppError.unauthorized('Operation not permitted');
     default:
       return null;
   }

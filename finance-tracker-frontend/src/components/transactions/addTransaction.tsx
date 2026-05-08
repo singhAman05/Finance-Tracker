@@ -45,6 +45,7 @@ import {
 import { addTransaction } from "../redux/slices/slice_transactions";
 import { filterCategoriesByType } from "@/service/service_categories";
 import { createTransaction } from "@/service/service_transactions";
+import { notifyTransactionMutation } from "@/utils/mutationNotifier";
 
 interface AddTransactionProps {
   onClose?: () => void;
@@ -128,6 +129,7 @@ export default function AddTransaction({ onClose }: AddTransactionProps) {
       const result = await createTransaction(payload);
       if (result?.data) {
         dispatch(addTransaction(result.data));
+        notifyTransactionMutation();
       }
       if (onClose) onClose();
     } catch {

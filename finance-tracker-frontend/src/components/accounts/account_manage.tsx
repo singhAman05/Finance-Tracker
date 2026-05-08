@@ -19,6 +19,7 @@ import {
   deleteAccount,
 } from "@/service/service_accounts";
 import { fetchTransactions, getFinancialHealth } from "@/service/service_transactions";
+import { subscribeToTransactionMutation } from "@/utils/mutationNotifier";
 import { RootState as TxRootState } from "@/app/store";
 import { useCurrency } from "@/hooks/useCurrency";
 
@@ -118,7 +119,10 @@ export default function AccountsPage() {
   } | null>(null);
   const [editAccountData, setEditAccountData] = useState<any | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [visibleCount, setVisibleCount] = useState(20);
+  const [accountsPage, setAccountsPage] = useState(1);
+  const [hasMoreAccounts, setHasMoreAccounts] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 20;
 
   // --- Logic ---
 
@@ -130,14 +134,20 @@ export default function AccountsPage() {
 
         const shouldFetchTransactions = transactions.length === 0 || isRefresh;
         const [accountsRes, transactionsRes] = await Promise.allSettled([
-          fetchAccounts(),
-          shouldFetchTransactions ? fetchTransactions(1, 100) : Promise.resolve(null),
+          fetchAccounts(1, PAGE_SIZE),
+          shouldFetchTransactions ? fetchTransactions(1, 20) : Promise.resolve(null),
         ]);
 
         if (accountsRes.status === "fulfilled") {
-          dispatch(setAccounts(accountsRes.value?.data ?? []));
+          const nextAccounts = accountsRes.value?.data ?? [];
+          dispatch(setAccounts(nextAccounts));
+          const pagination = accountsRes.value?.pagination;
+          setAccountsPage(1);
+          setHasMoreAccounts(Boolean(pagination && pagination.page < pagination.pages));
         } else {
           dispatch(setAccounts([]));
+          setAccountsPage(1);
+          setHasMoreAccounts(false);
         }
 
         if (transactionsRes.status === "fulfilled" && transactionsRes.value?.data) {
@@ -152,6 +162,29 @@ export default function AccountsPage() {
     },
     [dispatch, transactions.length]
   );
+
+  const loadMoreAccounts = useCallback(async () => {
+    if (isLoadingMore || !hasMoreAccounts) return;
+
+    setIsLoadingMore(true);
+    try {
+      const nextPage = accountsPage + 1;
+      const result = await fetchAccounts(nextPage, PAGE_SIZE);
+      const nextAccounts = result?.data ?? [];
+
+      if (nextAccounts.length > 0) {
+        dispatch(setAccounts([...accounts, ...nextAccounts]));
+      }
+
+      setAccountsPage(nextPage);
+      const pagination = result?.pagination;
+      setHasMoreAccounts(Boolean(pagination && pagination.page < pagination.pages));
+    } catch {
+      // Error surfaced via notifications
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [isLoadingMore, hasMoreAccounts, accountsPage, dispatch, accounts]);
 
   // --- Refresh on Modal Close ---
   const [prevModalType, setPrevModalType] = useState<string | null>(null);
@@ -169,6 +202,12 @@ export default function AccountsPage() {
       setLoading(false);
     }
   }, [loadAccounts, accounts.length]);
+
+  useEffect(() => {
+    return subscribeToTransactionMutation(() => {
+      loadAccounts(true);
+    });
+  }, [loadAccounts]);
 
   const confirmDelete = async () => {
     if (!deleteAccountData) return;
@@ -195,11 +234,7 @@ export default function AccountsPage() {
     });
   }, [accounts, searchQuery]);
 
-  const visibleAccounts = useMemo(
-    () => filteredAccounts.slice(0, visibleCount),
-    [filteredAccounts, visibleCount]
-  );
-  const hasMoreAccounts = filteredAccounts.length > visibleCount;
+  const visibleAccounts = useMemo(() => filteredAccounts, [filteredAccounts]);
 
   const stats = useMemo(
     () => ({
@@ -635,10 +670,11 @@ export default function AccountsPage() {
                     <div className="flex justify-center py-4">
                       <Button
                         variant="outline"
-                        onClick={() => setVisibleCount((c) => c + 20)}
+                        onClick={loadMoreAccounts}
+                        disabled={isLoadingMore}
                         className="min-w-[140px]"
                       >
-                        Load More
+                        {isLoadingMore ? "Loading..." : "Load More"}
                       </Button>
                     </div>
                   )}

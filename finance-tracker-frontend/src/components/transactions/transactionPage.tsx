@@ -25,6 +25,10 @@ import {
 } from "@/service/service_transactions";
 import { fetchCategories } from "@/service/service_categories";
 import { fetchAccounts, getBankLogoUrl } from "@/service/service_accounts";
+import {
+  notifyTransactionMutation,
+  subscribeToTransactionMutation,
+} from "@/utils/mutationNotifier";
 
 // UI Components
 import { openModal } from "@/components/redux/slices/slice_modal";
@@ -179,7 +183,7 @@ export default function TransactionPage() {
     description: string;
   } | null>(null);
 
-  const PAGE_SIZE = 100;
+  const PAGE_SIZE = 20;
 
   // --- Mappers ---
   const accountMap = useMemo(
@@ -220,12 +224,8 @@ export default function TransactionPage() {
         if (accounts.length === 0 || isRefresh)
           dispatch(setAccounts(accRes?.data ?? []));
 
-        // Keep locally present items (e.g., optimistic/newly-added rows) while syncing with server pages.
-        if (transactions.length > 0) {
-          dispatch(setTransactions([...(transactions ?? []), ...(txRes?.data ?? [])]));
-        } else {
-          dispatch(setTransactions(txRes?.data ?? []));
-        }
+        // Always replace with fresh server data on load/refresh.
+        dispatch(setTransactions(txRes?.data ?? []));
         if (categories.length === 0 || isRefresh)
           dispatch(setCategories(catRes?.data ?? []));
 
@@ -239,7 +239,7 @@ export default function TransactionPage() {
         setIsRefreshing(false);
       }
     },
-    [dispatch, accounts, categories, transactions]
+    [dispatch, accounts, categories]
   );
 
   const loadMore = useCallback(async () => {
@@ -271,6 +271,12 @@ export default function TransactionPage() {
     }
     setPrevModalType(modalType);
   }, [modalType, prevModalType, loadData]);
+
+  useEffect(() => {
+    return subscribeToTransactionMutation(() => {
+      loadData(true);
+    });
+  }, [loadData]);
 
   useEffect(() => {
     loadData();
@@ -326,6 +332,7 @@ export default function TransactionPage() {
     try {
       dispatch(removeTransaction(deleteData.id)); // Optimistic update
       await deleteTransaction(deleteData.id);
+      notifyTransactionMutation();
       // Re-fetch accounts to update balances/net worth after deletion
       const accRes = await fetchAccounts();
       if (accRes?.data) dispatch(setAccounts(accRes.data));

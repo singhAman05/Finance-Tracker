@@ -11,6 +11,10 @@ import { payBillInstance } from "@/service/service_bills";
 import { fetchBillInstancesRoute, fetchBillsRoute } from "@/routes/route_bills";
 import { fetchTransactions } from "@/service/service_transactions";
 import { notify } from "@/lib/notifications";
+import {
+  notifyTransactionMutation,
+  subscribeToTransactionMutation,
+} from "@/utils/mutationNotifier";
 import { Skeleton } from "boneyard-js/react";
 import { BillsFixture } from "@/bones/fixtures";
 
@@ -139,6 +143,7 @@ export default function BillsPage() {
         ]);
         if (instancesRes?.data) dispatch(setInstances(instancesRes.data));
         if (txRes?.data) dispatch(setTransactions(txRes.data));
+        notifyTransactionMutation();
       }
     } catch (err) {
       // Error surfaced via notifications
@@ -155,6 +160,12 @@ export default function BillsPage() {
     }
     setPrevModalType(modalType);
   }, [modalType, prevModalType, loadData]);
+
+  useEffect(() => {
+    return subscribeToTransactionMutation(() => {
+      loadData(true);
+    });
+  }, [loadData]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
   return (

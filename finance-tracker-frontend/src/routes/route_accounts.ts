@@ -3,6 +3,7 @@ import { apiClient } from "@/utils/Error_handler";
 interface AccountResponse {
   message: string;
   data: Record<string, unknown>[];
+  pagination?: { page: number; limit: number; total: number; pages: number };
 }
 
 interface SingleAccountResponse {
@@ -19,8 +20,9 @@ export const createAccountRoute = async (payload: object) => {
   return res.result;
 };
 
-export const fetchAccountsRoute = async () => {
-  const res = await apiClient<AccountResponse>("/api/accounts/fetch-accounts", {
+export const fetchAccountsRoute = async (page = 1, limit = 20) => {
+  const params = new URLSearchParams({ page: String(page), limit: String(limit) });
+  const res = await apiClient<AccountResponse>(`/api/accounts/fetch-accounts?${params.toString()}`, {
     method: "GET",
   });
   if (res.error) throw new Error(res.error.message);

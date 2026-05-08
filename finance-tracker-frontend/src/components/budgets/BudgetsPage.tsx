@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
 import { setSummary, setLoading } from "@/components/redux/slices/slice_budgets";
 import { fetchBudgetSummary, calculateBudgetSummaryStats } from "@/service/service_budgets";
 import { openModal } from "@/components/redux/slices/slice_modal";
+import { subscribeToTransactionMutation } from "@/utils/mutationNotifier";
 import { useCurrency } from "@/hooks/useCurrency";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "boneyard-js/react";
@@ -47,25 +48,28 @@ export default function BudgetsPage() {
   const [activeVisible, setActiveVisible] = useState(20);
   const [expiredVisible, setExpiredVisible] = useState(20);
 
-  const loadData = async (refresh = false) => {
-    try {
-      if (refresh) setIsRefreshing(true);
-      else dispatch(setLoading(true));
+  const loadData = useCallback(
+    async (refresh = false) => {
+      try {
+        if (refresh) setIsRefreshing(true);
+        else dispatch(setLoading(true));
 
-      const summaryRes = await fetchBudgetSummary();
+        const summaryRes = await fetchBudgetSummary();
 
-      if (summaryRes?.data) dispatch(setSummary(summaryRes.data));
-    } catch (err) {
-      // Error surfaced via notifications
-    } finally {
-      dispatch(setLoading(false));
-      setIsRefreshing(false);
-    }
-  };
+        if (summaryRes?.data) dispatch(setSummary(summaryRes.data));
+      } catch (err) {
+        // Error surfaced via notifications
+      } finally {
+        dispatch(setLoading(false));
+        setIsRefreshing(false);
+      }
+    },
+    [dispatch]
+  );
 
   useEffect(() => {
     loadData();
-  }, [dispatch]);
+  }, [loadData]);
 
   // Refresh data when the modal is closed
   const { type: modalType } = useSelector((state: RootState) => state.modal);
@@ -76,7 +80,13 @@ export default function BudgetsPage() {
       loadData(true);
     }
     setPrevModalType(modalType);
-  }, [modalType, prevModalType]);
+  }, [modalType, prevModalType, loadData]);
+
+  useEffect(() => {
+    return subscribeToTransactionMutation(() => {
+      loadData(true);
+    });
+  }, [loadData]);
 
   const stats = useMemo(() => calculateBudgetSummaryStats(summary), [summary]);
 

@@ -45,7 +45,6 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
   const token =
     (req.cookies as Record<string, string>)?.[jwtConfig.cookieName] ||
     req.header('Authorization')?.replace('Bearer ', '').trim();
-
   if (!token) {
     res.status(401).json({ success: false, message: 'Authorization token required' });
     return;
