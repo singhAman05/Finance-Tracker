@@ -163,7 +163,6 @@ export const markBillInstanceAsPaid = async (bill_instance_id: string, client_id
   if (rpcError) {
     throw new Error(rpcError.message);
   }
-
   return { success: true, data: rpcData };
 };
 

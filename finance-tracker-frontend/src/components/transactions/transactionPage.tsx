@@ -85,6 +85,7 @@ import {
   Info,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { FINANCIAL_SYNC_EVENT, getFinancialDataMarker } from "@/utils/financialSync";
 
 // --- Animation Variants (Matching AccountsPage) ---
 const staggerContainer = {
@@ -168,6 +169,7 @@ export default function TransactionPage() {
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [lastHydratedAt, setLastHydratedAt] = useState(0);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
   const [categoryFilter, setCategoryFilter] = useState<"all" | string>("all");
@@ -219,6 +221,7 @@ export default function TransactionPage() {
         setCurrentPage(1);
         const pagination = txRes?.pagination;
         setHasMore(pagination ? pagination.page < pagination.pages : false);
+        setLastHydratedAt(Date.now());
       } catch (err) {
         // Error surfaced via notifications
       } finally {
@@ -254,6 +257,31 @@ export default function TransactionPage() {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const maybeRefreshFromMutation = () => {
+      const marker = getFinancialDataMarker();
+      if (marker > lastHydratedAt) {
+        loadData(true);
+      }
+    };
+
+    const onCustomMutation = () => maybeRefreshFromMutation();
+    const onFocus = () => maybeRefreshFromMutation();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") maybeRefreshFromMutation();
+    };
+
+    window.addEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [lastHydratedAt, loadData]);
 
   // --- Filtering & Stats ---
   const filteredTransactions = useMemo(() => {

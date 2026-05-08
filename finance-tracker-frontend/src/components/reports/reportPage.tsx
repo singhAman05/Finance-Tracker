@@ -44,6 +44,7 @@ import {
   getMonthlyInsights,
   type ReportPeriod,
 } from "@/service/service_reports";
+import { FINANCIAL_SYNC_EVENT, getFinancialDataMarker } from "@/utils/financialSync";
 
 const staggerContainer = {
   hidden: {},
@@ -124,7 +125,7 @@ export default function ReportPage() {
 
   useEffect(() => {
     const maybeRefreshFromMutation = () => {
-      const marker = Number(localStorage.getItem("finance:last-transaction-change") || "0");
+      const marker = getFinancialDataMarker();
       if (marker > lastHydratedAt) {
         loadData(true);
       }
@@ -136,12 +137,12 @@ export default function ReportPage() {
       if (document.visibilityState === "visible") maybeRefreshFromMutation();
     };
 
-    window.addEventListener("finance:transaction-changed", onCustomMutation);
+    window.addEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      window.removeEventListener("finance:transaction-changed", onCustomMutation);
+      window.removeEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     };
@@ -412,4 +413,5 @@ export default function ReportPage() {
     </div>
   );
 }
+
 

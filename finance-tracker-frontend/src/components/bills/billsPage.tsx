@@ -6,11 +6,12 @@ import { useDispatch, useSelector } from "react-redux";
 import { motion, AnimatePresence } from "framer-motion";
 import { RootState } from "@/app/store";
 import { setBills, setInstances, markInstancePaid } from "@/components/redux/slices/slice_bills";
-import { setTransactions, addTransaction } from "@/components/redux/slices/slice_transactions";
+import { setTransactions } from "@/components/redux/slices/slice_transactions";
 import { setAccounts } from "@/components/redux/slices/slice_accounts";
 import { payBillInstance } from "@/service/service_bills";
 import { fetchBillInstancesRoute, fetchBillsRoute } from "@/routes/route_bills";
 import { fetchAccounts } from "@/service/service_accounts";
+import { fetchTransactions } from "@/service/service_transactions";
 import { notify } from "@/lib/notifications";
 import { Skeleton } from "boneyard-js/react";
 import { BillsFixture } from "@/bones/fixtures";
@@ -67,10 +68,6 @@ export default function BillsPage() {
     [dispatch]
   );
 
-  useEffect(() => {
-    loadData();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
-
   // ── Summary Stats ──────────────────────────────────────────────────────────
   const now = new Date();
   const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -78,12 +75,14 @@ export default function BillsPage() {
   const stats = useMemo(() => {
     const now = new Date();
     now.setHours(0, 0, 0, 0);
+    const fifteenDaysLater = new Date(now);
+    fifteenDaysLater.setDate(now.getDate() + 15);
 
     const upcoming = instances.filter((i) => {
         if (i.status !== "upcoming") return false;
         const dueDate = new Date(i.due_date);
         dueDate.setHours(0, 0, 0, 0);
-        return dueDate >= now;
+        return dueDate >= now && dueDate <= fifteenDaysLater;
     });
 
     const overdue = instances.filter((i) => {
@@ -131,16 +130,15 @@ export default function BillsPage() {
       const result = await payBillInstance(instanceId);
       if (result) {
         dispatch(markInstancePaid(instanceId));
-        // Re-fetch instances (recurring bills generate next instance on backend)
-        const instancesRes = await fetchBillInstancesRoute();
+        // Re-fetch all directly impacted stores from backend truth.
+        const [instancesRes, accRes, txRes] = await Promise.all([
+          fetchBillInstancesRoute(),
+          fetchAccounts(),
+          fetchTransactions(1, 100),
+        ]);
         if (instancesRes?.data) dispatch(setInstances(instancesRes.data));
-        // Re-fetch accounts (balance changed on backend)
-        const accRes = await fetchAccounts();
         if (accRes?.data) dispatch(setAccounts(accRes.data));
-        // Add the created transaction to store if returned
-        if (result.transaction) {
-          dispatch(addTransaction(result.transaction));
-        }
+        if (txRes?.data) dispatch(setTransactions(txRes.data));
       }
     } catch (err) {
       // Error surfaced via notifications

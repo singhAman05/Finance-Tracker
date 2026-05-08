@@ -1,6 +1,7 @@
 import { notify } from "@/lib/notifications";
 import { addTransactionRoute, fetchTransactionsRoute, deleteTransactionRoute } from "@/routes/route_transactions";
 import type { Transaction, Account } from "@/types/interfaces";
+import { markFinancialDataChanged } from "@/utils/financialSync";
 
 export const createTransaction = async (payload: {
     account_id: string;
@@ -13,6 +14,7 @@ export const createTransaction = async (payload: {
     recurrence_rule?: string;
 }) => {
     const result = await addTransactionRoute(payload);
+    markFinancialDataChanged();
     notify.success(result?.message || "Transaction added successfully");
     return result;
 };
@@ -37,6 +39,7 @@ export const fetchTransactions = async (
 
 export const deleteTransaction = async (transaction_id: string) => {
     const result = await deleteTransactionRoute(transaction_id);
+    markFinancialDataChanged();
     notify.success(result?.message || "Transaction deleted successfully");
     return result;
 };

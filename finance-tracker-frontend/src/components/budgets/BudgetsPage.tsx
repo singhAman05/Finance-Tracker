@@ -25,6 +25,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from "recharts";
+import { FINANCIAL_SYNC_EVENT, getFinancialDataMarker } from "@/utils/financialSync";
 
 const staggerContainer = {
   hidden: {},
@@ -46,6 +47,7 @@ export default function BudgetsPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [activeVisible, setActiveVisible] = useState(20);
   const [expiredVisible, setExpiredVisible] = useState(20);
+  const [lastHydratedAt, setLastHydratedAt] = useState(0);
 
   const loadData = useCallback(
     async (refresh = false) => {
@@ -56,6 +58,7 @@ export default function BudgetsPage() {
         const summaryRes = await fetchBudgetSummary();
 
         if (summaryRes?.data) dispatch(setSummary(summaryRes.data));
+        setLastHydratedAt(Date.now());
       } catch (err) {
         // Error surfaced via notifications
       } finally {
@@ -69,6 +72,31 @@ export default function BudgetsPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const maybeRefreshFromMutation = () => {
+      const marker = getFinancialDataMarker();
+      if (marker > lastHydratedAt) {
+        loadData(true);
+      }
+    };
+
+    const onCustomMutation = () => maybeRefreshFromMutation();
+    const onFocus = () => maybeRefreshFromMutation();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") maybeRefreshFromMutation();
+    };
+
+    window.addEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [lastHydratedAt, loadData]);
 
   // Refresh data when the modal is closed
   const { type: modalType } = useSelector((state: RootState) => state.modal);

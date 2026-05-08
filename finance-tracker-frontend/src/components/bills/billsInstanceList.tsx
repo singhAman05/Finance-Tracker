@@ -83,8 +83,17 @@ export default function BillsInstanceList({
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
+  const fifteenDaysLater = new Date(now);
+  fifteenDaysLater.setDate(now.getDate() + 15);
 
-  const sorted = [...instances].sort((a, b) => {
+  const visibleBase = instances.filter((inst) => {
+    if (inst.status !== "upcoming") return true;
+    const dueDate = new Date(inst.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate >= now && dueDate <= fifteenDaysLater;
+  });
+
+  const sorted = [...visibleBase].sort((a, b) => {
     // 1. Determine effective status (taking date into account)
     const getEffectiveStatus = (inst: BillInstance) => {
         if (inst.status === 'paid') return 'paid';

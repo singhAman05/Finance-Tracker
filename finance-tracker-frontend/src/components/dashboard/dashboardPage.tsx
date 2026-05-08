@@ -70,6 +70,7 @@ import { setCategories } from "../redux/slices/slice_categories";
 import { BillInstance, Bill } from "@/types/interfaces";
 import { useCurrency } from "@/hooks/useCurrency";
 import { useDateFormat } from "@/hooks/useDateFormat";
+import { FINANCIAL_SYNC_EVENT, getFinancialDataMarker } from "@/utils/financialSync";
 
 const staggerContainer = {
   hidden: {},
@@ -226,12 +227,10 @@ export default function DashboardPage() {
 
   // Re-fetch when coming back to this page after a mutation elsewhere
   useEffect(() => {
-    const EVENT_NAME = "finance:transaction-changed";
-    const STORAGE_KEY = "finance:last-transaction-change";
     let hydratedAt = Date.now();
 
     const maybeRefresh = () => {
-      const marker = Number(localStorage.getItem(STORAGE_KEY) || "0");
+      const marker = getFinancialDataMarker();
       if (marker > hydratedAt) {
         hydratedAt = Date.now();
         loadDashboard();
@@ -244,12 +243,12 @@ export default function DashboardPage() {
       if (document.visibilityState === "visible") maybeRefresh();
     };
 
-    window.addEventListener(EVENT_NAME, onEvent);
+    window.addEventListener(FINANCIAL_SYNC_EVENT, onEvent);
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
 
     return () => {
-      window.removeEventListener(EVENT_NAME, onEvent);
+      window.removeEventListener(FINANCIAL_SYNC_EVENT, onEvent);
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     };
@@ -1081,3 +1080,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

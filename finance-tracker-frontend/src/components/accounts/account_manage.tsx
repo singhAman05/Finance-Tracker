@@ -48,6 +48,7 @@ import { Skeleton } from "boneyard-js/react";
 import { AccountsFixture } from "@/bones/fixtures";
 import { Badge } from "@/components/ui/badge";
 import { cn, getLocaleForCurrency } from "@/lib/utils";
+import { FINANCIAL_SYNC_EVENT, getFinancialDataMarker } from "@/utils/financialSync";
 
 import {
   Tooltip,
@@ -120,6 +121,7 @@ export default function AccountsPage() {
   const [accountsPage, setAccountsPage] = useState(1);
   const [hasMoreAccounts, setHasMoreAccounts] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [lastHydratedAt, setLastHydratedAt] = useState(0);
   const PAGE_SIZE = 20;
 
   // --- Logic ---
@@ -151,6 +153,7 @@ export default function AccountsPage() {
         if (transactionsRes.status === "fulfilled" && transactionsRes.value?.data) {
           dispatch(setTransactions(transactionsRes.value.data));
         }
+        setLastHydratedAt(Date.now());
       } catch (err) {
         // Error handled by API client notifications
       } finally {
@@ -191,6 +194,31 @@ export default function AccountsPage() {
       setLoading(false);
     }
   }, [loadAccounts, accounts.length]);
+
+  useEffect(() => {
+    const maybeRefreshFromMutation = () => {
+      const marker = getFinancialDataMarker();
+      if (marker > lastHydratedAt) {
+        loadAccounts(true);
+      }
+    };
+
+    const onCustomMutation = () => maybeRefreshFromMutation();
+    const onFocus = () => maybeRefreshFromMutation();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") maybeRefreshFromMutation();
+    };
+
+    window.addEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener(FINANCIAL_SYNC_EVENT, onCustomMutation);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [lastHydratedAt, loadAccounts]);
 
   const confirmDelete = async () => {
     if (!deleteAccountData) return;

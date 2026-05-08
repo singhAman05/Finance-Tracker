@@ -6,11 +6,13 @@ import {
     payBillInstanceRoute,
     CreateBillPayload,
 } from "@/routes/route_bills";
+import { markFinancialDataChanged } from "@/utils/financialSync";
 
 export type { CreateBillPayload };
 
 export const createBill = async (payload: CreateBillPayload) => {
     const result = await createBillRoute(payload);
+    markFinancialDataChanged();
     if (result) {
         notify.success(result.message || "Bill created successfully");
     }
@@ -29,6 +31,7 @@ export const fetchBillInstances = async () => {
 
 export const payBillInstance = async (bill_instance_id: string) => {
     const result = await payBillInstanceRoute(bill_instance_id);
+    markFinancialDataChanged();
     if (result) {
         notify.success("Bill marked as paid!");
     }

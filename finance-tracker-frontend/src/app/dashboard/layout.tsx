@@ -13,6 +13,7 @@ import { fetchAccounts } from "@/service/service_accounts";
 import { fetchCategories } from "@/service/service_categories";
 import { setAccounts } from "@/components/redux/slices/slice_accounts";
 import { setCategories } from "@/components/redux/slices/slice_categories";
+import FinancialSyncBadge from "@/components/debug/FinancialSyncBadge";
 
 // Global init flag — prevents re-fetching across navigations within the same session
 const BOOTSTRAP_KEY = "__ft_bootstrapped";
@@ -141,6 +142,8 @@ export default function DashboardLayout({
       <main className="flex-1 h-full overflow-y-auto pt-14 md:pt-0 transition-all scroll-smooth">
         {children}
       </main>
+
+      {process.env.NODE_ENV === "development" && <FinancialSyncBadge />}
     </div>
   );
 }

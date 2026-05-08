@@ -1,5 +1,5 @@
-﻿-- =============================================================================
--- Finance Tracker — Complete Database Schema
+-- =============================================================================
+-- Finance Tracker � Complete Database Schema
 -- Single migration file for a clean Supabase project.
 -- =============================================================================
 
