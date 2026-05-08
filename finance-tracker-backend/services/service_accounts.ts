@@ -1,4 +1,4 @@
-﻿import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import { createTransaction } from './service_transactions';
 
 export const creatingAccount = async (account_payload: any) => {
@@ -19,7 +19,7 @@ export const creatingAccount = async (account_payload: any) => {
     recurring_description,
   } = account_payload;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('accounts')
     .insert({
       client_id,
@@ -44,7 +44,7 @@ export const creatingAccount = async (account_payload: any) => {
 };
 
 export const fetchAllaccounts = async (client_id: string, pagination?: { from: number; to: number }) => {
-  let query = supabase
+  let query = supabaseAdmin
     .from('accounts')
     .select('*', { count: 'exact' })
     .eq('client_id', client_id)
@@ -70,7 +70,7 @@ export const updateAccount = async (
     status?: 'active' | 'inactive';
   }
 ) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('accounts')
     .update(updates)
     .eq('id', account_id)
@@ -81,7 +81,7 @@ export const updateAccount = async (
 };
 
 export const getAccountStatus = async (account_id: string, client_id: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('accounts')
     .select('status')
     .eq('id', account_id)
@@ -91,7 +91,7 @@ export const getAccountStatus = async (account_id: string, client_id: string) =>
 };
 
 export const deleteAccount = async (account_id: string, client_id: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('accounts')
     .delete()
     .eq('id', account_id)
@@ -130,7 +130,7 @@ const alreadyPostedThisPeriod = (lastPosted: string | null, frequency: string): 
 const isDueToday = (dayOfMonth: number): boolean => new Date().getDate() >= dayOfMonth;
 
 export const processRecurringAccounts = async (client_id: string) => {
-  const { data: accounts, error: fetchError } = await supabase
+  const { data: accounts, error: fetchError } = await supabaseAdmin
     .from('accounts')
     .select('*')
     .eq('client_id', client_id)
@@ -175,7 +175,7 @@ export const processRecurringAccounts = async (client_id: string) => {
     }
 
     // createTransaction already adjusts account balance; stamp only recurring marker here.
-    const { error: stampErr } = await supabase
+    const { error: stampErr } = await supabaseAdmin
       .from('accounts')
       .update({ recurring_last_posted: today })
       .eq('id', account_id);
@@ -189,7 +189,7 @@ export const processRecurringAccounts = async (client_id: string) => {
 };
 
 export const fetchRecurringAccounts = async (client_id: string) => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('accounts')
     .select('*')
     .eq('client_id', client_id)
@@ -197,3 +197,4 @@ export const fetchRecurringAccounts = async (client_id: string) => {
 
   return { data, error };
 };
+

@@ -76,6 +76,7 @@ export default function ReportPage() {
   const [period, setPeriod] = useState<ReportPeriod>("last3Months");
   const [horizonDays, setHorizonDays] = useState(90);
   const [activeTab, setActiveTab] = useState("overview");
+  const [lastHydratedAt, setLastHydratedAt] = useState(0);
 
   const accountLookup = useMemo(
     () => accounts.reduce((map, acc) => ({ ...map, [acc.id]: acc }), {} as Record<string, any>),
@@ -112,6 +113,7 @@ export default function ReportPage() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
+      setLastHydratedAt(Date.now());
     }
   };
 
@@ -119,6 +121,31 @@ export default function ReportPage() {
     loadData(false);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const maybeRefreshFromMutation = () => {
+      const marker = Number(localStorage.getItem("finance:last-transaction-change") || "0");
+      if (marker > lastHydratedAt) {
+        loadData(true);
+      }
+    };
+
+    const onCustomMutation = () => maybeRefreshFromMutation();
+    const onFocus = () => maybeRefreshFromMutation();
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") maybeRefreshFromMutation();
+    };
+
+    window.addEventListener("finance:transaction-changed", onCustomMutation);
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    return () => {
+      window.removeEventListener("finance:transaction-changed", onCustomMutation);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  }, [lastHydratedAt]);
 
   // Re-fetch transactions when period changes
   useEffect(() => {

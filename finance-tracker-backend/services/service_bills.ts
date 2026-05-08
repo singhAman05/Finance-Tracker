@@ -1,4 +1,4 @@
-﻿import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import { createTransaction } from './service_transactions';
 import { AppError } from '../utils/AppError';
 
@@ -54,7 +54,7 @@ export const createBill = async (payload: NewBillPayload) => {
     notes,
   } = payload;
 
-  const { data: bill, error: billError } = await supabase
+  const { data: bill, error: billError } = await supabaseAdmin
     .from('bills')
     .insert({
       client_id,
@@ -75,7 +75,7 @@ export const createBill = async (payload: NewBillPayload) => {
 
   if (billError) throw new Error(billError.message);
 
-  const { error: instanceError } = await supabase.from('bill_instances').insert({
+  const { error: instanceError } = await supabaseAdmin.from('bill_instances').insert({
     bill_id: bill.id,
     client_id,
     due_date: start_date,
@@ -88,7 +88,7 @@ export const createBill = async (payload: NewBillPayload) => {
 };
 
 export const fetchBills = async (client_id: string, pagination?: { from: number; to: number }) => {
-  let query = supabase
+  let query = supabaseAdmin
     .from('bills')
     .select('*', { count: 'exact' })
     .eq('client_id', client_id)
@@ -104,7 +104,7 @@ export const fetchBills = async (client_id: string, pagination?: { from: number;
 };
 
 export const fetchBillInstances = async (client_id: string, pagination?: { from: number; to: number }) => {
-  let query = supabase
+  let query = supabaseAdmin
     .from('bill_instances')
     .select('*', { count: 'exact' })
     .eq('client_id', client_id)
@@ -121,7 +121,7 @@ export const fetchBillInstances = async (client_id: string, pagination?: { from:
 
 export const markBillInstanceAsPaid = async (bill_instance_id: string, client_id: string) => {
   // Preferred atomic path using DB RPC.
-  const { data: rpcData, error: rpcError } = await supabase.rpc('pay_bill_instance', {
+  const { data: rpcData, error: rpcError } = await supabaseAdmin.rpc('pay_bill_instance', {
     p_bill_instance_id: bill_instance_id,
     p_client_id: client_id,
   });
@@ -134,7 +134,7 @@ export const markBillInstanceAsPaid = async (bill_instance_id: string, client_id
 };
 
 export const generateNextInstance = async (bill: any) => {
-  const { data: lastInstance, error } = await supabase
+  const { data: lastInstance, error } = await supabaseAdmin
     .from('bill_instances')
     .select('*')
     .eq('bill_id', bill.id)
@@ -147,7 +147,7 @@ export const generateNextInstance = async (bill: any) => {
   const nextDueDate = calculateNextDueDate(new Date(lastInstance.due_date), bill.recurrence_type, bill.recurrence_interval);
   if (bill.end_date && nextDueDate > new Date(bill.end_date)) return;
 
-  const { error: insertError } = await supabase.from('bill_instances').insert({
+  const { error: insertError } = await supabaseAdmin.from('bill_instances').insert({
     bill_id: bill.id,
     client_id: bill.client_id,
     due_date: nextDueDate.toISOString().split('T')[0],
@@ -157,3 +157,4 @@ export const generateNextInstance = async (bill: any) => {
 
   if (insertError) throw new Error(insertError.message);
 };
+

@@ -67,6 +67,7 @@ export const handleAccountCreation = asyncHandler(async (req: Request, res: Resp
   });
 
   if (result.error || !result.data) {
+    console.log(result.error);
     throw AppError.internal('Failed to create account', result.error);
   }
 
