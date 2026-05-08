@@ -207,22 +207,14 @@ export default function TransactionPage() {
         else setIsLoading(true);
 
         const [accRes, txRes, catRes] = await Promise.all([
-          accounts.length === 0 || isRefresh
-            ? fetchAccounts()
-            : Promise.resolve({ data: accounts }),
+          fetchAccounts(),
           fetchTransactions(1, PAGE_SIZE),
-          categories.length === 0 || isRefresh
-            ? fetchCategories()
-            : Promise.resolve({ data: categories }),
+          fetchCategories(),
         ]);
 
-        if (accounts.length === 0 || isRefresh)
-          dispatch(setAccounts(accRes?.data ?? []));
-
-        // Always replace with fresh server data on load/refresh.
+        dispatch(setAccounts(accRes?.data ?? []));
         dispatch(setTransactions(txRes?.data ?? []));
-        if (categories.length === 0 || isRefresh)
-          dispatch(setCategories(catRes?.data ?? []));
+        dispatch(setCategories(catRes?.data ?? []));
 
         setCurrentPage(1);
         const pagination = txRes?.pagination;
@@ -234,7 +226,7 @@ export default function TransactionPage() {
         setIsRefreshing(false);
       }
     },
-    [dispatch, accounts, categories]
+    [dispatch]
   );
 
   const loadMore = useCallback(async () => {

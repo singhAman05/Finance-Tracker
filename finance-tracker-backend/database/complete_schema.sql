@@ -524,7 +524,101 @@ CREATE TRIGGER trg_tx_account_owner
   FOR EACH ROW EXECUTE FUNCTION fn_check_tx_account_owner();
 
 -- =============================================================================
--- 15. CLEAR HISTORY RPC
+-- 15. PAY BILL INSTANCE RPC
+-- =============================================================================
+CREATE OR REPLACE FUNCTION pay_bill_instance(
+  p_bill_instance_id UUID,
+  p_client_id UUID
+)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_instance   RECORD;
+  v_bill       RECORD;
+  v_tx_id      UUID;
+  v_next_due   DATE;
+BEGIN
+  -- 1. Lock and fetch the instance
+  SELECT * INTO v_instance
+  FROM bill_instances
+  WHERE id = p_bill_instance_id AND client_id = p_client_id
+  FOR UPDATE;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Bill instance not found or access denied';
+  END IF;
+
+  IF v_instance.status = 'paid' THEN
+    RAISE EXCEPTION 'Bill instance is already paid';
+  END IF;
+
+  -- 2. Fetch the parent bill
+  SELECT * INTO v_bill
+  FROM bills
+  WHERE id = v_instance.bill_id;
+
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Parent bill not found';
+  END IF;
+
+  IF v_bill.account_id IS NULL THEN
+    RAISE EXCEPTION 'Bill has no linked account';
+  END IF;
+
+  -- 3. Create the expense transaction
+  INSERT INTO transactions (client_id, account_id, category_id, amount, type, date, description, bill_instance_id)
+  VALUES (
+    p_client_id,
+    v_bill.account_id,
+    v_bill.system_category_id,
+    v_instance.amount,
+    'expense',
+    CURRENT_DATE,
+    'Bill: ' || v_bill.name,
+    p_bill_instance_id
+  )
+  RETURNING id INTO v_tx_id;
+
+  -- 4. Adjust account balance
+  PERFORM adjust_account_balance(v_bill.account_id, -v_instance.amount);
+
+  -- 5. Mark instance as paid
+  UPDATE bill_instances
+  SET status = 'paid',
+      paid_at = NOW(),
+      transaction_id = v_tx_id
+  WHERE id = p_bill_instance_id;
+
+  -- 6. Generate next recurring instance if applicable
+  IF v_bill.is_recurring THEN
+    v_next_due := CASE v_bill.recurrence_type
+      WHEN 'weekly'    THEN v_instance.due_date + (7 * COALESCE(v_bill.recurrence_interval, 1))
+      WHEN 'monthly'   THEN v_instance.due_date + (INTERVAL '1 month' * COALESCE(v_bill.recurrence_interval, 1))
+      WHEN 'quarterly' THEN v_instance.due_date + (INTERVAL '3 months' * COALESCE(v_bill.recurrence_interval, 1))
+      WHEN 'yearly'    THEN v_instance.due_date + (INTERVAL '1 year' * COALESCE(v_bill.recurrence_interval, 1))
+    END;
+
+    -- Only create if within end_date (or no end_date)
+    IF v_bill.end_date IS NULL OR v_next_due <= v_bill.end_date THEN
+      INSERT INTO bill_instances (bill_id, client_id, due_date, amount, status)
+      VALUES (v_bill.id, p_client_id, v_next_due, v_bill.amount, 'upcoming')
+      ON CONFLICT (bill_id, due_date) DO NOTHING;
+    END IF;
+  END IF;
+
+  -- 7. Return the created transaction as JSON
+  RETURN (
+    SELECT to_jsonb(t)
+    FROM transactions t
+    WHERE t.id = v_tx_id
+  );
+END;
+$$;
+
+-- =============================================================================
+-- 16. CLEAR HISTORY RPC
 -- =============================================================================
 CREATE OR REPLACE FUNCTION clear_client_history(p_client_id UUID)
 RETURNS JSONB

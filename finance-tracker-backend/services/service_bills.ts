@@ -75,15 +75,49 @@ export const createBill = async (payload: NewBillPayload) => {
 
   if (billError) throw new Error(billError.message);
 
-  const { error: instanceError } = await supabaseAdmin.from('bill_instances').insert({
-    bill_id: bill.id,
-    client_id,
-    due_date: start_date,
-    amount,
-    status: 'upcoming',
-  });
+  // Generate initial instances: for recurring bills, create instances for the next 90 days
+  const instancesToInsert: Array<{
+    bill_id: string;
+    client_id: string;
+    due_date: string;
+    amount: number;
+    status: string;
+  }> = [];
 
-  if (instanceError) throw new Error(instanceError.message);
+  if (is_recurring && recurrence_type) {
+    let currentDue = new Date(start_date);
+    const horizon = new Date();
+    horizon.setDate(horizon.getDate() + 90); // 90-day lookahead
+    const endLimit = end_date ? new Date(end_date) : null;
+
+    while (currentDue <= horizon) {
+      if (endLimit && currentDue > endLimit) break;
+      instancesToInsert.push({
+        bill_id: bill.id,
+        client_id,
+        due_date: currentDue.toISOString().split('T')[0],
+        amount,
+        status: 'upcoming',
+      });
+      currentDue = calculateNextDueDate(currentDue, recurrence_type, recurrence_interval);
+    }
+  } else {
+    // One-time bill: single instance
+    instancesToInsert.push({
+      bill_id: bill.id,
+      client_id,
+      due_date: start_date,
+      amount,
+      status: 'upcoming',
+    });
+  }
+
+  if (instancesToInsert.length > 0) {
+    const { error: instanceError } = await supabaseAdmin
+      .from('bill_instances')
+      .insert(instancesToInsert);
+    if (instanceError) throw new Error(instanceError.message);
+  }
   return bill;
 };
 

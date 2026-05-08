@@ -117,12 +117,13 @@ export const handleBillInstancePayment = asyncHandler(async (req: Request, res: 
     }
   }
 
-  await markBillInstanceAsPaid(bill_instance_id, user.id);
+  const result = await markBillInstanceAsPaid(bill_instance_id, user.id);
   await invalidateBillPayment(user.id);
 
   res.status(200).json({
     success: true,
     message: 'Bill marked as paid successfully',
     data: { bill_instance_id },
+    transaction: result.data,
   });
 });

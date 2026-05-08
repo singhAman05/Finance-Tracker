@@ -56,7 +56,7 @@ export const fetchBillInstancesRoute = async (page = 1, limit = 50) => {
 };
 
 export const payBillInstanceRoute = async (bill_instance_id: string) => {
-    const res = await apiClient<{ message: string }>(
+    const res = await apiClient<{ message: string; data: { bill_instance_id: string }; transaction: any }>(
         `/api/bills/pay-bill/${bill_instance_id}`,
         {
             method: "POST",
