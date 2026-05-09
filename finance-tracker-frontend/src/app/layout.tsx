@@ -48,6 +48,7 @@ export default function RootLayout({
             />
           </ReduxProvider>
         </ThemeProvider>
+        <script defer src="https://cloud.umami.is/script.js" data-website-id="6cac390c-f4cd-4ba9-bb29-e46a01f5197e"></script>
       </body>
     </html>
   );

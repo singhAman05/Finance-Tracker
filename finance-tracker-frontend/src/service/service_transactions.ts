@@ -14,7 +14,7 @@ export const createTransaction = async (payload: {
     recurrence_rule?: string;
 }) => {
     const result = await addTransactionRoute(payload);
-    markFinancialDataChanged();
+    markFinancialDataChanged("transaction_add");
     notify.success(result?.message || "Transaction added successfully");
     return result;
 };
@@ -39,7 +39,7 @@ export const fetchTransactions = async (
 
 export const deleteTransaction = async (transaction_id: string) => {
     const result = await deleteTransactionRoute(transaction_id);
-    markFinancialDataChanged();
+    markFinancialDataChanged("transaction_delete");
     notify.success(result?.message || "Transaction deleted successfully");
     return result;
 };

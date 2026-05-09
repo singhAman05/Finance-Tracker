@@ -12,6 +12,7 @@ import { useDateFormat } from "@/hooks/useDateFormat";
 
 // Redux Actions
 import { setAccounts } from "../redux/slices/slice_accounts";
+import { updateAccountInStore } from "../redux/slices/slice_accounts";
 import {
   setTransactions,
   removeTransaction,
@@ -168,7 +169,7 @@ export default function TransactionPage() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
-  const [hasMore, setHasMore] = useState(true);
+  const [serverTotal, setServerTotal] = useState(0);
   const [lastHydratedAt, setLastHydratedAt] = useState(0);
   const [search, setSearch] = useState("");
   const [accountFilter, setAccountFilter] = useState<"all" | string>("all");
@@ -179,6 +180,7 @@ export default function TransactionPage() {
     id: string;
     description: string;
   } | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const PAGE_SIZE = 20;
 
@@ -219,8 +221,7 @@ export default function TransactionPage() {
         dispatch(setCategories(catRes?.data ?? []));
 
         setCurrentPage(1);
-        const pagination = txRes?.pagination;
-        setHasMore(pagination ? pagination.page < pagination.pages : false);
+        setServerTotal(Number(txRes?.pagination?.total ?? txRes?.data?.length ?? 0));
         setLastHydratedAt(Date.now());
       } catch (err) {
         // Error surfaced via notifications
@@ -233,7 +234,7 @@ export default function TransactionPage() {
   );
 
   const loadMore = useCallback(async () => {
-    if (isLoadingMore || !hasMore) return;
+    if (isLoadingMore || transactions.length >= serverTotal) return;
     setIsLoadingMore(true);
     try {
       const nextPage = currentPage + 1;
@@ -241,17 +242,19 @@ export default function TransactionPage() {
       if (txRes?.data?.length) {
         dispatch(setTransactions([...transactions, ...txRes.data]));
         setCurrentPage(nextPage);
-        const pagination = txRes.pagination;
-        setHasMore(pagination ? pagination.page < pagination.pages : false);
+        if (typeof txRes?.pagination?.total === "number") {
+          setServerTotal(txRes.pagination.total);
+        }
       } else {
-        setHasMore(false);
+        // If backend returned empty page, align total with current loaded size.
+        setServerTotal((prev) => Math.min(prev, transactions.length));
       }
     } catch {
       // Error surfaced via notifications
     } finally {
       setIsLoadingMore(false);
     }
-  }, [isLoadingMore, hasMore, currentPage, transactions, dispatch]);
+  }, [isLoadingMore, currentPage, transactions, serverTotal, dispatch]);
 
   useEffect(() => {
     loadData();
@@ -259,14 +262,23 @@ export default function TransactionPage() {
   }, []);
 
   useEffect(() => {
-    const maybeRefreshFromMutation = () => {
+    const maybeRefreshFromMutation = (evt?: Event) => {
+      const kind = (evt as CustomEvent<{ kind?: string }> | undefined)?.detail?.kind;
+      if (kind === "transaction_add") {
+        setServerTotal((prev) => prev + 1);
+        return;
+      }
+      if (kind === "transaction_delete") {
+        setServerTotal((prev) => Math.max(0, prev - 1));
+        return;
+      }
       const marker = getFinancialDataMarker();
       if (marker > lastHydratedAt) {
         loadData(true);
       }
     };
 
-    const onCustomMutation = () => maybeRefreshFromMutation();
+    const onCustomMutation = (evt: Event) => maybeRefreshFromMutation(evt);
     const onFocus = () => maybeRefreshFromMutation();
     const onVisibility = () => {
       if (document.visibilityState === "visible") maybeRefreshFromMutation();
@@ -329,16 +341,41 @@ export default function TransactionPage() {
   // --- Handlers ---
   const confirmDelete = async () => {
     if (!deleteData) return;
+    const targetId = deleteData.id;
+    const txToDelete = transactions.find((tx) => tx.id === targetId);
+
     try {
-      await deleteTransaction(deleteData.id);
-      dispatch(removeTransaction(deleteData.id));
-      // Re-fetch accounts to update balances after deletion
-      const accRes = await fetchAccounts();
-      if (accRes?.data) dispatch(setAccounts(accRes.data));
+      setDeletingId(targetId);
+      // Optimistic UI: remove immediately so user sees instant feedback.
+      dispatch(removeTransaction(targetId));
+
+      // Optimistic account balance update matching backend reversal logic.
+      if (txToDelete) {
+        const currentAccount = accounts.find((a) => a.id === txToDelete.account_id);
+        if (currentAccount) {
+          const amount = Math.abs(Number(txToDelete.amount) || 0);
+          const balanceDelta = txToDelete.type === "income" ? -amount : amount;
+          dispatch(
+            updateAccountInStore({
+              id: txToDelete.account_id,
+              balance: (currentAccount.balance ?? 0) + balanceDelta,
+            })
+          );
+        }
+      }
+
+      await deleteTransaction(targetId);
+      setDeleteData(null);
+
+      // Reconcile balances with backend in background (don't block UI).
+      void fetchAccounts().then((accRes) => {
+        if (accRes?.data) dispatch(setAccounts(accRes.data));
+      });
     } catch (err) {
+      // Re-sync store if delete fails.
       loadData(true);
     } finally {
-      setDeleteData(null);
+      setDeletingId(null);
     }
   };
 
@@ -389,9 +426,10 @@ export default function TransactionPage() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={confirmDelete}
+              disabled={!!deletingId}
               className="rounded-full bg-danger hover:bg-danger/90 text-white font-medium shadow-sm transition-colors"
             >
-              Delete
+              {deletingId ? "Deleting..." : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -688,7 +726,7 @@ export default function TransactionPage() {
                 </div>
 
                 {/* Load More (mobile) */}
-                {hasMore && (
+                {transactions.length < serverTotal && (
                   <div className="md:hidden flex justify-center py-4">
                     <Button
                       variant="outline"
@@ -778,7 +816,7 @@ export default function TransactionPage() {
                     </TableBody>
                   </Table>
                 </div>
-                {hasMore && (
+                {transactions.length < serverTotal && (
                   <div className="flex justify-center py-4">
                     <Button
                       variant="outline"

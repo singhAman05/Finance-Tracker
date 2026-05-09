@@ -47,7 +47,7 @@ export const handleTransactionsAdd = asyncHandler(async (req: Request, res: Resp
     is_recurring: typeof is_recurring === 'boolean' ? is_recurring : false,
     recurrence_rule:
       typeof recurrence_rule === 'string' &&
-      RECURRENCE_VALUES.includes(recurrence_rule as (typeof RECURRENCE_VALUES)[number])
+        RECURRENCE_VALUES.includes(recurrence_rule as (typeof RECURRENCE_VALUES)[number])
         ? (recurrence_rule as (typeof RECURRENCE_VALUES)[number])
         : undefined,
   };
@@ -77,7 +77,6 @@ export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Re
   const end_date = typeof req.query.end_date === 'string' ? req.query.end_date : undefined;
 
   const cacheKey = CacheKey.transactions(user.id, page, limit) + (start_date ? `:s${start_date}` : '') + (end_date ? `:e${end_date}` : '');
-
   const cached = await getCache(cacheKey);
   if (cached) {
     res.status(200).json({ success: true, message: 'Transactions from cache', ...(cached as object) });

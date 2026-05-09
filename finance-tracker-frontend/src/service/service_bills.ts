@@ -12,7 +12,7 @@ export type { CreateBillPayload };
 
 export const createBill = async (payload: CreateBillPayload) => {
     const result = await createBillRoute(payload);
-    markFinancialDataChanged();
+    markFinancialDataChanged("bill_create");
     if (result) {
         notify.success(result.message || "Bill created successfully");
     }
@@ -31,7 +31,7 @@ export const fetchBillInstances = async () => {
 
 export const payBillInstance = async (bill_instance_id: string) => {
     const result = await payBillInstanceRoute(bill_instance_id);
-    markFinancialDataChanged();
+    markFinancialDataChanged("bill_paid");
     if (result) {
         notify.success("Bill marked as paid!");
     }
