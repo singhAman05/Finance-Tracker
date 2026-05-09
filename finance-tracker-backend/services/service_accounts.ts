@@ -40,6 +40,13 @@ export const creatingAccount = async (account_payload: any) => {
     .select()
     .single();
 
+  if (error) {
+    console.error('[Supabase RLS Debug] Account creation failed:', {
+      error,
+      payload: { client_id, bank_name, account_type }
+    });
+  }
+
   return { data, error };
 };
 
