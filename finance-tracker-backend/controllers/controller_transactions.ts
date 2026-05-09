@@ -71,17 +71,14 @@ export const handleTransactionsAdd = asyncHandler(async (req: Request, res: Resp
 export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Response) => {
   const user = getUser(req);
   const { page, limit, from, to } = parsePagination(req);
-  console.log(page, limit, from, to)
 
   // Optional date-range filters
   const start_date = typeof req.query.start_date === 'string' ? req.query.start_date : undefined;
   const end_date = typeof req.query.end_date === 'string' ? req.query.end_date : undefined;
 
   const cacheKey = CacheKey.transactions(user.id, page, limit) + (start_date ? `:s${start_date}` : '') + (end_date ? `:e${end_date}` : '');
-  console.log("Cache key", cacheKey)
   const cached = await getCache(cacheKey);
   if (cached) {
-    console.log("Transactions from cache")
     res.status(200).json({ success: true, message: 'Transactions from cache', ...(cached as object) });
     return;
   }
@@ -96,7 +93,6 @@ export const handleTransactionsFetch = asyncHandler(async (req: Request, res: Re
     pagination: buildPaginationMeta(page, limit, result.count),
   };
 
-  console.log("Setting Cache : ", cacheKey)
   await setCache(cacheKey, responseBody, cacheTtl.long);
 
   res.status(200).json({ success: true, message: 'Transactions fetched', ...responseBody });

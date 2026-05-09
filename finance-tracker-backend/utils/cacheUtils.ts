@@ -70,10 +70,7 @@ export async function deleteCacheByPrefix(prefix: string): Promise<void> {
     }
 
     if (keysToDelete.length > 0) {
-      console.log("Keys to delete for transaction by prefix:", keysToDelete);
-
       for (let i = 0; i < keysToDelete.length; i++) {
-        console.log("Cache key", keysToDelete[i]);
         await deleteCache(keysToDelete[i]);
       }
     }
@@ -83,13 +80,11 @@ export async function deleteCacheByPrefix(prefix: string): Promise<void> {
 }
 
 export async function invalidateTransactions(clientId: string) {
-  console.log("deleting transactions", CacheKey.prefix.transactions(clientId))
   await deleteCacheByPrefix(CacheKey.prefix.transactions(clientId));
   await deleteCache(CacheKey.budgetSummary(clientId));
 }
 
 export async function invalidateAccounts(clientId: string) {
-  console.log("deleting accounts", CacheKey.prefix.accounts(clientId))
   await deleteCacheByPrefix(CacheKey.prefix.accounts(clientId));
 }
 
