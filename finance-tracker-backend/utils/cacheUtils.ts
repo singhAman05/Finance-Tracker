@@ -58,11 +58,24 @@ export async function deleteCacheByPrefix(prefix: string): Promise<void> {
   if (!canUseRedis()) return;
   try {
     const keysToDelete: string[] = [];
-    for await (const key of redisClient.scanIterator({ MATCH: `${prefix}*`, COUNT: 200 })) {
-      keysToDelete.push(String(key));
+    for await (const key of redisClient.scanIterator({
+      MATCH: `${prefix}*`,
+      COUNT: 200
+    })) {
+      if (Array.isArray(key)) {
+        keysToDelete.push(...key.map(String));
+      } else {
+        keysToDelete.push(String(key));
+      }
     }
+
     if (keysToDelete.length > 0) {
-      await redisClient.del(keysToDelete);
+      console.log("Keys to delete for transaction by prefix:", keysToDelete);
+
+      for (let i = 0; i < keysToDelete.length; i++) {
+        console.log("Cache key", keysToDelete[i]);
+        await deleteCache(keysToDelete[i]);
+      }
     }
   } catch (err) {
     logger.warn('Redis DEL by prefix failed', { prefix, error: err instanceof Error ? err.message : String(err) });
@@ -70,11 +83,13 @@ export async function deleteCacheByPrefix(prefix: string): Promise<void> {
 }
 
 export async function invalidateTransactions(clientId: string) {
+  console.log("deleting transactions", CacheKey.prefix.transactions(clientId))
   await deleteCacheByPrefix(CacheKey.prefix.transactions(clientId));
   await deleteCache(CacheKey.budgetSummary(clientId));
 }
 
 export async function invalidateAccounts(clientId: string) {
+  console.log("deleting accounts", CacheKey.prefix.accounts(clientId))
   await deleteCacheByPrefix(CacheKey.prefix.accounts(clientId));
 }
 
