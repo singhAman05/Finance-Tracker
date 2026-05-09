@@ -35,17 +35,6 @@ type ProfileConfig = {
       sameSite: SameSiteMode;
       path: string;
     };
-    csrf: {
-      cookieName: string;
-      headerName: string;
-      tokenBytes: number;
-      maxAgeMs: number;
-      httpOnly: boolean;
-      secure: boolean;
-      sameSite: SameSiteMode;
-      path: string;
-      safeMethods: string[];
-    };
   };
   rateLimit: {
     memoryCleanupWindowMs: number;

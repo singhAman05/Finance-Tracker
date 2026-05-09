@@ -40,19 +40,6 @@ function redirectToLogin() {
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
-/** Read a cookie value by name */
-function getCookie(name: string): string | undefined {
-    if (typeof document === "undefined") return undefined;
-    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
-    return match ? decodeURIComponent(match[1]) : undefined;
-}
-
-/** Read CSRF token — prefer sessionStorage (works cross-origin), fallback to cookie */
-function getCsrfToken(): string | undefined {
-    if (typeof window === "undefined") return undefined;
-    return sessionStorage.getItem("csrf-token") || getCookie("csrf-token") || undefined;
-}
-
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
@@ -61,14 +48,11 @@ export async function apiClient<T = any>(
         const { headers: userHeaders, ...rest } = options;
         const url = new URL(path, baseUrl).toString();
 
-        const csrfToken = getCsrfToken();
-
         const response = await fetch(url, {
             ...rest,
             credentials: "include",
             headers: {
                 "Content-Type": "application/json",
-                ...(csrfToken ? { "X-CSRF-Token": csrfToken } : {}),
                 ...userHeaders,
             },
         });

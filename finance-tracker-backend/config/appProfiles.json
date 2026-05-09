@@ -31,17 +31,6 @@
         "secure": false,
         "sameSite": "lax",
         "path": "/"
-      },
-      "csrf": {
-        "cookieName": "csrf-token",
-        "headerName": "x-csrf-token",
-        "tokenBytes": 32,
-        "maxAgeMs": 3600000,
-        "httpOnly": false,
-        "secure": false,
-        "sameSite": "lax",
-        "path": "/",
-        "safeMethods": ["GET", "HEAD", "OPTIONS"]
       }
     },
     "rateLimit": {
@@ -117,17 +106,6 @@
         "secure": true,
         "sameSite": "none",
         "path": "/"
-      },
-      "csrf": {
-        "cookieName": "csrf-token",
-        "headerName": "x-csrf-token",
-        "tokenBytes": 32,
-        "maxAgeMs": 3600000,
-        "httpOnly": false,
-        "secure": true,
-        "sameSite": "none",
-        "path": "/",
-        "safeMethods": ["GET", "HEAD", "OPTIONS"]
       }
     },
     "rateLimit": {
@@ -203,17 +181,6 @@
         "secure": true,
         "sameSite": "none",
         "path": "/"
-      },
-      "csrf": {
-        "cookieName": "csrf-token",
-        "headerName": "x-csrf-token",
-        "tokenBytes": 32,
-        "maxAgeMs": 3600000,
-        "httpOnly": false,
-        "secure": true,
-        "sameSite": "none",
-        "path": "/",
-        "safeMethods": ["GET", "HEAD", "OPTIONS"]
       }
     },
     "rateLimit": {

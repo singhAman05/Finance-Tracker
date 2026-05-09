@@ -6,7 +6,6 @@ interface AuthResponse {
   success: boolean;
   message: string;
   user: User;
-  csrfToken?: string;
 }
 
 interface AuthPayload {
@@ -36,8 +35,7 @@ export const phoneLoginRoute = async (phone: string): Promise<AuthPayload> => {
     throw new Error(body?.message || "Login failed. Please try again.");
   }
 
-  const { user, csrfToken } = body as AuthResponse;
-  if (csrfToken) sessionStorage.setItem("csrf-token", csrfToken);
+  const { user } = body as AuthResponse;
   return { user };
 };
 
@@ -59,7 +57,6 @@ export const loginGoogleRoute = async (
     throw new Error(body?.message || "Login failed. Please try again.");
   }
 
-  const { user, csrfToken } = body as AuthResponse;
-  if (csrfToken) sessionStorage.setItem("csrf-token", csrfToken);
+  const { user } = body as AuthResponse;
   return { user };
 };

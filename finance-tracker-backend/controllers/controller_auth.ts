@@ -5,7 +5,6 @@ import { validatePhone } from '../utils/validationUtils';
 import { asyncHandler } from '../utils/asyncHandler';
 import { AppError } from '../utils/AppError';
 import { setAuthCookie, clearAuthCookie, getUser } from '../middleware/jwt';
-import { setCsrfCookie } from '../middleware/csrf';
 
 const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -14,13 +13,11 @@ export const handleAuth = asyncHandler(async (req: Request, res: Response) => {
   const authData = await loginWithPhone(phone);
 
   setAuthCookie(res, authData.token);
-  const csrfToken = setCsrfCookie(res);
 
   res.status(200).json({
     success: true,
     message: 'Authentication successful',
     user: authData.user,
-    csrfToken,
   });
 });
 
@@ -43,13 +40,11 @@ export const handleGoogleAuth = asyncHandler(async (req: Request, res: Response)
   const authData = await loginWithGoogle(payload.email, payload.name || name || '');
 
   setAuthCookie(res, authData.token);
-  const csrfToken = setCsrfCookie(res);
 
   res.status(200).json({
     success: true,
     message: 'Google authentication successful',
     user: authData.user,
-    csrfToken,
   });
 });
 

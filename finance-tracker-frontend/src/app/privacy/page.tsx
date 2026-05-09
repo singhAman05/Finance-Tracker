@@ -66,7 +66,7 @@ export default function PrivacyPolicy() {
               <ul className="list-disc pl-5 space-y-2">
                 <li>All data is encrypted in transit (TLS 1.3) and at rest.</li>
                 <li>Database hosted on Supabase with row-level security (RLS) policies.</li>
-                <li>Authentication uses secure httpOnly JWT cookies with CSRF protection.</li>
+                <li>Authentication uses secure httpOnly JWT cookies.</li>
                 <li>We perform regular security audits and dependency vulnerability scans.</li>
               </ul>
             </section>
@@ -96,7 +96,6 @@ export default function PrivacyPolicy() {
               <h2 className="text-lg font-bold text-text-primary mb-3">6. Cookies & Local Storage</h2>
               <ul className="list-disc pl-5 space-y-2">
                 <li><strong className="text-text-primary">Authentication Cookie (httpOnly):</strong> Required for secure session management.</li>
-                <li><strong className="text-text-primary">CSRF Token:</strong> Required for protection against cross-site attacks.</li>
                 <li><strong className="text-text-primary">Session Storage:</strong> Stores user preferences and UI state (cleared on tab close).</li>
               </ul>
               <p className="mt-2">We do not use third-party tracking cookies or advertising pixels.</p>
