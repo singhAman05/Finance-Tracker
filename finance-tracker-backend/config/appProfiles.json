@@ -218,7 +218,7 @@
         "maxAgeMs": 3600000,
         "algorithm": "HS256",
         "httpOnly": true,
-        "secure": true,
+        "secure": false,
         "sameSite": "none",
         "path": "/"
       }
