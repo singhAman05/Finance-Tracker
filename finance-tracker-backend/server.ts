@@ -69,6 +69,7 @@ app.use(
         return;
       }
       const normalizedIncomingOrigin = normalizeOrigin(origin);
+      console.log(normalizedIncomingOrigin)
       if (allowedOrigins.includes(normalizedIncomingOrigin)) {
         callback(null, true);
         return;
