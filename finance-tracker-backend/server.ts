@@ -26,7 +26,7 @@ dotenv.config();
 const app = express();
 const server = http.createServer(app);
 const allowedOrigins = appConfig.server.cors.allowedOrigins;
-
+console.log("Allowed origins : ", allowedOrigins)
 const normalizeOrigin = (value: string) => {
   const trimmed = value.trim();
   if (!trimmed) return '';

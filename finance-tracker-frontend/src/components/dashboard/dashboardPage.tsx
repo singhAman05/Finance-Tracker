@@ -57,6 +57,7 @@ import {
   calculateKpis,
   filterTransactionsByPeriod,
   getCategoryInsights,
+  getDateRangeForPeriod,
   getMonthlyInsights,
 } from "@/service/service_reports";
 import { fetchCategories } from "@/service/service_categories";
@@ -182,6 +183,8 @@ export default function DashboardPage() {
   const [bills, setBills] = useState<Bill[]>([]);
   const [billInstances, setBillInstances] = useState<BillInstance[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rangeTransactions, setRangeTransactions] = useState<any[]>([]);
+  const [isRangeLoading, setIsRangeLoading] = useState(false);
 
   useEffect(() => {
     setIsClient(true);
@@ -197,6 +200,7 @@ export default function DashboardPage() {
   // Data Loading
   const loadDashboard = async () => {
     setLoading(true);
+    setRangeTransactions([]);
     try {
       const [txRes, accRes, catRes, budgetRes, billsRes, biRes] = await Promise.all([
         fetchTransactions(),
@@ -312,8 +316,35 @@ export default function DashboardPage() {
     return { overdueBills: overdue, upcomingBills: upcoming };
   }, [billInstances]);
 
+  const loadLast3MonthsInsights = async () => {
+    setIsRangeLoading(true);
+    try {
+      const dateRange = getDateRangeForPeriod("last3Months");
+      const firstPage = await fetchTransactions(1, 200, dateRange);
+      let combined = firstPage?.data ?? [];
+      const totalPages = firstPage?.pagination?.pages ?? 1;
+
+      for (let page = 2; page <= totalPages; page += 1) {
+        const nextPage = await fetchTransactions(page, 200, dateRange);
+        combined = [...combined, ...(nextPage?.data ?? [])];
+      }
+
+      setRangeTransactions(combined);
+    } catch {
+      // Error surfaced via notifications
+    } finally {
+      setIsRangeLoading(false);
+    }
+  };
+
+  const insightsTransactions = rangeTransactions.length > 0 ? rangeTransactions : transactions;
+  const isUsingFullRangeInsights = rangeTransactions.length > 0;
+
   // Charts — memoized
-  const monthlyData = useMemo(() => getMonthlyInsights(transactions).slice(-3), [transactions]);
+  const monthlyData = useMemo(
+    () => getMonthlyInsights(insightsTransactions).slice(-3),
+    [insightsTransactions]
+  );
 
   const thisMonthTransactions = useMemo(
     () => filterTransactionsByPeriod(transactions, "thisMonth"),
@@ -630,10 +661,24 @@ export default function DashboardPage() {
                 <div>
                   <CardTitle className="text-lg">Monthly Cash Flow</CardTitle>
                   <CardDescription>
-                    Income vs Expenses over last 3 months
+                    {isUsingFullRangeInsights
+                      ? "Complete range loaded for last 3 months"
+                      : `Based on currently loaded transactions (${transactions.length})`}
                   </CardDescription>
                 </div>
-                <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
+                <div className="flex items-center gap-3">
+                  {!isUsingFullRangeInsights && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-8 rounded-full px-3 text-[11px] font-semibold"
+                      onClick={loadLast3MonthsInsights}
+                      disabled={isRangeLoading}
+                    >
+                      {isRangeLoading ? "Loading 3 months..." : "Load full last 3 months"}
+                    </Button>
+                  )}
+                  <div className="flex items-center gap-4 text-xs font-semibold uppercase tracking-wider">
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-success" />
                     <span className="text-text-secondary">Income</span>
@@ -641,6 +686,7 @@ export default function DashboardPage() {
                   <div className="flex items-center gap-1.5">
                     <div className="w-2 h-2 rounded-full bg-danger" />
                     <span className="text-text-secondary">Expense</span>
+                  </div>
                   </div>
                 </div>
               </CardHeader>
@@ -750,7 +796,11 @@ export default function DashboardPage() {
             <Card className="shadow-soft hover:shadow-elevated transition-all duration-300 h-full border border-border/60">
               <CardHeader>
                 <CardTitle className="text-lg">Net Cash Flow Trend</CardTitle>
-                <CardDescription>Monthly income minus expenses</CardDescription>
+                <CardDescription>
+                  {isUsingFullRangeInsights
+                    ? "Monthly income minus expenses (full 3-month range)"
+                    : "Monthly income minus expenses (from loaded transactions)"}
+                </CardDescription>
               </CardHeader>
               <CardContent className="h-[250px]">
                 <ResponsiveContainer width="100%" height="100%">
