@@ -20,7 +20,7 @@ function mapDbError(err: PgLikeError): AppError | null {
     case 'P0001':
       return AppError.badRequest('Operation rejected by database');
     case '42501':
-      return AppError.unauthorized('Operation not permitted');
+      return AppError.forbidden('Operation not permitted');
     default:
       return null;
   }

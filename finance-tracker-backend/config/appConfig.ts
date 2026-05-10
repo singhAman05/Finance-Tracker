@@ -97,7 +97,24 @@ function substituteEnv(value: string): string {
   return value.replace(/\$\{([^}]+)\}/g, (_, envName: string) => process.env[envName] ?? '');
 }
 
+function normalizeOrigin(origin: string): string {
+  const trimmed = origin.trim();
+  if (!trimmed) return '';
+
+  const withScheme = /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    return new URL(withScheme).origin;
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+}
+
 function resolveProfileConfig(input: ProfileConfig): ProfileConfig {
+  const normalizedOrigins = input.server.cors.allowedOrigins
+    .map(substituteEnv)
+    .map(normalizeOrigin)
+    .filter(Boolean);
+
   return {
     ...input,
     server: {
@@ -105,9 +122,7 @@ function resolveProfileConfig(input: ProfileConfig): ProfileConfig {
       port: Number(process.env.PORT || input.server.port),
       cors: {
         ...input.server.cors,
-        allowedOrigins: input.server.cors.allowedOrigins
-          .map(substituteEnv)
-          .filter(Boolean),
+        allowedOrigins: normalizedOrigins,
       },
       helmet: {
         ...input.server.helmet,
@@ -115,7 +130,7 @@ function resolveProfileConfig(input: ProfileConfig): ProfileConfig {
           ...input.server.helmet.contentSecurityPolicy,
           connectSrc: [
             ...input.server.helmet.contentSecurityPolicy.connectSrc,
-            ...input.server.cors.allowedOrigins.map(substituteEnv).filter(Boolean),
+            ...normalizedOrigins,
           ],
         },
       },
@@ -123,7 +138,8 @@ function resolveProfileConfig(input: ProfileConfig): ProfileConfig {
   };
 }
 
-const selectedProfile = ((process.env.APP_PROFILE || 'DEV').toUpperCase()) as AppProfile;
+const inferredDefaultProfile = process.env.NODE_ENV === 'production' ? 'PROD' : 'DEV';
+const selectedProfile = ((process.env.APP_PROFILE || inferredDefaultProfile).toUpperCase()) as AppProfile;
 
 if (!configMap[selectedProfile]) {
   throw new Error(`Invalid APP_PROFILE: ${process.env.APP_PROFILE}. Expected DEV, PRE-PROD, or PROD.`);
