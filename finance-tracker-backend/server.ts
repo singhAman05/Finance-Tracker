@@ -27,6 +27,16 @@ const app = express();
 const server = http.createServer(app);
 const allowedOrigins = appConfig.server.cors.allowedOrigins;
 
+const normalizeOrigin = (value: string) => {
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  try {
+    return new URL(trimmed).origin;
+  } catch {
+    return trimmed.replace(/\/+$/, '');
+  }
+};
+
 app.use((req, res, next) => {
   const started = Date.now();
   res.on('finish', () => {
@@ -54,11 +64,16 @@ app.use(helmet({
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin) {
         callback(null, true);
         return;
       }
-      callback(new Error(`Origin not allowed by CORS: ${origin}`));
+      const normalizedIncomingOrigin = normalizeOrigin(origin);
+      if (allowedOrigins.includes(normalizedIncomingOrigin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Origin not allowed by CORS: ${normalizedIncomingOrigin}`));
     },
     credentials: appConfig.server.cors.credentials,
   })
