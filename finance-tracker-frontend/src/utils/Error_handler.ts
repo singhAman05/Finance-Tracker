@@ -50,9 +50,9 @@ export async function apiClient<T = any>(
 
         const response = await fetch(url, {
             ...rest,
-            credentials: "include",
             headers: {
                 "Content-Type": "application/json",
+                credentials: "include",
                 ...userHeaders,
             },
         });
