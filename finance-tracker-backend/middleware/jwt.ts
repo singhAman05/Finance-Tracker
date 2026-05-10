@@ -45,16 +45,20 @@ export const verifyToken = (req: Request, res: Response, next: NextFunction) => 
   const token =
     (req.cookies as Record<string, string>)?.[jwtConfig.cookieName] ||
     req.header('Authorization')?.replace('Bearer ', '').trim();
+  console.log("Token in verifyToken function : ", token)
   if (!token) {
+    console.log("Token Not found from the req.cookies")
     res.status(401).json({ success: false, message: 'Authorization token required' });
     return;
   }
 
   try {
-    const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ['HS256'] }) as TokenEnvelope;
+    const decoded = jwt.verify(token, SECRET_KEY, { algorithms: ['HS256'] }) as TokenEnvelope
+    console.log("Decoded jwt : ", decoded);
     (req as Request & { user?: TokenEnvelope }).user = decoded;
     next();
   } catch {
+    console.log("Decoding of token fails")
     clearAuthCookie(res);
     res.status(401).json({ success: false, message: 'Invalid or expired token' });
   }
