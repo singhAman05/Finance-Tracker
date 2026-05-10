@@ -13,11 +13,24 @@
       },
       "helmet": {
         "contentSecurityPolicy": {
-          "defaultSrc": ["'self'"],
-          "scriptSrc": ["'self'"],
-          "styleSrc": ["'self'", "'unsafe-inline'"],
-          "imgSrc": ["'self'", "data:", "https:"],
-          "connectSrc": ["'self'"]
+          "defaultSrc": [
+            "'self'"
+          ],
+          "scriptSrc": [
+            "'self'"
+          ],
+          "styleSrc": [
+            "'self'",
+            "'unsafe-inline'"
+          ],
+          "imgSrc": [
+            "'self'",
+            "data:",
+            "https:"
+          ],
+          "connectSrc": [
+            "'self'"
+          ]
         }
       }
     },
@@ -88,11 +101,24 @@
       },
       "helmet": {
         "contentSecurityPolicy": {
-          "defaultSrc": ["'self'"],
-          "scriptSrc": ["'self'"],
-          "styleSrc": ["'self'", "'unsafe-inline'"],
-          "imgSrc": ["'self'", "data:", "https:"],
-          "connectSrc": ["'self'"]
+          "defaultSrc": [
+            "'self'"
+          ],
+          "scriptSrc": [
+            "'self'"
+          ],
+          "styleSrc": [
+            "'self'",
+            "'unsafe-inline'"
+          ],
+          "imgSrc": [
+            "'self'",
+            "data:",
+            "https:"
+          ],
+          "connectSrc": [
+            "'self'"
+          ]
         }
       }
     },
@@ -156,6 +182,7 @@
       "cors": {
         "credentials": true,
         "allowedOrigins": [
+          "https://finance-tracker-amber-one.vercel.app",
           "${FRONTEND_URL}",
           "${FRONTEND_WWW_URL}",
           "${VERCEL_URL}"
@@ -163,11 +190,24 @@
       },
       "helmet": {
         "contentSecurityPolicy": {
-          "defaultSrc": ["'self'"],
-          "scriptSrc": ["'self'"],
-          "styleSrc": ["'self'", "'unsafe-inline'"],
-          "imgSrc": ["'self'", "data:", "https:"],
-          "connectSrc": ["'self'"]
+          "defaultSrc": [
+            "'self'"
+          ],
+          "scriptSrc": [
+            "'self'"
+          ],
+          "styleSrc": [
+            "'self'",
+            "'unsafe-inline'"
+          ],
+          "imgSrc": [
+            "'self'",
+            "data:",
+            "https:"
+          ],
+          "connectSrc": [
+            "'self'"
+          ]
         }
       }
     },
