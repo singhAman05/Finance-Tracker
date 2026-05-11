@@ -1,4 +1,4 @@
-import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import { AppError } from '../utils/AppError';
 
 export type CategoryPayload = {
@@ -14,7 +14,7 @@ export type CategoryPayload = {
 export const addingCategory = async (category_payload: CategoryPayload) => {
   const { client_id, name, type, color = '#64748b', icon, parent_id, is_default = false } = category_payload;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('categories')
     .insert({
       client_id,
@@ -38,7 +38,7 @@ export const addingCategory = async (category_payload: CategoryPayload) => {
 };
 
 export const getSystemCategories = async () => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('system_categories')
     .select('*')
     .order('sort_order', { ascending: true });
@@ -47,7 +47,7 @@ export const getSystemCategories = async () => {
 };
 
 export const verifyCategoryOwnership = async (categoryId: string, clientId: string): Promise<boolean> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('categories')
     .select('id')
     .eq('id', categoryId)

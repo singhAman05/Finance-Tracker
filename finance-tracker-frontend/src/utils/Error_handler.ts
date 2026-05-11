@@ -95,8 +95,24 @@ export async function apiClient<T = any>(
             }
 
             if (status === 403) {
+                const msg = errorData.message || "Forbidden";
+                const isCsrf = msg.toLowerCase().includes("csrf");
+
+                if (isCsrf) {
+                    // CSRF token missing/invalid — need fresh login to get a new one
+                    error = {
+                        message: "Session security token expired. Please log in again.",
+                        status,
+                        type: "AUTH",
+                    };
+                    notifyApiError(error);
+                    sessionStorage.removeItem("csrf_token");
+                    redirectToLogin();
+                    return { result: null, error };
+                }
+
                 error = {
-                    message: errorData.message || "Forbidden",
+                    message: msg,
                     status,
                     type: "AUTH",
                 };

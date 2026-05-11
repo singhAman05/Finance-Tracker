@@ -1,4 +1,4 @@
-﻿import { supabase } from '../config/supabase';
+﻿import { supabaseAdmin } from '../config/supabase';
 
 export interface ClientSettings {
   currency: string;
@@ -17,7 +17,7 @@ const defaultSettings: ClientSettings = {
 };
 
 export const getSettingsService = async (client_id: string): Promise<ClientSettings> => {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('client_settings')
     .select('currency, date_format, notify_bills, notify_budgets, notify_recurring')
     .eq('client_id', client_id)
@@ -39,7 +39,7 @@ export const updateSettingsService = async (
   const current = await getSettingsService(client_id);
   const payload = { ...current, ...settings, client_id };
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from('client_settings')
     .upsert(payload, { onConflict: 'client_id' })
     .select('currency, date_format, notify_bills, notify_budgets, notify_recurring')
@@ -51,11 +51,11 @@ export const updateSettingsService = async (
 
 export const exportUserDataService = async (client_id: string) => {
   const [accountsRes, transactionsRes, billsRes, billInstancesRes, budgetsRes, settings] = await Promise.all([
-    supabase.from('accounts').select('*').eq('client_id', client_id),
-    supabase.from('transactions').select('*').eq('client_id', client_id),
-    supabase.from('bills').select('*').eq('client_id', client_id),
-    supabase.from('bill_instances').select('*').eq('client_id', client_id),
-    supabase.from('budgets').select('*').eq('client_id', client_id),
+    supabaseAdmin.from('accounts').select('*').eq('client_id', client_id),
+    supabaseAdmin.from('transactions').select('*').eq('client_id', client_id),
+    supabaseAdmin.from('bills').select('*').eq('client_id', client_id),
+    supabaseAdmin.from('bill_instances').select('*').eq('client_id', client_id),
+    supabaseAdmin.from('budgets').select('*').eq('client_id', client_id),
     getSettingsService(client_id),
   ]);
 
@@ -76,7 +76,7 @@ export const exportUserDataService = async (client_id: string) => {
 };
 
 export const clearHistoryService = async (client_id: string) => {
-  const { data, error } = await supabase.rpc('clear_client_history', { p_client_id: client_id });
+  const { data, error } = await supabaseAdmin.rpc('clear_client_history', { p_client_id: client_id });
 
   if (error) {
     throw error;

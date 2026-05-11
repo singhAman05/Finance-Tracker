@@ -1,4 +1,4 @@
-import { supabase } from "../config/supabase";
+import { supabaseAdmin } from "../config/supabase";
 
 interface ProfilePayload {
   full_name: string;
@@ -12,7 +12,7 @@ interface ProfilePayload {
 export const updatingProfile = async (client_id: string, payload: ProfilePayload) => {
   const { full_name, email, phone, profession, profile_complete } = payload;
 
-  const { data, error } = await supabase
+  const { data, error } = await supabaseAdmin
     .from("clients")
     .update({ full_name, email, phone, profession, profile_complete })
     .eq("id", client_id)  // Only update OWN profile
