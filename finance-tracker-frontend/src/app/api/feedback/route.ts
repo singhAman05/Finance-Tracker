@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import nodemailer from "nodemailer";
+import { feedbackEmailTemplate } from "@/lib/emailTemplates/feedbackEmail";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,31 +23,28 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+      return NextResponse.json(
+        { error: "SMTP is not configured on the server." },
+        { status: 500 }
+      );
+    }
+
     const transporter = nodemailer.createTransport({
-      service: "gmail",
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: Number(process.env.SMTP_PORT) || 587,
+      secure: process.env.SMTP_SECURE === "true",
       auth: {
         user: process.env.SMTP_USER,
         pass: process.env.SMTP_PASS,
       },
     });
 
-    const htmlContent = `
-      <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #6366F1;">New Feedback from Fintrak Blog</h2>
-        <hr style="border: 1px solid #e5e7eb;" />
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        <p><strong>Rating:</strong> ${rating || "Not provided"}/5</p>
-        <h3>Message:</h3>
-        <p style="background: #f9fafb; padding: 12px; border-radius: 8px;">${message}</p>
-        <hr style="border: 1px solid #e5e7eb;" />
-        <p style="color: #6b7280; font-size: 12px;">Sent from Fintrak Engineering Blog feedback form</p>
-      </div>
-    `;
+    const htmlContent = feedbackEmailTemplate({ name, email, message, rating });
 
     await transporter.sendMail({
-      from: `"Fintrak Feedback" <${process.env.SMTP_USER}>`,
-      to: "amanshankarsingh2001@gmail.com",
+      from: process.env.SMTP_FROM || `"FinanceTracker Feedback" <${process.env.SMTP_USER}>`,
+      to: process.env.FEEDBACK_TO_EMAIL || "amanshankarsingh2001@gmail.com",
       replyTo: email,
       subject: `Blog Feedback from ${name} - Rating: ${rating || "N/A"}/5`,
       html: htmlContent,
