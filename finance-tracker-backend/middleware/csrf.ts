@@ -16,6 +16,9 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
 export function issueCsrfToken(res: Response): string {
   const token = crypto.randomBytes(TOKEN_BYTES).toString('hex');
   const jwtConfig = appConfig.auth.jwt;
+  console.log('Issuing CSRF token:', token);
+  console.log("Cookie Name:", CSRF_COOKIE);
+  console.log("JWT Config:", jwtConfig);
 
   res.cookie(CSRF_COOKIE, token, {
     httpOnly: false,          // frontend must read this
@@ -55,6 +58,7 @@ export function verifyCsrf(req: Request, res: Response, next: NextFunction) {
 
   const cookieToken = (req.cookies as Record<string, string>)?.[CSRF_COOKIE];
   const headerToken = req.header(CSRF_HEADER);
+  console.log('Verifying CSRF token:', { cookieToken, headerToken });
 
   if (!cookieToken || !headerToken) {
     res.status(403).json({ success: false, message: 'Missing CSRF token' });
@@ -71,6 +75,8 @@ export function verifyCsrf(req: Request, res: Response, next: NextFunction) {
     Buffer.from(cookieToken),
     Buffer.from(headerToken),
   );
+
+  console.log('CSRF token valid:', valid);
 
   if (!valid) {
     res.status(403).json({ success: false, message: 'Invalid CSRF token' });
