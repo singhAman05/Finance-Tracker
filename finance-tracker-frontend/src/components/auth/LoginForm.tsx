@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect, forwardRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/app/store";
-import { Wallet, ArrowRight, Loader, ChevronRight, HelpCircle } from "lucide-react";
+import { ArrowRight, Loader, ChevronRight, HelpCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -161,9 +162,7 @@ export default function AuthForm() {
             {/* Brand Header */}
             <motion.div variants={fadeUp} className="flex flex-col items-center mb-10">
               <div className="mb-6">
-                <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center shadow-elevated">
-                  <Wallet className="w-5 h-5 text-white" />
-                </div>
+                <Image src="/icon.svg" alt="Fintrak logo" width={48} height={48} className="w-12 h-12 rounded-xl shadow-elevated" />
               </div>
 
               <div className="text-center space-y-1.5">

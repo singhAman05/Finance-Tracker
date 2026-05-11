@@ -1,6 +1,7 @@
 // components/layout/mobile-sidebar.tsx
 "use client";
 
+import Image from "next/image";
 import {
   X,
   Home,
@@ -14,7 +15,6 @@ import {
   Tag,
   Settings,
   BarChart2,
-  Wallet,
   Sun,
   Moon,
   LogOut,
@@ -76,9 +76,7 @@ export function MobileSidebar({ onClose }: { onClose: () => void }) {
         <div className="p-5 border-b border-border/50">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="h-9 w-9 bg-primary rounded-xl flex items-center justify-center shadow-sm">
-                <Wallet className="w-5 h-5 text-primary-foreground" />
-              </div>
+              <Image src="/icon.svg" alt="Fintrak logo" width={36} height={36} className="h-9 w-9 rounded-xl shadow-sm" />
               <span className="text-xl font-bold tracking-tight">Finance</span>
             </div>
             <button
@@ -149,7 +147,7 @@ export function MobileSidebar({ onClose }: { onClose: () => void }) {
           </button>
 
           <p className="text-[10px] text-center text-text-secondary font-medium uppercase tracking-[0.2em] pt-1">
-            Finance Tracker v1.0
+            Fintrak v1.0
           </p>
         </div>
       </div>

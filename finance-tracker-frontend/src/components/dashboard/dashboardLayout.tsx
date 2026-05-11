@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Sidebar } from "../common/sidebar";
 import { MobileSidebar } from "../common/mobileSidebar";
-import { Menu, Wallet } from "lucide-react";
+import { Menu } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
@@ -20,9 +21,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
         {/* Mobile Header: Enhanced visibility and standard burger placement */}
         <header className="md:hidden flex items-center h-16 px-6 border-b border-border/50 bg-card/80 backdrop-blur-xl sticky top-0 z-30">
           <div className="flex items-center gap-3">
-             <div className="h-8 w-8 bg-primary rounded-lg flex items-center justify-center shrink-0">
-                <Wallet className="w-4 h-4 text-primary-foreground" />
-             </div>
+           <Image src="/icon.svg" alt="Fintrak logo" width={32} height={32} className="h-8 w-8 rounded-lg shrink-0" />
              <span className="text-base font-bold tracking-tight">Finance</span>
           </div>
           

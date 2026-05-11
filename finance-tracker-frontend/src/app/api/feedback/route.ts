@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
 
     const htmlContent = `
       <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-        <h2 style="color: #6366F1;">New Feedback from FinanceTracker Blog</h2>
+        <h2 style="color: #6366F1;">New Feedback from Fintrak Blog</h2>
         <hr style="border: 1px solid #e5e7eb;" />
         <p><strong>Name:</strong> ${name}</p>
         <p><strong>Email:</strong> ${email}</p>
@@ -40,12 +40,12 @@ export async function POST(request: NextRequest) {
         <h3>Message:</h3>
         <p style="background: #f9fafb; padding: 12px; border-radius: 8px;">${message}</p>
         <hr style="border: 1px solid #e5e7eb;" />
-        <p style="color: #6b7280; font-size: 12px;">Sent from FinanceTracker Engineering Blog feedback form</p>
+        <p style="color: #6b7280; font-size: 12px;">Sent from Fintrak Engineering Blog feedback form</p>
       </div>
     `;
 
     await transporter.sendMail({
-      from: `"FinanceTracker Feedback" <${process.env.SMTP_USER}>`,
+      from: `"Fintrak Feedback" <${process.env.SMTP_USER}>`,
       to: "amanshankarsingh2001@gmail.com",
       replyTo: email,
       subject: `Blog Feedback from ${name} - Rating: ${rating || "N/A"}/5`,

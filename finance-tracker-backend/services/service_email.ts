@@ -11,7 +11,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM_ADDRESS = process.env.SMTP_FROM || 'Finance Tracker <noreply@financetracker.app>';
+const FROM_ADDRESS = process.env.SMTP_FROM || 'Fintrak <noreply@fintrak.app>';
 
 export interface EmailOptions {
   to: string;
@@ -70,7 +70,7 @@ export const billReminderTemplate = (billName: string, amount: number, dueDate: 
       <p class="detail" style="margin-top: 24px; color: #6366f1;">Make sure you have enough balance to cover this payment.</p>
     </div>
     <div class="footer">
-      Finance Tracker — Keeping your finances on track
+      Fintrak — Keeping your finances on track
     </div>
   </div>
 </body>
@@ -105,7 +105,7 @@ export const recurringTransactionTemplate = (description: string, amount: number
       <p class="detail">Type: <strong>${type === 'income' ? 'Income' : 'Expense'}</strong></p>
     </div>
     <div class="footer">
-      Finance Tracker — Keeping your finances on track
+      Fintrak — Keeping your finances on track
     </div>
   </div>
 </body>
@@ -144,7 +144,7 @@ export const budgetExceededTemplate = (categoryName: string, spent: number, limi
       <p class="detail">You've spent <strong>${Math.round((spent / limit) * 100)}%</strong> of your budget limit.</p>
     </div>
     <div class="footer">
-      Finance Tracker — Keeping your finances on track
+      Fintrak — Keeping your finances on track
     </div>
   </div>
 </body>

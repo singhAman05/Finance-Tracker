@@ -20,6 +20,7 @@ export const handleUpdateSettings = asyncHandler(async (req: Request, res: Respo
   const user = getUser(req);
   const validated = validateSettingsPayload(req.body as Record<string, unknown>);
   const updatedSettings = await updateSettingsService(user.id, validated);
+  console.log("Updated settings : ", updatedSettings);
 
   res.status(200).json({
     success: true,

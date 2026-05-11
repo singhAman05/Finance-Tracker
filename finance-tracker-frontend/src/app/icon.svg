@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" fill="none">
+  <defs>
+    <linearGradient id="bg" x1="48" y1="48" x2="464" y2="464" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#7C3AED"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="304" y1="208" x2="416" y2="320" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A5B4FC"/>
+      <stop offset="1" stop-color="#C4B5FD"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bg)"/>
+
+  <path
+    d="M140 180c0-22.1 17.9-40 40-40h140c22.1 0 40 17.9 40 40v152c0 22.1-17.9 40-40 40H180c-22.1 0-40-17.9-40-40V180z"
+    fill="white"
+    fill-opacity="0.95"
+  />
+  <rect x="174" y="206" width="116" height="14" rx="7" fill="#6366F1" fill-opacity="0.28"/>
+  <rect x="174" y="234" width="88" height="14" rx="7" fill="#6366F1" fill-opacity="0.2"/>
+
+  <circle cx="356" cy="276" r="52" fill="url(#accent)"/>
+
+  <path
+    d="M292 356l44-44 34 20 56-66"
+    stroke="white"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+  <path
+    d="M402 266h24v24"
+    stroke="white"
+    stroke-width="18"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    fill="none"
+  />
+</svg>
