@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowRight, TrendingUp, Wallet, PieChart, Shield, Smartphone, Zap, BarChart3, Lock, ArrowUpRight, Clock, Database, Globe, Users, Code2 } from "lucide-react";
+import { ArrowRight, TrendingUp, PieChart, Shield, Smartphone, Zap, BarChart3, Lock, ArrowUpRight, Clock, Database, Globe, Users, Code2 } from "lucide-react";
 import { motion, useMotionValue, useTransform, animate } from "framer-motion";
 import { useEffect, useState } from "react";
 
@@ -57,10 +58,8 @@ export default function Home() {
             animate={{ opacity: 1, x: 0 }}
             className="flex items-center gap-2"
           >
-            <div className="w-8 h-8 gradient-primary rounded-lg flex items-center justify-center shadow-sm">
-              <Wallet className="w-4 h-4 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">FinanceTracker</span>
+            <Image src="/icon.svg" alt="Fintrak logo" width={32} height={32} className="w-8 h-8 rounded-lg shadow-sm" />
+            <span className="text-xl font-bold tracking-tight">Fintrak</span>
           </motion.div>
           <motion.div
             initial={{ opacity: 0, x: 20 }}
@@ -152,7 +151,7 @@ export default function Home() {
                 <div className="flex-1 mx-8">
                   <div className="h-5 rounded-full bg-muted flex items-center px-3">
                     <Lock className="w-2.5 h-2.5 text-text-secondary mr-1.5" />
-                    <span className="text-[10px] text-text-secondary">financetracker.app/dashboard</span>
+                    <span className="text-[10px] text-text-secondary">fintrak.app/dashboard</span>
                   </div>
                 </div>
               </div>
@@ -248,7 +247,7 @@ export default function Home() {
         </motion.div>
       </section>
 
-      {/* What is FinanceTracker */}
+      {/* What is Fintrak */}
       <section className="py-16">
         <div className="container mx-auto px-6">
           <motion.div
@@ -258,7 +257,7 @@ export default function Home() {
             className="max-w-3xl mx-auto text-center"
           >
             <h2 className="text-3xl md:text-4xl font-bold mb-4 tracking-tight">
-              What is FinanceTracker?
+              What is Fintrak?
             </h2>
             <p className="text-lg text-text-secondary leading-relaxed mb-8">
               A full-stack personal finance management platform that helps you track every rupee &mdash; income, expenses, budgets, recurring bills, and account balances &mdash; all in one place with real-time insights.
@@ -502,8 +501,8 @@ export default function Home() {
           <div className="grid sm:grid-cols-3 gap-8 mb-8">
             <div>
               <div className="flex items-center gap-2 mb-3">
-                <Wallet className="w-5 h-5" />
-                <span className="font-bold tracking-tight">FinanceTracker</span>
+                <Image src="/icon.svg" alt="Fintrak logo" width={20} height={20} className="w-5 h-5 rounded-md" />
+                <span className="font-bold tracking-tight">Fintrak</span>
               </div>
               <p className="text-xs text-text-secondary leading-relaxed">
                 Personal finance management built for clarity and speed.
@@ -526,7 +525,7 @@ export default function Home() {
             </div>
           </div>
           <div className="border-t border-border pt-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-text-secondary">&copy; 2026 FinanceTracker Inc.</p>
+            <p className="text-xs text-text-secondary">&copy; 2026 Fintrak Inc.</p>
             <p className="text-xs text-text-secondary">Made with precision in India</p>
           </div>
         </div>

@@ -2,10 +2,11 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/common/sidebar";
 import { MobileSidebar } from "@/components/common/mobileSidebar";
-import { Menu, Wallet } from "lucide-react";
+import { Menu } from "lucide-react";
 import { RootState } from "@/app/store";
 import { fetchSettings } from "@/service/service_settings";
 import { setSettings } from "@/components/redux/slices/slice_settings";
@@ -124,9 +125,7 @@ export default function DashboardLayout({
           <Menu className="h-5 w-5 text-text-primary" />
         </button>
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 gradient-primary text-white rounded-lg flex items-center justify-center shadow-sm">
-            <Wallet className="w-4 h-4" />
-          </div>
+          <Image src="/icon.svg" alt="Fintrak logo" width={28} height={28} className="w-7 h-7 rounded-lg shadow-sm" />
           <span className="text-base font-bold tracking-tight text-text-primary">Finance</span>
         </div>
       </header>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -19,7 +20,6 @@ import {
   Home,
   PiggyBank,
   ArrowLeftFromLine,
-  Wallet,
   LogOut,
   Sun,
   Moon,
@@ -176,9 +176,7 @@ export function Sidebar() {
       {/* Header */}
       <div className="h-20 flex items-center px-4 shrink-0 border-b border-border/40">
         <div className="flex items-center gap-3">
-          <div className="h-10 w-10 gradient-primary rounded-xl flex items-center justify-center flex-shrink-0 shadow-elevated transition-transform hover:scale-105 active:scale-95">
-            <Wallet className="w-5 h-5 text-white" />
-          </div>
+          <Image src="/icon.svg" alt="Fintrak logo" width={40} height={40} className="h-10 w-10 rounded-xl flex-shrink-0 shadow-elevated transition-transform hover:scale-105 active:scale-95" />
           <span
             className={cn(
               "text-lg font-bold tracking-tight text-text-primary transition-all duration-300",

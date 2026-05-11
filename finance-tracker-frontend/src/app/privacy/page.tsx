@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, Wallet } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -31,9 +32,7 @@ export default function PrivacyPolicy() {
           </Link>
 
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-white" />
-            </div>
+            <Image src="/icon.svg" alt="Fintrak logo" width={40} height={40} className="w-10 h-10 rounded-xl" />
             <h1 className="text-3xl md:text-4xl font-bold tracking-tighter">Privacy Policy</h1>
           </div>
 
@@ -42,7 +41,7 @@ export default function PrivacyPolicy() {
           <div className="prose prose-sm max-w-none space-y-8 text-text-secondary leading-relaxed">
             <section>
               <h2 className="text-lg font-bold text-text-primary mb-3">1. Information We Collect</h2>
-              <p>We collect the following information when you use FinanceTracker:</p>
+              <p>We collect the following information when you use Fintrak:</p>
               <ul className="list-disc pl-5 space-y-2 mt-2">
                 <li><strong className="text-text-primary">Account Information:</strong> Phone number, email address, and name (via Google OAuth).</li>
                 <li><strong className="text-text-primary">Financial Data:</strong> Transaction records, account balances, budgets, and bills you manually enter.</li>
