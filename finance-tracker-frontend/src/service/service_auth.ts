@@ -36,5 +36,6 @@ export const logoutService = async () => {
     // Logout API failure is non-critical
   }
   sessionStorage.removeItem("user");
+  sessionStorage.removeItem("csrf_token");
   await signOut({ callbackUrl: process.env.NEXTAUTH_URL });
 };
