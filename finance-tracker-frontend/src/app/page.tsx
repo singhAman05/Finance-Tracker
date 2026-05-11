@@ -127,16 +127,10 @@ export default function Home() {
               </Link>
             </motion.div>
 
-            <motion.div variants={fadeUp} className="mt-8 flex items-center gap-6">
-              <div className="flex -space-x-2">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="w-8 h-8 rounded-full border-2 border-background bg-border flex items-center justify-center text-[10px] font-bold text-text-secondary">
-                    {String.fromCharCode(65 + i)}
-                  </div>
-                ))}
-              </div>
-              <div className="text-sm text-text-secondary">
-                <span className="font-semibold text-text-primary">2,400+</span> people already tracking
+            <motion.div variants={fadeUp} className="mt-8 flex items-center gap-4">
+              <div className="flex items-center gap-2 px-4 py-2 rounded-full border border-border">
+                <Shield className="w-4 h-4 text-primary" />
+                <span className="text-sm text-text-secondary">Open-source &middot; Self-hostable &middot; No data selling</span>
               </div>
             </motion.div>
           </motion.div>
@@ -232,7 +226,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Stats Band */}
+      {/* Technical Highlights */}
       <section className="border-y border-border py-5 overflow-hidden">
         <motion.div
           initial={{ opacity: 0 }}
@@ -241,10 +235,10 @@ export default function Home() {
           className="grid grid-cols-2 md:grid-cols-4 gap-4 px-6 max-w-3xl mx-auto"
         >
           {[
-            { value: "50K+", label: "Transactions Tracked" },
-            { value: "99.9%", label: "Uptime" },
-            { value: "2.4K", label: "Active Users" },
-            { value: "4.9\u2605", label: "User Rating" },
+            { value: "< 100ms", label: "API Response Time" },
+            { value: "15+", label: "RESTful Endpoints" },
+            { value: "Redis", label: "Backed Caching" },
+            { value: "RLS", label: "Row-Level Security" },
           ].map((stat) => (
             <div key={stat.label} className="text-center">
               <p className="text-2xl md:text-3xl font-bold tracking-tight">{stat.value}</p>

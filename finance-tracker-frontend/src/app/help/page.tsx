@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Wallet, Mail, Phone, MessageCircle, Shield, Key, Smartphone } from "lucide-react";
+import { ArrowRight, Wallet, Mail, Phone, MessageCircle, Shield, Key, Smartphone, Globe, Cookie } from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -83,13 +83,24 @@ export default function HelpPage() {
                 ],
               },
               {
+                icon: Globe,
+                title: "Authentication failing on Safari, Brave, or private browsing?",
+                steps: [
+                  "We recommend using Google Chrome for the best experience — it handles third-party cookies correctly out of the box.",
+                  "Safari, Brave, and private/incognito windows block third-party cookies by default, which prevents our authentication from working.",
+                  "If you must use another browser, go to your browser's cookie/privacy settings and allow third-party cookies for this site.",
+                  "In Safari: Settings → Privacy → uncheck 'Prevent cross-site tracking'.",
+                  "In Brave: Settings → Shields → set 'Block cookies' to 'Only block cross-site cookies' or lower.",
+                ],
+              },
+              {
                 icon: Smartphone,
                 title: "App not loading correctly?",
                 steps: [
                   "Try a hard refresh: Ctrl+Shift+R (Windows) or Cmd+Shift+R (Mac).",
                   "Clear your browser's site data for this domain.",
                   "Ensure you have a stable internet connection.",
-                  "Try an incognito/private browsing window.",
+                  "Try an incognito/private browsing window (note: you may need to allow third-party cookies).",
                 ],
               },
             ].map((item) => (

@@ -15,6 +15,7 @@ import transactionRoute from './routes/route_transactions';
 import settingsRoute from './routes/route_settings';
 
 import { apiLimiter } from './middleware/rateLimiter';
+import { verifyCsrf } from './middleware/csrf';
 import { errorHandler } from './middleware/errorHandler';
 import { logger } from './utils/logger';
 import { connectRedis } from './config/redisClient';
@@ -87,6 +88,9 @@ app.get('/health', (_req, res) => {
 app.use('/api', apiLimiter);
 
 app.use('/api/auth', loginRoute);
+
+// CSRF verification for all authenticated routes (state-changing requests)
+app.use('/api', verifyCsrf);
 
 app.use('/api/profile', profileRoute);
 app.use('/api/accounts', accountsRoute);

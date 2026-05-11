@@ -40,6 +40,13 @@ function redirectToLogin() {
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+/** Read a cookie value by name from document.cookie */
+function getCookie(name: string): string | undefined {
+    if (typeof document === "undefined") return undefined;
+    const match = document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`));
+    return match ? decodeURIComponent(match[1]) : undefined;
+}
+
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
@@ -48,11 +55,19 @@ export async function apiClient<T = any>(
         const { headers: userHeaders, ...rest } = options;
         const url = new URL(path, baseUrl).toString();
 
+        // Attach CSRF token for state-changing requests (double-submit cookie pattern)
+        const csrfToken = getCookie("csrf_token");
+        const csrfHeaders: Record<string, string> = {};
+        if (csrfToken) {
+            csrfHeaders["X-CSRF-Token"] = csrfToken;
+        }
+
         const response = await fetch(url, {
             ...rest,
             credentials: "include",
             headers: {
                 "Content-Type": "application/json",
+                ...csrfHeaders,
                 ...userHeaders,
             },
         });
