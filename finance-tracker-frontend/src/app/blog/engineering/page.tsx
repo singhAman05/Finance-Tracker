@@ -83,7 +83,7 @@ export default function EngineeringBlog() {
             </div>
           </div>
           <h1 className="text-3xl sm:text-5xl font-bold tracking-tighter mb-4 leading-tight">
-            How I Built FinanceTracker:<br />
+            How I Built Fintrak:<br />
             <span className="text-text-secondary">From Zero to Production</span>
           </h1>
           <p className="text-lg text-text-secondary leading-relaxed">
@@ -106,7 +106,7 @@ export default function EngineeringBlog() {
               Most personal finance apps are either too bloated with features you don&apos;t need, require connecting bank accounts (security risk), or are locked behind expensive subscriptions. I wanted something that&apos;s fast, manual-entry focused, privacy-first, and actually enjoyable to use.
             </p>
             <p className="text-text-secondary leading-relaxed">
-              The goal: build a production-ready finance tracker that handles everything — multi-account management, categorized transactions, budgets, recurring bills — with a beautiful UI and enterprise-grade reliability.
+              The goal: build a production-ready finance app that handles everything — multi-account management, categorized transactions, budgets, recurring bills — with a beautiful UI and enterprise-grade reliability.
             </p>
           </motion.section>
 
@@ -456,7 +456,7 @@ COMMIT;
       {/* Footer */}
       <footer className="border-t border-border py-8">
         <div className="container mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
-          <p className="text-xs text-text-secondary">&copy; 2026 FinanceTracker. Built by Aman Shankar Singh.</p>
+          <p className="text-xs text-text-secondary">&copy; 2026 Fintrak. Built by Aman Shankar Singh.</p>
           <div className="flex gap-4">
             <Link href="/" className="text-xs text-text-secondary hover:text-text-primary transition-colors">Home</Link>
             <Link href="/terms" className="text-xs text-text-secondary hover:text-text-primary transition-colors">Terms</Link>

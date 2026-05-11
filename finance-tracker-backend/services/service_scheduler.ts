@@ -1,5 +1,5 @@
 import cron from 'node-cron';
-import { supabase } from '../config/supabase';
+import { supabaseAdmin } from '../config/supabase';
 import redisClient, { getRedisReady } from '../config/redisClient';
 import { sendEmail, billReminderTemplate, recurringTransactionTemplate, budgetExceededTemplate } from './service_email';
 import { createTransaction } from './service_transactions';
@@ -25,7 +25,7 @@ async function processBillReminders() {
 
   // Find upcoming bill instances where reminder window is today
   // due_date - reminder_days_before <= today AND status = 'upcoming'
-  const { data: upcomingInstances, error } = await supabase
+  const { data: upcomingInstances, error } = await supabaseAdmin
     .from('bill_instances')
     .select(`
       id, due_date, amount, status, bill_id,
@@ -52,7 +52,7 @@ async function processBillReminders() {
     if (reminderDateStr !== today) continue;
 
     // Get client settings & email
-    const { data: client } = await supabase
+    const { data: client } = await supabaseAdmin
       .from('clients')
       .select('email')
       .eq('id', bill.client_id)
@@ -60,7 +60,7 @@ async function processBillReminders() {
 
     if (!client?.email) continue;
 
-    const { data: settings } = await supabase
+    const { data: settings } = await supabaseAdmin
       .from('client_settings')
       .select('notify_bills, currency')
       .eq('client_id', bill.client_id)
@@ -87,7 +87,7 @@ async function processRecurringTransactions() {
   const today = new Date().toISOString().split('T')[0];
 
   // Find bill instances that are due today and still 'upcoming'
-  const { data: dueInstances, error } = await supabase
+  const { data: dueInstances, error } = await supabaseAdmin
     .from('bill_instances')
     .select(`
       id, due_date, amount, status, bill_id,
@@ -124,7 +124,7 @@ async function processRecurringTransactions() {
       }
 
       // Mark instance as paid
-      await supabase
+      await supabaseAdmin
         .from('bill_instances')
         .update({ status: 'paid', paid_at: new Date().toISOString() })
         .eq('id', instance.id);
@@ -139,7 +139,7 @@ async function processRecurringTransactions() {
       }
 
       // Send notification email
-      const { data: client } = await supabase
+      const { data: client } = await supabaseAdmin
         .from('clients')
         .select('email')
         .eq('id', bill.client_id)
@@ -147,7 +147,7 @@ async function processRecurringTransactions() {
 
       if (!client?.email) continue;
 
-      const { data: settings } = await supabase
+      const { data: settings } = await supabaseAdmin
         .from('client_settings')
         .select('notify_recurring, currency')
         .eq('client_id', bill.client_id)
@@ -175,7 +175,7 @@ async function processRecurringTransactions() {
 
 async function processBudgetAlerts() {
   // Get all active budgets with their spending
-  const { data: budgets, error } = await supabase
+  const { data: budgets, error } = await supabaseAdmin
     .from('budgets')
     .select('id, client_id, category_id, amount, name')
     .eq('is_active', true);
@@ -191,7 +191,7 @@ async function processBudgetAlerts() {
 
   for (const budget of budgets) {
     // Sum expenses for this category this month
-    const { data: txData, error: txError } = await supabase
+    const { data: txData, error: txError } = await supabaseAdmin
       .from('transactions')
       .select('amount')
       .eq('client_id', budget.client_id)
@@ -215,7 +215,7 @@ async function processBudgetAlerts() {
     }
 
     // Get client settings & email
-    const { data: client } = await supabase
+    const { data: client } = await supabaseAdmin
       .from('clients')
       .select('email')
       .eq('id', budget.client_id)
@@ -223,7 +223,7 @@ async function processBudgetAlerts() {
 
     if (!client?.email) continue;
 
-    const { data: settings } = await supabase
+    const { data: settings } = await supabaseAdmin
       .from('client_settings')
       .select('notify_budgets, currency')
       .eq('client_id', budget.client_id)
@@ -232,7 +232,7 @@ async function processBudgetAlerts() {
     if (!settings?.notify_budgets) continue;
 
     // Get category name
-    const { data: category } = await supabase
+    const { data: category } = await supabaseAdmin
       .from('system_categories')
       .select('name')
       .eq('id', budget.category_id)
@@ -262,7 +262,7 @@ async function processBudgetAlerts() {
 async function markOverdueInstances() {
   const today = new Date().toISOString().split('T')[0];
 
-  const { error } = await supabase
+  const { error } = await supabaseAdmin
     .from('bill_instances')
     .update({ status: 'overdue' })
     .eq('status', 'upcoming')

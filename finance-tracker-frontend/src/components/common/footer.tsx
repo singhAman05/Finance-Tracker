@@ -13,7 +13,7 @@ export default function Footer() {
         <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4 text-text-secondary">
           <div className="font-bold flex items-center gap-2 text-text-primary tracking-tight">
             <Activity className="h-4 w-4 text-primary" />
-            Finance Tracker
+            Fintrak
           </div>
           <span className="hidden md:inline text-border">•</span>
           <span className="text-xs">&copy; {currentYear} All rights reserved.</span>

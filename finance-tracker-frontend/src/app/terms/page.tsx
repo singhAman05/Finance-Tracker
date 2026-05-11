@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { motion } from "framer-motion";
-import { ArrowRight, Wallet } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 const fadeUp = {
   hidden: { opacity: 0, y: 24 },
@@ -31,9 +32,7 @@ export default function TermsOfService() {
           </Link>
 
           <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 gradient-primary rounded-xl flex items-center justify-center">
-              <Wallet className="w-5 h-5 text-white" />
-            </div>
+            <Image src="/icon.svg" alt="Fintrak logo" width={40} height={40} className="w-10 h-10 rounded-xl" />
             <h1 className="text-3xl md:text-4xl font-bold tracking-tighter">Terms of Service</h1>
           </div>
 
@@ -43,14 +42,14 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-lg font-bold text-text-primary mb-3">1. Acceptance of Terms</h2>
               <p>
-                By accessing or using FinanceTracker (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
+                By accessing or using Fintrak (&quot;the Service&quot;), you agree to be bound by these Terms of Service. If you do not agree to these terms, please do not use the Service.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-text-primary mb-3">2. Description of Service</h2>
               <p>
-                FinanceTracker is a personal financial management application that allows users to track income, expenses, budgets, and bills. The Service is provided &quot;as is&quot; for personal, non-commercial use.
+                Fintrak is a personal financial management application that allows users to track income, expenses, budgets, and bills. The Service is provided &quot;as is&quot; for personal, non-commercial use.
               </p>
             </section>
 
@@ -94,14 +93,14 @@ export default function TermsOfService() {
             <section>
               <h2 className="text-lg font-bold text-text-primary mb-3">7. Intellectual Property</h2>
               <p>
-                All content, design, code, and branding of FinanceTracker are owned by us. You may not reproduce, distribute, or create derivative works without prior written consent.
+                All content, design, code, and branding of Fintrak are owned by us. You may not reproduce, distribute, or create derivative works without prior written consent.
               </p>
             </section>
 
             <section>
               <h2 className="text-lg font-bold text-text-primary mb-3">8. Limitation of Liability</h2>
               <p>
-                FinanceTracker is a tracking tool and does not provide financial advice. We are not liable for any financial decisions made based on data displayed in the Service. The Service is provided without warranties of any kind.
+                Fintrak is a tracking tool and does not provide financial advice. We are not liable for any financial decisions made based on data displayed in the Service. The Service is provided without warranties of any kind.
               </p>
             </section>
 

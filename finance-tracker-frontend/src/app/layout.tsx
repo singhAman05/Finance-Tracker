@@ -13,8 +13,13 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Finance Tracker — Personal Finance Management",
+  title: "Fintrak — Personal Finance Management",
   description: "Track your income, expenses, budgets, and bills in one place. Smart financial management for everyone.",
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/icon.svg", type: "image/svg+xml" }],
+  },
 };
 
 import { RootModal } from "@/components/modals/root-modal";

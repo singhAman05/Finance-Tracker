@@ -13,7 +13,7 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const FROM_ADDRESS = process.env.SMTP_FROM || 'Finance Tracker <noreply@financetracker.app>';
+const FROM_ADDRESS = process.env.SMTP_FROM || 'Fintrak <noreply@fintrak.app>';
 
 export interface EmailOptions {
   to: string;

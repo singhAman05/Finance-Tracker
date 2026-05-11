@@ -40,6 +40,12 @@ function redirectToLogin() {
 
 export const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+/** Read the CSRF token stored during login (cross-origin safe) */
+function getCsrfToken(): string | undefined {
+    if (typeof window === "undefined") return undefined;
+    return sessionStorage.getItem("csrf_token") ?? undefined;
+}
+
 export async function apiClient<T = any>(
     path: string,
     options: RequestInit = {}
@@ -48,11 +54,19 @@ export async function apiClient<T = any>(
         const { headers: userHeaders, ...rest } = options;
         const url = new URL(path, baseUrl).toString();
 
+        // Attach CSRF token for state-changing requests (double-submit cookie pattern)
+        const csrfToken = getCsrfToken();
+        const csrfHeaders: Record<string, string> = {};
+        if (csrfToken) {
+            csrfHeaders["X-CSRF-Token"] = csrfToken;
+        }
+
         const response = await fetch(url, {
             ...rest,
             credentials: "include",
             headers: {
                 "Content-Type": "application/json",
+                ...csrfHeaders,
                 ...userHeaders,
             },
         });
@@ -81,8 +95,24 @@ export async function apiClient<T = any>(
             }
 
             if (status === 403) {
+                const msg = errorData.message || "Forbidden";
+                const isCsrf = msg.toLowerCase().includes("csrf");
+
+                if (isCsrf) {
+                    // CSRF token missing/invalid — need fresh login to get a new one
+                    error = {
+                        message: "Session security token expired. Please log in again.",
+                        status,
+                        type: "AUTH",
+                    };
+                    notifyApiError(error);
+                    sessionStorage.removeItem("csrf_token");
+                    redirectToLogin();
+                    return { result: null, error };
+                }
+
                 error = {
-                    message: errorData.message || "Forbidden",
+                    message: msg,
                     status,
                     type: "AUTH",
                 };

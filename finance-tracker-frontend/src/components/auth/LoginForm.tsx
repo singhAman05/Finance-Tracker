@@ -1,11 +1,12 @@
 "use client";
 
-import { useState, forwardRef } from "react";
+import { useState, useEffect, forwardRef } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useDispatch } from "react-redux";
 import type { AppDispatch } from "@/app/store";
-import { Wallet, ArrowRight, Loader, ChevronRight, HelpCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { ArrowRight, Loader, ChevronRight, HelpCircle } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
 import { loginService, loginWithGoogle } from "@/service/service_auth";
@@ -41,6 +42,53 @@ const fadeUp = {
   visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] as const } },
 };
 
+const COLD_START_MESSAGES = [
+  "Waking up the server... free tier life 😴",
+  "Stretching... cold starts take a moment",
+  "Brewing some coffee for the server ☕",
+  "Server was napping, almost there...",
+  "Free tier is always fashionably late 💅",
+  "Spinning up the hamster wheel 🐹",
+  "Convincing the server it's morning...",
+  "Loading... patience is a virtue (and free)",
+  "Server's doing its morning yoga 🧘",
+  "Almost there... Render free tier things",
+  "Warming up the engines... hang tight 🚀",
+  "The server had to find its keys first 🔑",
+  "Good things come to those who wait...",
+  "First request of the day hits different",
+];
+
+function useColdStartMessages(isLoading: boolean) {
+  const [messageIndex, setMessageIndex] = useState(0);
+  const [showMessages, setShowMessages] = useState(false);
+
+  useEffect(() => {
+    if (!isLoading) {
+      setShowMessages(false);
+      setMessageIndex(0);
+      return;
+    }
+
+    // Show messages after 3 seconds of loading
+    const delayTimer = setTimeout(() => setShowMessages(true), 3000);
+
+    return () => clearTimeout(delayTimer);
+  }, [isLoading]);
+
+  useEffect(() => {
+    if (!showMessages) return;
+
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % COLD_START_MESSAGES.length);
+    }, 3500);
+
+    return () => clearInterval(interval);
+  }, [showMessages]);
+
+  return showMessages ? COLD_START_MESSAGES[messageIndex] : null;
+}
+
 export default function AuthForm() {
   const dispatch = useDispatch<AppDispatch>();
   const router = useRouter();
@@ -49,6 +97,8 @@ export default function AuthForm() {
   );
   const [phone, setPhone] = useState<Value>();
   const [error, setError] = useState("");
+
+  const coldStartMessage = useColdStartMessages(loadingType !== null);
 
   const handlePhoneLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -112,9 +162,7 @@ export default function AuthForm() {
             {/* Brand Header */}
             <motion.div variants={fadeUp} className="flex flex-col items-center mb-10">
               <div className="mb-6">
-                <div className="w-12 h-12 gradient-primary rounded-xl flex items-center justify-center shadow-elevated">
-                  <Wallet className="w-5 h-5 text-white" />
-                </div>
+                <Image src="/icon.svg" alt="Fintrak logo" width={48} height={48} className="w-12 h-12 rounded-xl shadow-elevated" />
               </div>
 
               <div className="text-center space-y-1.5">
@@ -125,6 +173,38 @@ export default function AuthForm() {
                   Sign in to your account to continue
                 </p>
               </div>
+
+              {/* Cold-start loading messages */}
+              <AnimatePresence>
+                {coldStartMessage && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -8 }}
+                    className="mt-4"
+                  >
+                    <div className="inline-flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-border bg-muted/50">
+                      <div className="flex gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:0ms]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:150ms]" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-bounce [animation-delay:300ms]" />
+                      </div>
+                      <AnimatePresence mode="wait">
+                        <motion.p
+                          key={coldStartMessage}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.25 }}
+                          className="text-xs font-medium text-text-secondary"
+                        >
+                          {coldStartMessage}
+                        </motion.p>
+                      </AnimatePresence>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </motion.div>
 
             {/* Phone Login Form */}

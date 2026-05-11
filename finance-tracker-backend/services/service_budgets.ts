@@ -1,4 +1,4 @@
-import { supabase } from "../config/supabase";
+import { supabaseAdmin } from "../config/supabase";
 
 export type NewBudgetPayload = {
     client_id: string;
@@ -12,7 +12,7 @@ export type NewBudgetPayload = {
 };
 
 export const createBudget = async (payload: NewBudgetPayload) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from("budgets")
         .insert({
             client_id: payload.client_id,
@@ -59,7 +59,7 @@ export const fetchBudgets = async (
       created_at
     `;
 
-    let query = supabase
+    let query = supabaseAdmin
         .from("budgets")
         .select(selectCols, { count: 'exact' })
         .eq("client_id", client_id)
@@ -77,7 +77,7 @@ export const deleteBudget = async (
     budget_id: string,
     client_id: string
 ) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from("budgets")
         .delete()
         .eq("id", budget_id)
@@ -93,7 +93,7 @@ export const updateBudget = async (
     client_id: string,
     updates: Partial<Omit<NewBudgetPayload, "client_id">> & { is_active?: boolean }
 ) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from("budgets")
         .update({
             ...updates,
@@ -108,7 +108,7 @@ export const updateBudget = async (
 };
 
 export const fetchBudgetSummary = async (client_id: string) => {
-    const { data, error } = await supabase.rpc("get_budget_summary", {
+    const { data, error } = await supabaseAdmin.rpc("get_budget_summary", {
         p_client_id: client_id,
     });
 
