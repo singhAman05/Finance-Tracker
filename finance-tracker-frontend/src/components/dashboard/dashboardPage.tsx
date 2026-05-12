@@ -406,7 +406,7 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden">
+    <div className="min-h-screen bg-background text-text-primary relative overflow-hidden px-4 py-6 sm:px-6 md:px-8 lg:px-12 md:py-8">
       {/* Background Pattern */}
       <div
         className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none"

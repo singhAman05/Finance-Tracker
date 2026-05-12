@@ -1,51 +1,52 @@
 # Finance Tracker
 
-Finance Tracker is a full-stack personal finance platform designed to help people manage money with clarity, consistency, and control.
+Finance Tracker is a full-stack personal finance web app focused on clarity, control, and consistency.
 
-It combines a modern frontend experience with a scalable backend foundation so users can track day-to-day spending, monitor account health, plan budgets, and stay ahead of bills from one place.
+It helps users manage accounts, track spending, monitor budgets, and stay ahead of recurring bills with a clean, fast, mobile-friendly experience.
 
-## Why this project exists
+## Product Highlights
 
-Most finance apps either feel too basic or too complex. Finance Tracker is built to stay in the middle:
+- Unified dashboard for net worth, cash flow, budgets, and bills
+- Transaction tracking with filters, categories, and account-level context
+- Budget planning with utilization insights and over-spend alerts
+- Bill lifecycle support (upcoming, overdue, paid)
+- Reports for trends, category mix, account performance, and exports
+- Secure authentication (Google OAuth + backend auth controls)
+- Automated scheduler for reminders and budget alerts
 
-- Simple enough to use every day.
-- Powerful enough to give meaningful financial insight.
-- Structured enough to scale into a complete money operating system.
+## Website Experience
 
-## What Finance Tracker does well
+The website is designed as a real product, not just a demo:
 
-- Unified financial visibility across accounts, transactions, budgets, and bills.
-- Clear dashboard and reporting workflows for monthly trends and spending patterns.
-- Practical budgeting and bill tracking for real-world financial planning.
-- Clean, modern UI built for both desktop and mobile use.
-- Modular architecture that supports fast iteration and future expansion.
+- Marketing + product pages for onboarding and trust
+- Auth flow and guided profile completion
+- Fully responsive dashboard UX across desktop and mobile
+- Engineering blog and direct feedback pipeline
 
-## Current capabilities
+### Main Routes
 
-- Secure authentication and onboarding flows.
-- Account management for multiple account types.
-- Income and expense transaction tracking.
-- Category-based financial organization.
-- Budget setup, monitoring, and summary tracking.
-- Bill management with recurring behavior support.
-- Dashboard + reports for financial insights.
-- Performance-minded caching in core backend flows.
-- Rate limiting implemented in the backend for better API protection and abuse control.
+- `/` - Product landing page
+- `/login` - Authentication
+- `/dashboard` - Financial command center
+- `/dashboard/transactions` - Transaction management
+- `/dashboard/budgets` - Budget planning and health
+- `/dashboard/bills` - Bill tracking and payments
+- `/dashboard/reports` - Financial insights and exports
+- `/blog/engineering` - Build journey + feedback form
 
-## Tech stack
+## Tech Stack
 
-- Frontend: Next.js, React, Redux Toolkit, Tailwind CSS, Radix UI, NextAuth
-- Backend: Express, TypeScript, Supabase, Redis
-- Repository: Monorepo with separate frontend and backend applications
+- Frontend: Next.js 15, React 19, TypeScript, Redux Toolkit, Tailwind CSS, Framer Motion, Recharts
+- Backend: Express, TypeScript, Supabase (Postgres), Redis, Nodemailer, node-cron
+- Monorepo: separate frontend and backend apps in one repository
 
-## Project structure
+## Repository Structure
 
 ```text
 .
 |-- finance-tracker-backend/
 |   |-- config/
 |   |-- controllers/
-|   |-- database/
 |   |-- middleware/
 |   |-- routes/
 |   |-- services/
@@ -53,13 +54,12 @@ Most finance apps either feel too basic or too complex. Finance Tracker is built
 |-- finance-tracker-frontend/
 |   |-- src/app/
 |   |-- src/components/
-|   |-- src/routes/
 |   |-- src/service/
-|   `-- src/types/
-`-- design.drawio
+|   `-- src/routes/
+`-- README.md
 ```
 
-## Local setup
+## Local Setup
 
 ### Prerequisites
 
@@ -69,45 +69,59 @@ Most finance apps either feel too basic or too complex. Finance Tracker is built
 ### Install
 
 ```bash
-npm install
 npm --prefix finance-tracker-backend install
 npm --prefix finance-tracker-frontend install
 ```
 
-### Run backend
+### Run Backend
 
 ```bash
 cd finance-tracker-backend
 npx ts-node-dev --respawn --transpile-only server.ts
 ```
 
-### Run frontend
+### Run Frontend
 
 ```bash
 cd finance-tracker-frontend
 npm run dev
 ```
 
-## Environment notes
+## Environment Configuration
 
-For local auth-related flows, configure required frontend environment variables (for example in `.env.local`) such as:
+### Backend (`finance-tracker-backend/.env`)
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `NEXTAUTH_SECRET`
-- `NEXTAUTH_URL`
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM="Finance Tracker <your-email@gmail.com>"
+```
 
-## What to expect next
+### Frontend (`finance-tracker-frontend/.env.local`)
 
-Finance Tracker is under active development. Upcoming improvements are focused on:
+```env
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-app-password
+SMTP_FROM="FinanceTracker Feedback <your-email@gmail.com>"
+FEEDBACK_TO_EMAIL=you@example.com
 
-- smarter analytics and forecasting
-- richer monthly/weekly financial insights
-- better personalization of dashboard cards
-- stronger notification and reminder workflows
-- more automation around recurring bills and budget alerts
-- continued security hardening and performance optimization
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=http://localhost:3000
+```
 
-## Vision
+## Current Status
 
-Finance Tracker is being built as a reliable daily companion for personal finance, not just a transaction logger. The goal is to help users understand money behavior, make better financial decisions, and build long-term financial confidence.
+Finance Tracker is actively evolving with a production-oriented roadmap:
+
+- richer forecasting and decision-support insights
+- deeper automation for recurring finance workflows
+- broader customization for dashboard and reports
+- continued performance and security hardening
