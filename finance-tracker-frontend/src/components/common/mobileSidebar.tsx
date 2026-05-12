@@ -71,7 +71,7 @@ export function MobileSidebar({ onClose }: { onClose: () => void }) {
 
   return (
     <>
-      <div className="flex flex-col h-full w-72 bg-card text-text-primary shadow-2xl">
+      <div className="flex flex-col h-dvh w-[min(20rem,88vw)] bg-card text-text-primary shadow-2xl">
         {/* Header */}
         <div className="p-5 border-b border-border/50">
           <div className="flex items-center justify-between">

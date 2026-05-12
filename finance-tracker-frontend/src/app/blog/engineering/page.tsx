@@ -61,7 +61,7 @@ export default function EngineeringBlog() {
     <div className="min-h-screen bg-background text-text-primary">
       {/* Header */}
       <header className="border-b border-border sticky top-0 z-50 bg-background/80 glass">
-        <div className="container mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 py-4 flex items-center justify-between gap-3">
           <Link href="/" className="flex items-center gap-2 text-sm font-medium hover:text-primary transition-colors">
             <ArrowLeft className="w-4 h-4" />
             Back to Home
@@ -71,7 +71,7 @@ export default function EngineeringBlog() {
       </header>
 
       {/* Hero */}
-      <section className="container mx-auto px-6 pt-16 pb-12">
+      <section className="container mx-auto px-4 sm:px-6 pt-12 sm:pt-16 pb-10 sm:pb-12">
         <motion.div initial="hidden" animate="visible" variants={fadeUp} className="max-w-3xl">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
@@ -93,7 +93,7 @@ export default function EngineeringBlog() {
       </section>
 
       {/* Content */}
-      <article className="container mx-auto px-6 pb-16">
+      <article className="container mx-auto px-4 sm:px-6 pb-14 sm:pb-16">
         <div className="max-w-3xl space-y-16">
 
           {/* Section 1: The Problem */}
@@ -357,7 +357,7 @@ COMMIT;
               </motion.div>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <label htmlFor="name" className="block text-xs font-medium mb-1.5 text-text-secondary">
                       Name *
@@ -393,7 +393,7 @@ COMMIT;
                   <label className="block text-xs font-medium mb-1.5 text-text-secondary">
                     Rating (optional)
                   </label>
-                  <div className="flex gap-1">
+                  <div className="flex flex-wrap gap-1.5">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
                         key={star}
@@ -433,7 +433,7 @@ COMMIT;
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-6 py-3 rounded-lg gradient-primary text-white font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 cursor-pointer"
+                  className="w-full sm:w-auto px-6 py-3 rounded-lg gradient-primary text-white font-medium text-sm hover:opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
                 >
                   {submitting ? (
                     <>
@@ -455,7 +455,7 @@ COMMIT;
 
       {/* Footer */}
       <footer className="border-t border-border py-8">
-        <div className="container mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="container mx-auto px-4 sm:px-6 flex flex-col sm:flex-row justify-between items-center gap-4">
           <p className="text-xs text-text-secondary">&copy; 2026 Fintrak. Built by Aman Shankar Singh.</p>
           <div className="flex gap-4">
             <Link href="/" className="text-xs text-text-secondary hover:text-text-primary transition-colors">Home</Link>

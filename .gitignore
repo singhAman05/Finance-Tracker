@@ -11,3 +11,12 @@ finance-tracker-backend/backend_audit_report.md.resolved
 finance-tracker-frontend/frontend_audit_report.md.resolved
 package-lock.json
 package.json
+
+# Local reports / audits / scratch docs
+*audit*.md
+*.resolved
+design.drawio
+
+# Build and cache artifacts
+**/*.tsbuildinfo
+.DS_Store

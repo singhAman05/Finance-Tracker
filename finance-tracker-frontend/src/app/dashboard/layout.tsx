@@ -39,6 +39,15 @@ export default function DashboardLayout({
     setIsHydrated(true);
   }, []);
 
+  useEffect(() => {
+    if (!isMobileOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isMobileOpen]);
+
   // Auth guard
   useEffect(() => {
     if (isHydrated && !isAuthenticated) {
@@ -132,7 +141,7 @@ export default function DashboardLayout({
 
       {/* Mobile Sidebar Overlay */}
       {isMobileOpen && (
-        <div className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm">
+        <div className="fixed inset-0 z-40 bg-black/50 md:hidden backdrop-blur-sm overflow-y-auto">
           <MobileSidebar onClose={() => setMobileOpen(false)} />
         </div>
       )}
