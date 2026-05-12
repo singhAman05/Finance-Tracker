@@ -471,3 +471,43 @@ export const exportJson = (filename: string, payload: unknown) => {
   const json = JSON.stringify(payload, null, 2);
   downloadBlob(new Blob([json], { type: "application/json;charset=utf-8;" }), filename);
 };
+
+export interface WorkbookSheet {
+  name: string;
+  headers: string[];
+  rows: Array<Array<string | number | boolean | null | undefined>>;
+}
+
+const sanitizeForSheet = (value: string) => (/^[=+\-@]/.test(value) ? `'${value}` : value);
+
+export const exportWorkbook = async (filename: string, sheets: WorkbookSheet[]) => {
+  if (sheets.length === 0) return;
+
+  const XLSX = await import("xlsx");
+  const workbook = XLSX.utils.book_new();
+
+  sheets.forEach((sheet) => {
+    const matrix: Array<Array<string | number | boolean>> = [
+      sheet.headers,
+      ...sheet.rows.map((row) =>
+        row.map((cell) => {
+          if (cell === null || cell === undefined) return "";
+          if (typeof cell === "string") return sanitizeForSheet(cell);
+          return cell;
+        })
+      ),
+    ];
+
+    const worksheet = XLSX.utils.aoa_to_sheet(matrix);
+    XLSX.utils.book_append_sheet(workbook, worksheet, sheet.name.slice(0, 31));
+  });
+
+  const arrayBuffer = XLSX.write(workbook, { bookType: "xlsx", type: "array" });
+  const outputFile = filename.toLowerCase().endsWith(".xlsx") ? filename : `${filename}.xlsx`;
+  downloadBlob(
+    new Blob([arrayBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    }),
+    outputFile
+  );
+};

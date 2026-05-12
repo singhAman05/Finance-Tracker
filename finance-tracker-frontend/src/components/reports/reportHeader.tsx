@@ -15,6 +15,10 @@ interface ReportHeaderProps {
   onExportCurrent: () => void;
   onExportFullCsv: () => void;
   onExportJson: () => void;
+  isExportingCurrent: boolean;
+  isExportingFull: boolean;
+  isExportingJson: boolean;
+  showJsonExport: boolean;
 }
 
 export default function ReportHeader({
@@ -27,7 +31,13 @@ export default function ReportHeader({
   onExportCurrent,
   onExportFullCsv,
   onExportJson,
+  isExportingCurrent,
+  isExportingFull,
+  isExportingJson,
+  showJsonExport,
 }: ReportHeaderProps) {
+  const isAnyExporting = isExportingCurrent || isExportingFull || isExportingJson;
+
   return (
     <div className="rounded-xl border border-border bg-card p-4 md:p-5">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -55,20 +65,22 @@ export default function ReportHeader({
             Refresh
           </Button>
 
-          <Button variant="outline" onClick={onExportCurrent} className="rounded-full">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
-            Export Current
+          <Button variant="outline" onClick={onExportCurrent} className="rounded-full" disabled={isAnyExporting}>
+            <FileSpreadsheet className={`h-4 w-4 mr-2 ${isExportingCurrent ? "animate-spin" : ""}`} />
+            {isExportingCurrent ? "Downloading..." : "Export Current CSV"}
           </Button>
 
-          <Button variant="outline" onClick={onExportFullCsv} className="rounded-full">
-            <Download className="h-4 w-4 mr-2" />
-            Export Full CSV
+          <Button variant="outline" onClick={onExportFullCsv} className="rounded-full" disabled={isAnyExporting}>
+            <Download className={`h-4 w-4 mr-2 ${isExportingFull ? "animate-spin" : ""}`} />
+            {isExportingFull ? "Downloading..." : "Export Full (Excel)"}
           </Button>
 
-          <Button variant="outline" onClick={onExportJson} className="rounded-full">
-            <FileJson className="h-4 w-4 mr-2" />
-            Export JSON
-          </Button>
+          {showJsonExport && (
+            <Button variant="outline" onClick={onExportJson} className="rounded-full" disabled={isAnyExporting}>
+              <FileJson className={`h-4 w-4 mr-2 ${isExportingJson ? "animate-spin" : ""}`} />
+              {isExportingJson ? "Downloading..." : "Export JSON (Dev)"}
+            </Button>
+          )}
         </div>
       </div>
     </div>
