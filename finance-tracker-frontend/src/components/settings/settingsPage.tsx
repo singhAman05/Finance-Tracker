@@ -20,6 +20,8 @@ export default function SettingsPage() {
   const router = useRouter();
   const { settings, loading } = useSelector((state: RootState) => state.settings);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingJson, setIsExportingJson] = useState(false);
+  const isDevMode = process.env.NODE_ENV === "development";
 
   // Debounce timer ref to batch rapid changes
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -80,24 +82,28 @@ export default function SettingsPage() {
     };
   }, [flushUpdates]);
 
-  const handleExportCSV = () => {
-    exportAllData()
-      .then((res) => {
-        const payload = res?.data ?? res;
-        const fileName = `finance-tracker-export-${new Date().toISOString().slice(0, 10)}.json`;
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-      })
-      .catch(() => {
-        dispatch(setError("Failed to export data"));
-      });
+  const handleExportCSV = async () => {
+    if (!isDevMode) return;
+
+    setIsExportingJson(true);
+    try {
+      const res = await exportAllData();
+      const payload = res?.data ?? res;
+      const fileName = `fintrak-export-${new Date().toISOString().slice(0, 10)}.json`;
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch {
+      dispatch(setError("Failed to export data"));
+    } finally {
+      setIsExportingJson(false);
+    }
   };
 
   const handleClearHistory = () => {
@@ -330,18 +336,23 @@ export default function SettingsPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-6 space-y-3">
-                  <button
-                    onClick={handleExportCSV}
-                    className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border hover:bg-muted/50 hover:border-primary/30 transition-all group cursor-pointer text-left"
-                  >
-                    <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
-                      <Download className="h-4 w-4 text-primary" />
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-text-primary">Export Data</h4>
-                      <p className="text-xs text-text-secondary mt-0.5">Download all history as JSON</p>
-                    </div>
-                  </button>
+                  {isDevMode && (
+                    <button
+                      onClick={handleExportCSV}
+                      disabled={isExportingJson}
+                      className="w-full flex items-center gap-3 p-4 rounded-2xl border border-border hover:bg-muted/50 hover:border-primary/30 transition-all group cursor-pointer text-left disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0 group-hover:bg-primary/15 transition-colors">
+                        <Download className={cn("h-4 w-4 text-primary", isExportingJson && "animate-spin")} />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-sm text-text-primary">
+                          {isExportingJson ? "Downloading JSON..." : "Export Full JSON (Dev)"}
+                        </h4>
+                        <p className="text-xs text-text-secondary mt-0.5">Developer-only full data export</p>
+                      </div>
+                    </button>
+                  )}
 
                   <button
                     onClick={handleClearHistory}

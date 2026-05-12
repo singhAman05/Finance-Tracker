@@ -35,6 +35,7 @@ import {
   calculateKpis,
   exportCsv,
   exportJson,
+  exportWorkbook,
   getAccountInsights,
   getBudgetInsights,
   getCategoryInsights,
@@ -78,6 +79,11 @@ export default function ReportPage() {
   const [horizonDays, setHorizonDays] = useState(90);
   const [activeTab, setActiveTab] = useState("overview");
   const [lastHydratedAt, setLastHydratedAt] = useState(0);
+  const [isExportingCurrent, setIsExportingCurrent] = useState(false);
+  const [isExportingFull, setIsExportingFull] = useState(false);
+  const [isExportingJson, setIsExportingJson] = useState(false);
+
+  const isDevMode = process.env.NODE_ENV === "development";
 
   const accountLookup = useMemo(
     () => accounts.reduce((map, acc) => ({ ...map, [acc.id]: acc }), {} as Record<string, any>),
@@ -190,96 +196,241 @@ export default function ReportPage() {
     [accounts, periodTransactions]
   );
 
-  const exportCurrent = () => {
-    const date = new Date().toISOString().slice(0, 10);
-    if (activeTab === "categories") {
-      exportCsv(
-        `report-categories-${date}.csv`,
-        ["Category", "Income", "Expense", "Net", "Share(%)", "TxCount"],
-        categoryData.map((r) => [r.name, r.income, r.expenses, r.net, r.shareOfExpense.toFixed(2), r.txCount])
-      );
-      return;
-    }
-
-    if (activeTab === "accounts") {
-      exportCsv(
-        `report-accounts-${date}.csv`,
-        ["Account", "Bank", "Income", "Expense", "Net", "Balance", "TxCount"],
-        accountData.map((r) => [r.name, r.bankName, r.income, r.expenses, r.net, r.balance, r.txCount])
-      );
-      return;
-    }
-
-    if (activeTab === "budgets") {
-      exportCsv(
-        `report-budgets-${date}.csv`,
-        ["Category", "Budget", "Spent", "Remaining", "Usage(%)", "Health"],
-        budgetData.map((r) => [
-          r.category_name,
-          r.budget_amount,
-          r.total_spent,
-          r.remaining,
-          r.percentage_used.toFixed(2),
-          r.health,
-        ])
-      );
-      return;
-    }
-
-    if (activeTab === "transactions") {
-      exportCsv(
-        `report-transactions-${date}.csv`,
-        ["Date", "Type", "Category", "Account", "Amount", "Description"],
-        periodTransactions.map((r) => [
-          String(r.date),
-          r.type || "expense",
-          categoryLookup[r.category_id]?.name || "Unknown",
-          accountLookup[r.account_id]?.name || "Unknown",
-          r.amount,
-          r.description || "",
-        ])
-      );
-      return;
-    }
-
-    exportCsv(
-      `report-monthly-${date}.csv`,
-      ["Month", "Income", "Expenses", "Net"],
-      monthlyData.map((r) => [r.month, r.income, r.expenses, r.net])
-    );
+  const formatMoM = (current: number, previous: number) => {
+    if (previous === 0) return "n/a";
+    return `${(((current - previous) / Math.abs(previous)) * 100).toFixed(2)}%`;
   };
 
-  const exportFullCsv = () => {
-    const date = new Date().toISOString().slice(0, 10);
-    exportCsv(
-      `report-full-${date}.csv`,
-      ["Section", "Name", "Value1", "Value2", "Value3", "Value4"],
-      [
-        ["kpi", "total_balance", kpis.totalBalance, "", "", ""],
-        ["kpi", "income", kpis.totalIncome, "", "", ""],
-        ["kpi", "expenses", kpis.totalExpenses, "", "", ""],
-        ...monthlyData.map((m) => ["monthly", m.month, m.income, m.expenses, m.net, ""]),
-        ...categoryData.map((c) => ["category", c.name, c.income, c.expenses, c.net, c.txCount]),
-        ...accountData.map((a) => ["account", a.name, a.income, a.expenses, a.net, a.balance]),
-        ...budgetData.map((b) => ["budget", b.category_name, b.budget_amount, b.total_spent, b.remaining, b.percentage_used]),
-      ]
-    );
+  const buildOverviewRows = () => {
+    const topCategories = [...categoryData].sort((a, b) => b.expenses - a.expenses).slice(0, 5);
+    const budgetAlerts = budgetData.filter((b) => Number(b.percentage_used) >= 90);
+
+    return [
+      ["Total Balance", kpis.totalBalance, ""],
+      ["Total Income", kpis.totalIncome, ""],
+      ["Total Expenses", kpis.totalExpenses, ""],
+      ["Net Cash Flow", kpis.netCashFlow, ""],
+      ["Savings Rate", kpis.savingsRate ?? "n/a", "%"],
+      ["Burn Rate Weekly", kpis.burnRateWeekly, ""],
+      ["Runway Days", kpis.runwayDays ?? "n/a", "days"],
+      ["Net Trend Percent", kpis.netTrendPercent ?? "n/a", "%"],
+      ...topCategories.map((cat) => [
+        `Top Category: ${cat.name}`,
+        cat.expenses,
+        `${cat.shareOfExpense.toFixed(2)}% of total expenses`,
+      ]),
+      ...budgetAlerts.map((b) => [
+        `Budget Alert: ${b.category_name}`,
+        b.percentage_used,
+        `${b.health} (${b.total_spent}/${b.budget_amount})`,
+      ]),
+    ];
   };
 
-  const exportSnapshotJson = () => {
-    const date = new Date().toISOString().slice(0, 10);
-    exportJson(`report-snapshot-${date}.json`, {
-      period,
-      horizonDays,
-      kpis,
-      monthlyData,
-      categoryData,
-      accountData,
-      budgetData,
-      forecastData,
-      billsCount: bills.length,
-      billInstancesCount: billInstances.length,
+  const buildCashFlowRows = () =>
+    dailyData.map((row) => [
+      row.date,
+      row.income,
+      row.expenses,
+      row.income - row.expenses,
+      row.cumulative,
+    ]);
+
+  const buildTrendsRows = () =>
+    monthlyData.map((row, idx) => {
+      const previous = idx > 0 ? monthlyData[idx - 1].net : 0;
+      return [
+        row.month,
+        row.income,
+        row.expenses,
+        row.net,
+        idx > 0 ? formatMoM(row.net, previous) : "n/a",
+      ];
     });
+
+  const exportCurrent = async () => {
+    setIsExportingCurrent(true);
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      if (activeTab === "overview") {
+        exportCsv(
+          `report-overview-${date}.csv`,
+          ["Metric", "Value", "Notes"],
+          buildOverviewRows()
+        );
+        return;
+      }
+
+      if (activeTab === "cashflow") {
+        exportCsv(
+          `report-cashflow-${date}.csv`,
+          ["Date", "Income", "Expenses", "Net Flow", "Cumulative Flow"],
+          buildCashFlowRows()
+        );
+        return;
+      }
+
+      if (activeTab === "categories") {
+        exportCsv(
+          `report-categories-${date}.csv`,
+          ["Category", "Income", "Expense", "Net", "Share(%)", "TxCount"],
+          categoryData.map((r) => [r.name, r.income, r.expenses, r.net, r.shareOfExpense.toFixed(2), r.txCount])
+        );
+        return;
+      }
+
+      if (activeTab === "accounts") {
+        exportCsv(
+          `report-accounts-${date}.csv`,
+          ["Account", "Bank", "Income", "Expense", "Net", "Balance", "TxCount"],
+          accountData.map((r) => [r.name, r.bankName, r.income, r.expenses, r.net, r.balance, r.txCount])
+        );
+        return;
+      }
+
+      if (activeTab === "budgets") {
+        exportCsv(
+          `report-budgets-${date}.csv`,
+          ["Category", "Budget", "Spent", "Remaining", "Usage(%)", "Health"],
+          budgetData.map((r) => [
+            r.category_name,
+            r.budget_amount,
+            r.total_spent,
+            r.remaining,
+            r.percentage_used.toFixed(2),
+            r.health,
+          ])
+        );
+        return;
+      }
+
+      if (activeTab === "trends") {
+        exportCsv(
+          `report-trends-${date}.csv`,
+          ["Month", "Income", "Expenses", "Net", "Net MoM Change"],
+          buildTrendsRows()
+        );
+        return;
+      }
+
+      if (activeTab === "transactions") {
+        exportCsv(
+          `report-transactions-${date}.csv`,
+          ["Date", "Type", "Category", "Account", "Amount", "Description"],
+          periodTransactions.map((r) => [
+            String(r.date),
+            r.type || "expense",
+            categoryLookup[r.category_id]?.name || "Unknown",
+            accountLookup[r.account_id]?.name || "Unknown",
+            r.amount,
+            r.description || "",
+          ])
+        );
+        return;
+      }
+
+      exportCsv(
+        `report-monthly-${date}.csv`,
+        ["Month", "Income", "Expenses", "Net"],
+        monthlyData.map((r) => [r.month, r.income, r.expenses, r.net])
+      );
+    } finally {
+      setIsExportingCurrent(false);
+    }
+  };
+
+  const exportFullCsv = async () => {
+    setIsExportingFull(true);
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      await exportWorkbook(`report-full-${date}.xlsx`, [
+        {
+          name: "Overview",
+          headers: ["Metric", "Value", "Notes"],
+          rows: buildOverviewRows(),
+        },
+        {
+          name: "Cash Flow",
+          headers: ["Date", "Income", "Expenses", "Net Flow", "Cumulative Flow"],
+          rows: buildCashFlowRows(),
+        },
+        {
+          name: "Budgets",
+          headers: ["Category", "Budget", "Spent", "Remaining", "Usage(%)", "Health"],
+          rows: budgetData.map((r) => [
+            r.category_name,
+            r.budget_amount,
+            r.total_spent,
+            r.remaining,
+            Number(r.percentage_used).toFixed(2),
+            r.health,
+          ]),
+        },
+        {
+          name: "Categories",
+          headers: ["Category", "Income", "Expenses", "Net", "Share(%)", "TxCount"],
+          rows: categoryData.map((r) => [r.name, r.income, r.expenses, r.net, r.shareOfExpense.toFixed(2), r.txCount]),
+        },
+        {
+          name: "Accounts",
+          headers: ["Account", "Bank", "Income", "Expenses", "Net", "Balance", "TxCount"],
+          rows: accountData.map((r) => [r.name, r.bankName, r.income, r.expenses, r.net, r.balance, r.txCount]),
+        },
+        {
+          name: "Trends",
+          headers: ["Month", "Income", "Expenses", "Net", "Net MoM Change"],
+          rows: buildTrendsRows(),
+        },
+        {
+          name: "Transactions",
+          headers: ["Date", "Type", "Category", "Account", "Amount", "Description"],
+          rows: periodTransactions.map((r) => [
+            String(r.date),
+            r.type || "expense",
+            categoryLookup[r.category_id]?.name || "Unknown",
+            accountLookup[r.account_id]?.name || "Unknown",
+            r.amount,
+            r.description || "",
+          ]),
+        },
+        {
+          name: "Forecast",
+          headers: ["Date", "Projected Balance", "Projected Income", "Projected Expense", "Due Bills", "Confidence"],
+          rows: forecastData.map((r) => [
+            r.date,
+            r.projectedBalance,
+            r.projectedIncome,
+            r.projectedExpense,
+            r.dueBillsTotal,
+            r.confidence,
+          ]),
+        },
+      ]);
+    } finally {
+      setIsExportingFull(false);
+    }
+  };
+
+  const exportSnapshotJson = async () => {
+    if (!isDevMode) return;
+    setIsExportingJson(true);
+    try {
+      const date = new Date().toISOString().slice(0, 10);
+      exportJson(`report-snapshot-${date}.json`, {
+        period,
+        horizonDays,
+        kpis,
+        monthlyData,
+        categoryData,
+        accountData,
+        budgetData,
+        forecastData,
+        billsCount: bills.length,
+        billInstancesCount: billInstances.length,
+      });
+    } finally {
+      setIsExportingJson(false);
+    }
   };
 
   const tabs = [
@@ -313,6 +464,10 @@ export default function ReportPage() {
             onExportCurrent={exportCurrent}
             onExportFullCsv={exportFullCsv}
             onExportJson={exportSnapshotJson}
+            isExportingCurrent={isExportingCurrent}
+            isExportingFull={isExportingFull}
+            isExportingJson={isExportingJson}
+            showJsonExport={isDevMode}
           />
         </motion.div>
 
